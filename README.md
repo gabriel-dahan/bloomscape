@@ -1,62 +1,64 @@
 # 🌸 BloomScape
 
-**BloomScape** est un jeu de simulation de jardinage en ligne relaxant et stratégique. Gérez votre jardin, cultivez des espèces rares et échangez vos récoltes sur un marché dynamique au sein d'une économie fermée.
+**BloomScape** is a relaxing and strategic online gardening simulation game. Manage your garden, cultivate rare species, and trade your harvests in a dynamic market within a closed economy.
 
-## 🌟 Fonctionnalités Clés
+## 🌟 Key Features
 
-- 🌱 **Gestion de Jardin :** Plantez, arrosez et faites grandir vos fleurs en temps réel. Attention, sans soin, elles fanent !
-- 💎 **Système de Rareté :** Découvrez des espèces allant de _Commune_ à _Légendaire_ via un système de génération procédurale.
-- 💰 **Marché Joueur-contre-Joueur :** Vendez vos plus belles récoltes contre de la **Sève** (monnaie virtuelle) ou achetez les fleurs manquantes à votre collection.
-- 🏆 **Progression :** Montez de niveau pour débloquer de nouvelles graines et agrandir votre terrain.
-- 📖 **Floradéx :** Complétez votre album de collection botanique.
+- 🌱 **Garden Management:** Plant, water, and grow your flowers in real-time. Careful, without care, they wither!
+- 💎 **Rarity System:** Discover species of varying rarity, from common to legendary flowers.
+- 💰 **Player-vs-Player Market:** Sell your finest harvests for **Sap** (virtual currency) or buy missing flowers for your collection: beware, species prices can fluctuate.
+- 🏆 **Progression:** Level up to unlock new seeds and expand your land.
+- 📖 **Floradex:** Complete your botanical collection album.
 
-## 🛠 Stack Technique
+## 🛠 Tech Stack
 
-Ce projet est conçu comme une application "Fullstack TypeScript" moderne et robuste :
+This project is designed as a modern and robust "Fullstack TypeScript" application:
 
-- **Frontend :** Next.js (App Router), React, daisyUI, TailwindCSS.
-- **Backend :** Next.js API Routes + Remult (CRUD & Type-safety).
-- **Base de données :** PostgreSQL.
-- **Infrastructure :** Docker & Docker Compose.
+- **Frontend:** Next.js (App Router), React, daisyUI, TailwindCSS.
+- **Backend:** Next.js API Routes + Remult (CRUD & Type-safety).
+- **Database:** PostgreSQL.
+- **Infrastructure:** Docker & Docker Compose.
 
-## 🚀 Installation et Lancement
+## 🚀 Installation and Setup
 
-Le projet est entièrement conteneurisé. Vous n'avez besoin que de **Docker Desktop** installé sur votre machine.
+The project is fully containerized. You only need **Docker Desktop** installed on your machine.
 
-### 1. Récupérer le projet
+### 1. Clone the project
 
 ```bash
-git clone https://github.com/ton-pseudo/bloomscape.git
+git clone https://github.com/gabriel-dahan/bloomscape.git
 cd bloomscape
 ```
 
-### 2. Lancer l'environnement
+### 2. Launch the environment
 
-Lancez l'application et la base de données avec une seule commande :`
+Launch the application and the database with a single command:
 
 ```bash
 docker compose up --build
 ```
 
-_La première installation peut prendre quelques minutes._
+_The first installation may take a few minutes._
 
-### 3. Accéder au jeu
+### 3. Access the game
 
-Une fois les logs affichés, ouvrez votre navigateur :
+Once the logs are displayed, open your browser:
 
-- **Application :** http://localhost:3000
-- **Base de données (Interne) :** Port 5432
+- **Application:** http://localhost:3000
+- **Database (Internal):** Port 5432
 
 ## ⚖️ License & Copyright
 
-**© 2025 BloomScape. Tous droits réservés.**
+**© 2025 BloomScape. All rights reserved.**
 
-Ce code source est rendu public **uniquement à des fins éducatives, de démonstration et de transparence**.
+This source code is made public **solely for educational, demonstration, and transparency purposes**.
 
-- Vous êtes autorisé à consulter le code pour apprendre ou auditer le fonctionnement.
-- **Vous n'êtes PAS autorisé** à copier, modifier, distribuer, vendre ou utiliser ce code (ou les assets graphiques) pour un projet commercial ou personnel (rendu publique) sans autorisation écrite explicite de l'auteur.
-- Tout les assets graphiques sont manquants dans le code, et sons remplacés par un placeholder.
+- You are authorized to view the code to learn or audit its functionality.
+- **You are NOT authorized** to copy, modify, distribute, sell, or use this code for a commercial or personal project (made public) without explicit written permission from the author.
+- Some graphic assets are missing from the code, and are replaced by a placeholder.
 
 ---
 
-_Fait avec ❤️ et de l'eau fraîche par BloomScape._
+_Made with ❤️ and fresh water by BloomScape._
+
+(first version of this README made with AI, errors may exist)
