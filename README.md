@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🌸 BloomScape
 
-## Getting Started
+**BloomScape** est un jeu de simulation de jardinage en ligne relaxant et stratégique. Gérez votre jardin, cultivez des espèces rares et échangez vos récoltes sur un marché dynamique au sein d'une économie fermée.
 
-First, run the development server:
+## 🌟 Fonctionnalités Clés
+
+- 🌱 **Gestion de Jardin :** Plantez, arrosez et faites grandir vos fleurs en temps réel. Attention, sans soin, elles fanent !
+- 💎 **Système de Rareté :** Découvrez des espèces allant de _Commune_ à _Légendaire_ via un système de génération procédurale.
+- 💰 **Marché Joueur-contre-Joueur :** Vendez vos plus belles récoltes contre de la **Sève** (monnaie virtuelle) ou achetez les fleurs manquantes à votre collection.
+- 🏆 **Progression :** Montez de niveau pour débloquer de nouvelles graines et agrandir votre terrain.
+- 📖 **Floradéx :** Complétez votre album de collection botanique.
+
+## 🛠 Stack Technique
+
+Ce projet est conçu comme une application "Fullstack TypeScript" moderne et robuste :
+
+- **Frontend :** Next.js (App Router), React, daisyUI, TailwindCSS.
+- **Backend :** Next.js API Routes + Remult (CRUD & Type-safety).
+- **Base de données :** PostgreSQL.
+- **Infrastructure :** Docker & Docker Compose.
+
+## 🚀 Installation et Lancement
+
+Le projet est entièrement conteneurisé. Vous n'avez besoin que de **Docker Desktop** installé sur votre machine.
+
+### 1. Récupérer le projet
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/ton-pseudo/bloomscape.git
+cd bloomscape
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Lancer l'environnement
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Lancez l'application et la base de données avec une seule commande :`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+docker compose up --build
+```
 
-## Learn More
+_La première installation peut prendre quelques minutes._
 
-To learn more about Next.js, take a look at the following resources:
+### 3. Accéder au jeu
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Une fois les logs affichés, ouvrez votre navigateur :
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Application :** http://localhost:3000
+- **Base de données (Interne) :** Port 5432
 
-## Deploy on Vercel
+## ⚖️ License & Copyright
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**© 2025 BloomScape. Tous droits réservés.**
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Ce code source est rendu public **uniquement à des fins éducatives, de démonstration et de transparence**.
+
+- Vous êtes autorisé à consulter le code pour apprendre ou auditer le fonctionnement.
+- **Vous n'êtes PAS autorisé** à copier, modifier, distribuer, vendre ou utiliser ce code (ou les assets graphiques) pour un projet commercial ou personnel (rendu publique) sans autorisation écrite explicite de l'auteur.
+- Tout les assets graphiques sont manquants dans le code, et sons remplacés par un placeholder.
+
+---
+
+_Fait avec ❤️ et de l'eau fraîche par BloomScape._
