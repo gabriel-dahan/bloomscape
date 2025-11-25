@@ -1,0 +1,31 @@
+services:
+  # --- BloomScape db ---
+  db:
+    image: postgres:17-alpine
+    container_name: bloomscape_db
+    environment:
+      POSTGRES_USER: bloom_postgres
+      POSTGRES_PASSWORD: bloom_password 
+      POSTGRES_DB: bloomscape_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data 
+
+  # --- BloomScape app ---
+  app:
+    build: . # current directory's DockerFile
+    container_name: bloomscape_app
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://bloom_postgres:bloom_password@db:5432/bloomscape_db
+      NODE_ENV: development
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      - db # waiting for db to be up and running before proceeding
+
+volumes:
+  postgres_data:
