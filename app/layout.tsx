@@ -1,21 +1,10 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
+import { SessionProvider } from "next-auth/react";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+import Navbar from "@/components/NavBar";
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-export const metadata: Metadata = {
-  title: "BloomScape",
-  description: "BloomScape is a relaxing and strategic online gardening simulation game. Manage your garden, cultivate rare species, and trade your harvests in a dynamic market within a closed economy.",
-};
+const inter = Inter({ subsets: ["latin"] });
 
 export default function RootLayout({
   children,
@@ -23,11 +12,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+    <html lang="fr" data-theme="emerald">
+      <body className={`${inter.className} min-h-screen flex flex-col`}>
+        <SessionProvider>
+            <Navbar />
+            <main className="flex-grow container mx-auto p-4">
+              {children}
+            </main>
+            {/* Footer... */}
+        </SessionProvider>
       </body>
     </html>
   );

@@ -11,14 +11,15 @@ export class User {
     @Fields.string()
     username!: string;
 
-    @Fields.string({ includeInApi: false }) // 🔒 Private
+    @Fields.string({ includeInApi: false }) 
     email!: string;
 
-    // 💰 Economy
+    @Fields.string({ includeInApi: false })
+    passwordHash!: string;
+
     @Fields.number()
     sap: number = 0; 
 
-    // 🏆 Progression
     @Fields.integer()
     level: number = 1;
 
@@ -26,12 +27,11 @@ export class User {
     xp: number = 0;
 
     @Fields.integer()
-    score: number = 0; // For Rankings
+    score: number = 0; 
 
     @Fields.integer()
-    maxPlots: number = 9; // Grid limit (e.g., 3x3)
+    maxPlots: number = 9; 
 
-    // 📣 Ads & Social
     @Fields.boolean()
     enableAds: boolean = false;
 

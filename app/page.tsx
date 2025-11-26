@@ -50,11 +50,11 @@ export default function Home() {
           <li key={user.id}>
             <div className="flex justify-between">
               <span>{user.username}</span>
-              <span className="badge badge-secondary">{user.sap} Sève</span>
+              <span className="badge badge-secondary">{user.sap} Sap</span>
             </div>
           </li>
         ))}
-        {users.length === 0 && <p className="p-4 text-gray-500">Aucun joueur pour l'instant.</p>}
+        {users.length === 0 && <p className="p-4 text-gray-500">No player for now.</p>}
       </ul>
     </main>
   );

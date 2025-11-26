@@ -30,22 +30,21 @@ git clone https://github.com/gabriel-dahan/bloomscape.git
 cd bloomscape
 ```
 
-### 2. Launch the environment
+### 2. Create a .env file
+
+You need to create a `.env` file at the root of the project with content :
+
+```bash
+AUTH_SECRET=your_secret
+```
+
+### 3. Launch the environment
 
 Launch the application and the database with a single command:
 
 ```bash
 docker compose up --build
 ```
-
-_The first installation may take a few minutes._
-
-### 3. Access the game
-
-Once the logs are displayed, open your browser:
-
-- **Application:** http://localhost:3000
-- **Database (Internal):** Port 5432
 
 ## ⚖️ License & Copyright
 
