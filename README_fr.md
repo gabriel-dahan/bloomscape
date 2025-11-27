@@ -10,43 +10,6 @@
 - 🏆 **Progression :** Montez de niveau pour débloquer de nouvelles graines et agrandir votre terrain.
 - 📖 **Floradéx :** Complétez votre album de collection botanique.
 
-## 🛠 Stack Technique
-
-Ce projet est conçu comme une application "Fullstack TypeScript" moderne et robuste :
-
-- **Frontend :** Next.js (App Router), React, daisyUI, TailwindCSS.
-- **Backend :** Next.js API Routes + Remult (CRUD & Type-safety).
-- **Base de données :** PostgreSQL.
-- **Infrastructure :** Docker & Docker Compose.
-
-## 🚀 Installation et Lancement
-
-Le projet est entièrement conteneurisé. Vous n'avez besoin que de **Docker Desktop** installé sur votre machine.
-
-### 1. Récupérer le projet
-
-```bash
-git clone https://github.com/gabriel-dahan/bloomscape.git
-cd bloomscape
-```
-
-### 2. Lancer l'environnement
-
-Lancez l'application et la base de données avec une seule commande :`
-
-```bash
-docker compose up --build
-```
-
-_La première installation peut prendre quelques minutes._
-
-### 3. Accéder au jeu
-
-Une fois les logs affichés, ouvrez votre navigateur :
-
-- **Application :** http://localhost:3000
-- **Base de données (Interne) :** Port 5432
-
 ## ⚖️ License & Copyright
 
 **© 2025 BloomScape. Tous droits réservés.**

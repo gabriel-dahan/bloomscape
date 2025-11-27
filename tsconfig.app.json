@@ -1,0 +1,11 @@
+// tsconfig.app.json (Fichier Frontend)
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+
+    "module": "node20"
+  },
+  "include": ["src/App.vue", "src/**/*.ts", "src/**/*.vue"],
+  "exclude": ["src/server/**/*.ts"]
+}

@@ -10,42 +10,6 @@
 - 🏆 **Progression:** Level up to unlock new seeds and expand your land.
 - 📖 **Floradex:** Complete your botanical collection album.
 
-## 🛠 Tech Stack
-
-This project is designed as a modern and robust "Fullstack TypeScript" application:
-
-- **Frontend:** Next.js (App Router), React, daisyUI, TailwindCSS.
-- **Backend:** Next.js API Routes + Remult (CRUD & Type-safety).
-- **Database:** PostgreSQL.
-- **Infrastructure:** Docker & Docker Compose.
-
-## 🚀 Installation and Setup
-
-The project is fully containerized. You only need **Docker Desktop** installed on your machine.
-
-### 1. Clone the project
-
-```bash
-git clone https://github.com/gabriel-dahan/bloomscape.git
-cd bloomscape
-```
-
-### 2. Create a .env file
-
-You need to create a `.env` file at the root of the project with content :
-
-```bash
-AUTH_SECRET=your_secret
-```
-
-### 3. Launch the environment
-
-Launch the application and the database with a single command:
-
-```bash
-docker compose up --build
-```
-
 ## ⚖️ License & Copyright
 
 **© 2025 BloomScape. All rights reserved.**

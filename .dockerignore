@@ -1,7 +1,0 @@
-# Files that DockerFile will generate itself, or that I don't want to copy.
-
-node_modules
-.next
-.git
-.env
-npm-debug.log

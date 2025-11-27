@@ -1,0 +1,17 @@
+@import 'tailwindcss';
+
+@tailwind utilities;
+
+@plugin "daisyui" {
+  themes:
+    light --default,
+    dark --prefersdark; /* or 'all' for every built-in theme */
+}
+
+@theme static {
+  --breakpoint-phone: 450px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+}
