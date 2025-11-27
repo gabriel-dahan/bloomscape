@@ -2,8 +2,8 @@
 import { useAuthStore } from '@/stores/auth'
 import Base from './BaseApp.vue'
 import { onMounted } from 'vue'
-import AuthModal from './components/AuthModal.vue'
-import { useAuthModal } from '@/components/logic/useAuthModal'
+import AuthModal from './components/auth/AuthModal.vue'
+import { useAuthModal } from '@/components/auth/logic/useAuthModal'
 
 const auth = useAuthStore()
 

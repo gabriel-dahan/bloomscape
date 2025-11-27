@@ -32,8 +32,8 @@ export const useAuthStore = defineStore('auth', {
       )
       this.user = res.user // updates current User
     },
-    async googleSignUp(tag: string, email: string, name: string) {
-      const res = await AuthController.googleSignUp(tag.toLowerCase(), email.toLowerCase())
+    async googleLogin(googleId: string) {
+      const res = await AuthController.googleLogin(googleId)
       this.user = res.user // updates current User
     },
     async fetchSessionUser() {

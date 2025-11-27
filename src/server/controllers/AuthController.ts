@@ -4,11 +4,22 @@ import type express from 'express'
 import { sanitizeUser, User } from '@/shared/user/User'
 import { Role } from '@/shared'
 
+import { OAuth2Client } from 'google-auth-library'
+
+import slugify from 'slugify'
+
 declare module 'remult' {
   export interface RemultContext {
     request?: express.Request
   }
 }
+
+import dotenv from 'dotenv'
+dotenv.config({
+  path: './src/server/.env',
+})
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
 @Controller('auth')
 export class AuthController {
@@ -20,14 +31,10 @@ export class AuthController {
     })
     if (!user) throw 'Invalid tag or email'
 
-    if (user.googleUser) {
-      throw 'Connect using the Google Authentification.'
-    } else {
-      const bcrypt = await import('bcrypt')
-      const match = await bcrypt.compare(passwd, user.passwordHash!)
+    const bcrypt = await import('bcrypt')
+    const match = await bcrypt.compare(passwd, user.passwordHash!)
 
-      if (!match) throw 'Invalid password'
-    }
+    if (!match) throw 'Invalid password'
 
     await users.update(user.id, {
       lastLogin: new Date(),
@@ -78,24 +85,53 @@ export class AuthController {
   }
 
   @BackendMethod({ allowed: true })
-  static async googleSignUp(tag: string, email: string) {
-    const users = remult.repo(User)
+  static async googleLogin(idToken: string) {
+    const userRepo = remult.repo(User)
 
-    if (await users.findFirst({ tag: tag })) throw 'A user with this tag already exists.'
-    if (await users.findFirst({ email: email })) throw 'A user with this email already exists.'
-
-    const newUser = await users.insert({
-      tag: tag,
-      email: email,
-      googleUser: true,
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
     })
 
+    const payload = ticket.getPayload()
+    if (!payload || !payload.email || !payload.sub) throw new Error('Invalid Google Token')
+
+    const email = payload.email.toLowerCase()
+    const googleId = payload.sub
+    const name = payload.name || email.split('@')[0]
+
+    let user = await userRepo.findFirst({ googleId })
+
+    if (!user) {
+      user = await userRepo.findFirst({ email })
+
+      if (user) {
+        user.googleId = googleId
+        await userRepo.save(user)
+      } else {
+        let tag = slugify(name, { lower: true, strict: true })
+
+        let counter = 1
+        while (await userRepo.findFirst({ tag })) {
+          tag = `${slugify(name, { lower: true, strict: true })}${counter}`
+          counter++
+        }
+
+        user = await userRepo.insert({
+          tag,
+          email,
+          googleId,
+          roles: [Role.USER],
+        })
+      }
+    }
+
     const req = remult.context!.request!
-    req.session!.user = sanitizeUser(newUser)
+    req.session!.user = sanitizeUser(user)
 
     return {
       success: true,
-      user: req?.session!.user,
+      user: req.session!.user,
     }
   }
 

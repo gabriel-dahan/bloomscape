@@ -49,8 +49,8 @@ export class User {
   @Fields.date()
   lastLogin?: Date
 
-  @Fields.boolean()
-  googleUser: boolean = false
+  @Fields.string()
+  googleId: string = ''
 
   @Fields.createdAt()
   createdAt?: Date
