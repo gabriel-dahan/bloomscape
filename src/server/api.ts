@@ -21,9 +21,16 @@ import { SqlDatabase } from 'remult'
 import { BetterSqlite3DataProvider } from 'remult/remult-better-sqlite3'
 import Database from 'better-sqlite3'
 
+import dotenv from 'dotenv'
+dotenv.config({
+  path: './src/server/.env',
+})
+
 // DATABASE provider
 
-const __DBProvider = new BetterSqlite3DataProvider(new Database('./mydb.sqlite'))
+const __DBProvider = new BetterSqlite3DataProvider(
+  new Database(process.env.DB_PATH || './bloomscape.sqlite'),
+)
 const db = new SqlDatabase(__DBProvider)
 
 export const api = remultApi({
