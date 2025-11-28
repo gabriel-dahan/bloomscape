@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ROUTES_ENUM as ROUTES } from '../routes/routes_enum'
+import GoogleLoginBtn from './buttons/GoogleLoginBtn.vue';
 </script>
 
 <template>
@@ -8,7 +9,7 @@ import { ROUTES_ENUM as ROUTES } from '../routes/routes_enum'
             <!-- <AppTitle /> -->
             <div class="flex grow items-center gap-4">
                 <!-- <SearchBar /> -->
-                <Button class="btn-primary" as="RouterLink" :to="ROUTES.TAGS.path"> Tags </Button>
+                <GoogleLoginBtn />
                 <div class="grow"></div>
                 <!-- <NavBar /> -->
             </div>

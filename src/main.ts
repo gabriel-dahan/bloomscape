@@ -2,16 +2,14 @@ import { createApp } from 'vue'
 import App from './App.vue'
 
 import GoogleSignInPlugin from 'vue3-google-signin'
-
-import dotenv from 'dotenv'
-dotenv.config({
-  path: './src/server/.env',
-})
+import { createPinia } from 'pinia'
 
 const app = createApp(App)
 
 app.use(GoogleSignInPlugin, {
-  clientId: process.env.GOOGLE_CLIENT_ID || '',
+  clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
 })
+
+app.use(createPinia())
 
 app.mount('#app')

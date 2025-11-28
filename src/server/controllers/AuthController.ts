@@ -1,10 +1,8 @@
 import { BackendMethod, Controller, remult, type FindOptions } from 'remult'
-import type express from 'express'
+import express from 'express'
 
 import { sanitizeUser, User } from '@/shared/user/User'
 import { Role } from '@/shared'
-
-import { OAuth2Client } from 'google-auth-library'
 
 import slugify from 'slugify'
 
@@ -13,13 +11,6 @@ declare module 'remult' {
     request?: express.Request
   }
 }
-
-import dotenv from 'dotenv'
-dotenv.config({
-  path: './src/server/.env',
-})
-
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
 @Controller('auth')
 export class AuthController {
@@ -86,11 +77,14 @@ export class AuthController {
 
   @BackendMethod({ allowed: true })
   static async googleLogin(idToken: string) {
+    const { OAuth2Client } = await import('google-auth-library')
+    const client = new OAuth2Client(process.env.VITE_GOOGLE_CLIENT_ID)
+
     const userRepo = remult.repo(User)
 
     const ticket = await client.verifyIdToken({
       idToken,
-      audience: process.env.GOOGLE_CLIENT_ID,
+      audience: process.env.VITE_GOOGLE_CLIENT_ID,
     })
 
     const payload = ticket.getPayload()

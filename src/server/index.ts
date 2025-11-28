@@ -2,8 +2,6 @@ import express from 'express'
 import session from 'cookie-session'
 import { api } from './api'
 
-import GoogleSignInPlugin from 'vue3-google-signin'
-
 import dotenv from 'dotenv'
 dotenv.config({
   path: './src/server/.env',
