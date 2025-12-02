@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ROUTES_ENUM as routes } from '@/routes/routes_enum'
 import ThemeSwitcher from './buttons/ThemeSwitcher.vue'
+import DiscordIcon from './icons/DiscordIcon.vue'
+import InstagramIcon from './icons/InstagramIcon.vue'
 
 const appTitle = import.meta.env.VITE_APP
 const appVersion = import.meta.env.VITE_APP_VERSION
@@ -19,7 +21,6 @@ const discordServerURL = 'https://discord.gg/4sJyaynWdW'
         <nav>
             <h6 class="footer-title">Services</h6>
             <a class="link link-hover">Advertisement</a>
-            <RouterLink class="link link-hover" :to="routes.API_PRESENTATION.path">API for developers</RouterLink>
         </nav>
         <nav>
             <h6 class="footer-title">Company</h6>

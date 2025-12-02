@@ -1,17 +1,20 @@
 @import 'tailwindcss';
 
-@tailwind utilities;
+@plugin "daisyui";
 
-@plugin "daisyui" {
-  themes:
-    light --default,
-    dark --prefersdark; /* or 'all' for every built-in theme */
+:root {
+  --daisyui-themes: light, forest;
 }
 
-@theme static {
+/* 4. Configuration du Thème (Breakpoints et couleurs) */
+@theme {
   --breakpoint-phone: 450px;
   --breakpoint-sm: 640px;
   --breakpoint-md: 768px;
   --breakpoint-lg: 1024px;
   --breakpoint-xl: 1280px;
+
+  --color-bloom-primary: #34d399;
+  --color-bloom-secondary: #10b981;
+  --color-bloom-dark: #022c22;
 }

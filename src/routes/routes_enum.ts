@@ -48,7 +48,7 @@ export const ROUTES_ENUM = {
     name: 'faq',
     path: '/faq',
     windowTitle: 'F.A.Q.',
-    viewPath: 'FAQ.vue',
+    viewPath: 'FAQView.vue',
   },
 
   // User routes
@@ -91,6 +91,22 @@ export const ROUTES_ENUM = {
     path: '/p/:tag/settings',
     pathDyn: (tag: string) => `/p/${tag}/settings`,
     viewPath: 'user/SettingsView.vue',
+  },
+
+  // GAME
+
+  LAND: {
+    name: 'land',
+    path: '/land',
+    windowTitle: 'My Land',
+    viewPath: 'game/LandView.vue',
+  },
+
+  USER_LAND: {
+    name: 'userLand',
+    path: '/land/:tag',
+    windowTitleDyn: (tag: string) => `${tag}'s Land`,
+    viewPath: 'game/LandView.vue',
   },
 
   // Error routes
