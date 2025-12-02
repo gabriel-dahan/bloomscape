@@ -40,3 +40,11 @@ export const FriendshipStatus = {
 } as const
 
 export type FriendshipStatus = (typeof FriendshipStatus)[keyof typeof FriendshipStatus]
+
+export const TileType = {
+  LAND: 'land',
+  WATER: 'water',
+  FOREST: 'forest',
+} as const
+
+export type TileType = (typeof TileType)[keyof typeof TileType]

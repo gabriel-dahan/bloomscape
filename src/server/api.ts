@@ -5,10 +5,12 @@ import {
   ClaimLink,
   FlowerSpecies,
   Friendship,
+  Island,
   MarketHistory,
   MarketListing,
   MarketStats,
   SapPurchase,
+  Tile,
   User,
   UserAchievement,
   UserClaim,
@@ -22,6 +24,8 @@ import { BetterSqlite3DataProvider } from 'remult/remult-better-sqlite3'
 import Database from 'better-sqlite3'
 
 import dotenv from 'dotenv'
+import { UserController } from './controllers/UserController'
+import { GameController } from './controllers/GameController'
 dotenv.config({
   path: './src/server/.env',
 })
@@ -51,8 +55,11 @@ export const api = remultApi({
     Friendship,
     ClaimLink,
     UserClaim,
+
+    Tile,
+    Island,
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, UserController, GameController],
   getUser: (req) => req.session!.user,
   admin: true, // UI Interface for admins
 })

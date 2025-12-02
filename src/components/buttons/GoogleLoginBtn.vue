@@ -20,6 +20,6 @@ const onError = () => {
 </script>
 
 <template>
-    <GoogleSignInButton @success="onSuccess" @error="onError" theme="outline" size="medium" text="signin_with"
+    <GoogleSignInButton @success="onSuccess" @error="onError" theme="light" size="medium" text="signin_with"
         shape="pill" />
 </template>

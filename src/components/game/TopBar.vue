@@ -1,13 +1,64 @@
 <script setup lang="ts">
+import { ref, computed, onMounted, watch } from 'vue';
+import { remult } from 'remult';
 import { useUIStore } from '@/stores/ui';
+import { User } from '@/shared';
+import { UserController } from '@/server/controllers/UserController';
 
+// --- PROPS ---
+const props = defineProps<{
+    userTag: string
+}>();
+
+// --- STORES & REPOS ---
 const uiStore = useUIStore();
+const userRepo = remult.repo(User);
+
+// --- STATE ---
+const displayedUser = ref<User | null>(null);
+const isLoading = ref(true);
+
+// --- COMPUTED ---
+// Génère un avatar cohérent basé sur le Tag de l'utilisateur
+const avatarUrl = computed(() => {
+    const seed = displayedUser.value?.tag || 'default';
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&backgroundColor=b6e3f4`;
+});
+
+// Simule un nom de secteur basé sur l'ID (Juste pour le lore, ou à remplacer par une vraie data plus tard)
+const sectorName = computed(() => {
+    if (!displayedUser.value) return 'Unknown';
+    const idSlice = displayedUser.value.id.slice(0, 4).toUpperCase();
+    return `SEC-${idSlice}`;
+});
+
+// --- METHODS ---
+const fetchUserData = async () => {
+    if (!props.userTag) return;
+
+    isLoading.value = true;
+    try {
+        const { user } = await UserController.getUserByTag(props.userTag);
+        displayedUser.value = user || null;
+    } finally {
+        isLoading.value = false;
+    }
+};
+
+// --- LIFECYCLE ---
+onMounted(() => {
+    fetchUserData();
+});
+
+// Recharge si l'ID change (navigation entre profils)
+watch(() => props.userTag, () => {
+    fetchUserData();
+});
 </script>
 
 <template>
-    <div class="absolute top-0 left-0 w-full p-4 pointer-events-none z-20 flex justify-center md:justify-end md:pr-8">
+    <div class="absolute top-0 left-0 w-full p-4 pointer-events-none z-999 flex justify-center md:justify-end md:pr-8">
 
-        <!-- Mobile Hamburger (Visible uniquement sur mobile) -->
         <button
             class="btn btn-circle btn-ghost glass absolute top-4 left-4 pointer-events-auto md:hidden text-emerald-400"
             @click="uiStore.toggleSidebar">
@@ -17,19 +68,20 @@ const uiStore = useUIStore();
             </svg>
         </button>
 
-        <!-- Floating HUD Capsule -->
         <div
-            class="pointer-events-auto glass-panel rounded-full px-6 py-2 flex items-center gap-6 shadow-2xl shadow-black/40 mt-12 md:mt-2">
+            class="pointer-events-auto glass-panel rounded-full px-6 py-2 flex items-center gap-6 shadow-2xl shadow-black/40 mt-12 md:mt-2 transition-all duration-300">
 
-            <!-- Location Data -->
-            <div class="hidden sm:flex flex-col text-right">
+            <div class="hidden sm:flex flex-col text-right min-w-[80px]">
                 <span class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Sector</span>
-                <span class="text-sm font-bold text-gray-200">Alpha-One</span>
+
+                <span v-if="!isLoading" class="text-sm font-bold text-gray-200 animate-pulse-once">
+                    {{ sectorName }}
+                </span>
+                <div v-else class="h-4 w-16 bg-white/10 rounded animate-pulse mt-1 ml-auto"></div>
             </div>
 
             <div class="h-8 w-px bg-white/10 hidden sm:block"></div>
 
-            <!-- Actions -->
             <div class="flex items-center gap-2">
                 <div class="tooltip tooltip-bottom" data-tip="Messages">
                     <button class="btn btn-sm btn-circle btn-ghost text-gray-400 hover:text-white hover:bg-white/10">
@@ -44,16 +96,25 @@ const uiStore = useUIStore();
 
             <div class="h-8 w-px bg-white/10"></div>
 
-            <!-- User Profile -->
             <div class="flex items-center gap-3 cursor-pointer group">
-                <div class="text-right hidden md:block">
-                    <div class="text-xs font-bold text-gray-200 group-hover:text-emerald-400 transition-colors">
-                        Commander</div>
-                    <div class="text-[10px] text-gray-500">Level 42</div>
+                <div class="text-right hidden md:block min-w-[80px]">
+                    <div v-if="!isLoading"
+                        class="text-xs font-bold text-gray-200 group-hover:text-emerald-400 transition-colors">
+                        {{ displayedUser?.tag || 'Guest' }}
+                    </div>
+                    <div v-else class="h-3 w-20 bg-white/10 rounded animate-pulse mb-1 ml-auto"></div>
+
+                    <div v-if="!isLoading" class="text-[10px] text-gray-500">
+                        Level {{ displayedUser?.level || 1 }}
+                    </div>
+                    <div v-else class="h-2 w-10 bg-white/10 rounded animate-pulse ml-auto"></div>
                 </div>
-                <div class="avatar online">
-                    <div class="w-9 rounded-full ring ring-emerald-500 ring-offset-slate-900 ring-offset-2">
-                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Bloom" alt="Avatar" />
+
+                <div class="avatar" :class="{ 'online': !isLoading }">
+                    <div
+                        class="w-9 rounded-full ring ring-emerald-500 ring-offset-slate-900 ring-offset-2 bg-slate-800">
+                        <img v-if="!isLoading" :src="avatarUrl" alt="Avatar" class="transition-opacity duration-500" />
+                        <div v-else class="w-full h-full bg-slate-700 animate-pulse"></div>
                     </div>
                 </div>
             </div>
@@ -63,8 +124,25 @@ const uiStore = useUIStore();
 
 <style scoped>
 .glass-panel {
-    background: rgba(30, 41, 59, 0.7);
-    backdrop-filter: blur(8px);
+    background: rgba(30, 41, 59, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-pulse-once {
+    animation: fadeIn 0.5s ease-out forwards;
 }
 </style>

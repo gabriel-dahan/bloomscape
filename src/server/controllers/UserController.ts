@@ -9,16 +9,21 @@ declare module 'remult' {
   }
 }
 
-@Controller('auth')
+@Controller('user')
 export class UserController {
   @BackendMethod({ allowed: true })
-  static async updateUserStats() {
-    const users = remult.repo(User)
-    const user = await users.findFirst({ id: remult.user!.id })
-    if (!user) throw 'User not found'
+  static async getUserByTag(tag: string) {
+    if (!tag) return
+
+    const userRepo = remult.repo(User)
+
+    const user = await userRepo.findFirst({ tag: tag })
+
+    if (!user) throw 'User could not be found.'
 
     return {
       success: true,
+      user: user,
     }
   }
 }

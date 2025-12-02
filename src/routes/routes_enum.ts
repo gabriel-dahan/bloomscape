@@ -19,6 +19,7 @@ interface Routes {
       next: NavigationGuardNext,
     ) => any
     requiresAuth?: boolean
+    hideLayout?: boolean
   }
 }
 
@@ -100,6 +101,8 @@ export const ROUTES_ENUM = {
     path: '/land',
     windowTitle: 'My Land',
     viewPath: 'game/LandView.vue',
+    hideLayout: true,
+    requiresAuth: true,
   },
 
   USER_LAND: {
@@ -107,6 +110,7 @@ export const ROUTES_ENUM = {
     path: '/land/:tag',
     windowTitleDyn: (tag: string) => `${tag}'s Land`,
     viewPath: 'game/LandView.vue',
+    hideLayout: true,
   },
 
   // Error routes

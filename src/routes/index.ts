@@ -2,6 +2,7 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { scrollBehavior } from './scroll'
 import { ROUTES_ENUM } from './routes_enum'
 import { useAuthStore } from '@/stores/auth'
+import { useAuthModal } from '@/components/auth/logic/useAuthModal'
 
 declare global {
   interface ImportMeta {
@@ -20,6 +21,7 @@ for (const r of Object.values(ROUTES_ENUM)) {
     meta: {
       title: r.windowTitle || null,
       requiresAuth: r.requiresAuth || false,
+      hideLayout: r.hideLayout || false,
     },
     component: r.viewPath
       ? viewModules[`../views/${r.viewPath}`]
@@ -38,7 +40,9 @@ router.beforeEach(async (to, _, next) => {
   const auth = useAuthStore()
   await auth.fetchSessionUser()
   if (to.meta.requiresAuth && !auth.user) {
-    next({ name: 'login', query: { redirect: to.fullPath } })
+    const authModal = useAuthModal()
+    authModal.openAuthModal('login')
+    next()
   } else {
     next()
   }
