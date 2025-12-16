@@ -1,5 +1,7 @@
 # 🌸 BloomScape
 
+(first version of this README made with AI, errors may exist)
+
 **BloomScape** is a relaxing and strategic online gardening simulation game. Manage your garden, cultivate rare species, and trade your harvests in a dynamic market within a closed economy.
 
 ## 🌟 Key Features
@@ -23,5 +25,3 @@ This source code is made public **solely for educational, demonstration, and tra
 ---
 
 _Made with ❤️ and fresh water by BloomScape._
-
-(first version of this README made with AI, errors may exist)

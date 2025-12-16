@@ -1,5 +1,7 @@
 # 🌸 BloomScape
 
+(première version de ce README faite avec IA, il peut y avoir des erreurs)
+
 **BloomScape** est un jeu de simulation de jardinage en ligne relaxant et stratégique. Gérez votre jardin, cultivez des espèces rares et échangez vos récoltes sur un marché dynamique au sein d'une économie fermée.
 
 ## 🌟 Fonctionnalités Clés
@@ -23,5 +25,3 @@ Ce code source est rendu public **uniquement à des fins éducatives, de démons
 ---
 
 _Fait avec ❤️ et de l'eau fraîche par BloomScape._
-
-(première version de ce README faite avec IA, il peut y avoir des erreurs)
