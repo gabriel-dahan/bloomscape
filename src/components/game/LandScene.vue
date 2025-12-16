@@ -3,7 +3,6 @@
 import { onMounted, onUnmounted, ref, watch, computed } from 'vue';
 import { useGameStore } from '@/stores/game';
 import { storeToRefs } from 'pinia';
-import { remult } from 'remult';
 import { LandSceneManager } from './logic/LandSceneManager';
 import { useAuthStore } from '@/stores/auth';
 
@@ -19,11 +18,12 @@ const props = withDefaults(defineProps<{
 
 // ---- STATE ---- //
 const gameStore = useGameStore();
-const { tiles, currentIsland, isLoading } = storeToRefs(gameStore);
+const { tiles, currentIsland, isLoading, selectedTile } = storeToRefs(gameStore);
 
-// Référence isolée pour le canvas
+// Isolated ref for canvas
 const canvasContainerRef = ref<HTMLDivElement | null>(null);
 let sceneManager: LandSceneManager | null = null;
+const auth = useAuthStore();
 
 // ---- COMPUTED ---- //
 const isCurrentUser = computed(() => auth.user?.id === props.userId);
@@ -33,18 +33,14 @@ const hasIsland = computed(() => !!currentIsland.value);
 const initData = async () => {
     if (!props.userId) return;
 
-    // On fetch l'île et les tuiles
     await gameStore.fetchIslandData(props.userId);
 
-    // Une fois chargé, on update la 3D
     if (sceneManager) {
         sceneManager.updateTiles(tiles.value);
     }
 };
 
-// Callback appelée par le manager 3D
 const handleHover = (x: number, z: number) => {
-    // Pas d'interaction si pas d'île
     if (!hasIsland.value) {
         gameStore.setHoveredTile(null);
         return;
@@ -55,43 +51,65 @@ const handleHover = (x: number, z: number) => {
         return;
     }
 
-    // Vérifie si la tuile existe dans le store
     const existingTile = gameStore.getTileAt(x, z);
 
-    // Update seulement si changement (perf)
     if (gameStore.hoveredTile?.x !== x || gameStore.hoveredTile?.z !== z) {
         gameStore.setHoveredTile({
             x,
             z,
             id: existingTile?.id,
-            isOwned: !!existingTile
+            isOwned: !!existingTile,
+            isAdjacentToLand: sceneManager?.isAdjacentToLand(x, z, gameStore.tiles) || false
         });
     }
 };
+
+const handleClick = (x: number, z: number) => {
+    if (!hasIsland.value) return;
+
+    const isAlreadySelected =
+        gameStore.selectedTile &&
+        gameStore.selectedTile.x === x &&
+        gameStore.selectedTile.z === z;
+
+    if (isAlreadySelected) {
+        gameStore.selectTile(null);
+        sceneManager?.setSelection(null, null);
+    } else {
+        const existingTile = gameStore.getTileAt(x, z);
+
+        gameStore.selectTile({
+            x,
+            z,
+            id: existingTile?.id,
+            isOwned: !!existingTile,
+            isAdjacentToLand: sceneManager?.isAdjacentToLand(x, z, gameStore.tiles) || false
+        });
+        sceneManager?.setSelection(x, z);
+    }
+}
 
 const handleStartAdventure = async () => {
     await gameStore.startAdventure();
 };
 
-const auth = useAuthStore();
-
 // ---- LIFECYCLE ---- //
 onMounted(async () => {
     await auth.fetchSessionUser();
 
+    console.log(auth.user)
+
     if (!canvasContainerRef.value) return;
 
-    // Initialisation du Manager 3D
     sceneManager = new LandSceneManager({
         quality: props.quality,
         tileSize: props.tileSize,
-        onHover: handleHover
+        onHover: handleHover,
+        onClick: handleClick // Pass the callback
     });
 
-    // Montage dans la div dédiée
     sceneManager.init(canvasContainerRef.value);
 
-    // Chargement des données
     initData();
 });
 
@@ -100,17 +118,22 @@ onUnmounted(() => {
 });
 
 // ---- WATCHERS ---- //
-// Si on change de profil utilisateur
 watch(() => props.userId, async (newId) => {
     if (newId) await initData();
 });
 
-// Si les tuiles changent (ex: achat d'une tuile)
 watch(tiles, (newTiles) => {
     if (sceneManager) {
         sceneManager.updateTiles(newTiles);
     }
 }, { deep: true });
+
+// Sync visual selection if store changes externally
+watch(selectedTile, (newVal) => {
+    if (!newVal) {
+        sceneManager?.setSelection(null, null);
+    }
+});
 
 </script>
 
@@ -121,7 +144,7 @@ watch(tiles, (newTiles) => {
 
         <transition name="fade">
             <div v-if="!isLoading && !hasIsland"
-                class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/50 backdrop-blur-sm z-998">
+                class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-sm z-40">
 
                 <div class="card w-96 glass shadow-2xl border border-slate-700">
                     <div class="card-body text-center">
@@ -131,7 +154,7 @@ watch(tiles, (newTiles) => {
                                 building.</p>
                             <div class="card-actions justify-center mt-4">
                                 <button @click="handleStartAdventure"
-                                    class="btn btn-primary btn-soft rounded-2xl text-white">
+                                    class="btn btn-primary btn-soft rounded-2xl text-white relative z-50">
                                     Start
                                 </button>
                             </div>
@@ -146,7 +169,7 @@ watch(tiles, (newTiles) => {
         </transition>
 
         <div v-if="isLoading"
-            class="absolute inset-0 z-20 flex items-center justify-center bg-slate-900/60 backdrop-blur">
+            class="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur">
             <span class="loading loading-ring loading-lg text-emerald-500"></span>
         </div>
     </div>

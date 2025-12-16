@@ -1,26 +1,27 @@
+import InventoryInModal from '@/components/game/modal_features/InventoryInModal.vue'
+import MarketInModal from '@/components/game/modal_features/MarketInModal.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useModalStore } from '@/stores/modal'
 import type {
   NavigationGuardNext,
   RouteLocationNormalizedGeneric,
   RouteLocationNormalizedLoadedGeneric,
 } from 'vue-router'
 
-interface Routes {
-  [identifier: string]: {
-    name: string
-    path: string
-    pathDyn?: (...args: any) => string
-    windowTitle?: string
-    windowTitleDyn?: (...args: any) => string
-    viewPath?: string
-    beforeEnter?: (
-      to: RouteLocationNormalizedGeneric,
-      fro: RouteLocationNormalizedLoadedGeneric,
-      next: NavigationGuardNext,
-    ) => any
-    requiresAuth?: boolean
-    hideLayout?: boolean
-  }
+interface RouteConfig {
+  name: string
+  path: string
+  pathDyn?: (...args: any[]) => string
+  windowTitle?: string
+  windowTitleDyn?: (...args: any[]) => string
+  viewPath?: string
+  beforeEnter?: (
+    to: RouteLocationNormalizedGeneric,
+    fro: RouteLocationNormalizedLoadedGeneric,
+    next: NavigationGuardNext,
+  ) => any
+  requiresAuth?: boolean
+  hideLayout?: boolean
 }
 
 export const ROUTES_ENUM = {
@@ -113,6 +114,43 @@ export const ROUTES_ENUM = {
     hideLayout: true,
   },
 
+  MARKET: {
+    name: 'market',
+    path: '/land/market',
+    hideLayout: true,
+    beforeEnter: async (_, __, next) => {
+      const modal = useModalStore()
+      modal.open({
+        title: 'Marketplace',
+        component: MarketInModal,
+        size: 'fullscreen',
+      })
+      next(ROUTES_ENUM.LAND.path)
+    },
+  },
+
+  INVENTORY: {
+    name: 'inventory',
+    path: '/land/inventory',
+    hideLayout: true,
+    beforeEnter: async (_, __, next) => {
+      const modal = useModalStore()
+      modal.open({
+        title: 'Inventory',
+        component: InventoryInModal,
+        size: 'fullscreen',
+      })
+      next(ROUTES_ENUM.LAND.path)
+    },
+  },
+
+  ADMIN_DB_MANAGER: {
+    name: 'adminDBFuncs',
+    path: '/admin/db',
+    windowTitle: 'Admin DB Manager',
+    viewPath: 'admin/DBManagerView.vue',
+  },
+
   // Error routes
   NOT_FOUND: {
     name: 'notFound',
@@ -120,4 +158,4 @@ export const ROUTES_ENUM = {
     windowTitle: 'Page Not Found',
     viewPath: 'errors/404View.vue',
   },
-} as Routes
+} satisfies Record<string, RouteConfig>

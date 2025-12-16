@@ -10,11 +10,13 @@ export class UserFlower {
 
   @Fields.string()
   ownerId!: string
+
   @Relations.toOne(() => User, 'ownerId')
   owner?: User
 
   @Fields.string()
   speciesId!: string
+
   @Relations.toOne(() => FlowerSpecies, 'speciesId')
   species?: FlowerSpecies
 

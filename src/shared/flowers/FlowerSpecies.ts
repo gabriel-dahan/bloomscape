@@ -18,17 +18,17 @@ export class FlowerSpecies {
   @Fields.string() // Enum
   availability: FlowerAvailability = FlowerAvailability.WILD
 
-  // 🧬 Attributes (Color, resistance, etc.)
   @Fields.json()
   attributes = {}
 
   @Fields.integer()
   growthDuration: number = 60 * 60 // In seconds (default 1h)
 
-  // 🎨 Assets
-  @Fields.string()
-  assetUrl: string = '/assets/seeds/default.png' // Inventory Icon
+  get assetUrl() {
+    return `/api/images/flowers/${this.id}/icon`
+  }
 
-  @Fields.string()
-  spriteUrl: string = '/assets/sprites/default.png' // Isometric Sprite
+  get spriteUrl() {
+    return `/api/images/flowers/${this.id}/sprite`
+  }
 }

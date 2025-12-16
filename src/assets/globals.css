@@ -1,9 +1,9 @@
 @import 'tailwindcss';
 
-@plugin "daisyui";
-
-:root {
-  --daisyui-themes: light, forest;
+@plugin "daisyui" {
+  themes:
+    winter --default,
+    forest --prefersdark;
 }
 
 /* 4. Configuration du Thème (Breakpoints et couleurs) */

@@ -5,6 +5,8 @@ import { onMounted } from 'vue'
 import AuthModal from './components/auth/AuthModal.vue'
 import { useAuthModal } from '@/components/auth/logic/useAuthModal'
 
+import GlobalModal from './components/GlobalModal.vue'
+
 const auth = useAuthStore()
 
 const { isOpen, mode, handleSuccess } = useAuthModal()
@@ -16,7 +18,9 @@ onMounted(async () => {
 
 <template>
   <AuthModal v-model:is-open="isOpen" :mode="mode" @success="handleSuccess" />
+  <GlobalModal />
+
   <Base>
-  <RouterView />
+    <RouterView />
   </Base>
 </template>

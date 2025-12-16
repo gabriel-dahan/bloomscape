@@ -1,10 +1,19 @@
 <script setup lang="ts">
 import { reactive, ref, computed, watch, nextTick } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import GoogleLoginBtn from '../buttons/GoogleLoginBtn.vue';
-import Form from '../Form.vue';
+import GoogleLoginBtn from '../buttons/GoogleLoginBtn.vue' // Adjust path if needed
+import Form from '../Form.vue' // Adjust path if needed
 
-// Props & Emits
+// --- TYPES ---
+// Define keys to ensure type safety in v-for loops
+interface FieldConfig {
+    label: string
+    type: string
+    placeholder: string
+    vmodel: keyof typeof formData
+}
+
+// --- PROPS & EMITS ---
 const props = defineProps<{
     isOpen: boolean
     mode?: 'login' | 'signup'
@@ -15,15 +24,27 @@ const emit = defineEmits<{
     success: [user: any]
 }>()
 
-// State
+// --- STATE ---
 const mode = ref<'login' | 'signup'>(props.mode || 'login')
 const auth = useAuthStore()
 const dialogRef = ref<HTMLDialogElement>()
 
-// Form fields
+// Reactive form data
+const formData = reactive({
+    tagOrEmail: '',
+    rememberMe: false,
+    tag: '',
+    email: '',
+    passwd: '',
+    passwdConfirm: '',
+})
+
+// Error state
 const error = reactive<Record<string, string>>({})
 
-// Watch for isOpen prop changes to control dialog
+// --- WATCHERS ---
+
+// Control Dialog Visibility
 watch(
     () => props.isOpen,
     (newValue) => {
@@ -38,13 +59,18 @@ watch(
     { immediate: true },
 )
 
-// Clear errors when switching modes
+// Reset state when mode changes
 watch(mode, () => {
-    Object.keys(error).forEach((key) => (error[key] = ''))
-    clearFields()
+    resetForm()
 })
 
-const clearFields = () => {
+// --- ACTIONS ---
+
+const resetForm = () => {
+    // Clear errors
+    Object.keys(error).forEach((key) => delete error[key])
+
+    // Clear fields
     formData.tag = ''
     formData.email = ''
     formData.tagOrEmail = ''
@@ -53,87 +79,85 @@ const clearFields = () => {
     formData.rememberMe = false
 }
 
-// Close modal
 const closeModal = () => {
     emit('update:isOpen', false)
-    clearFields()
-    Object.keys(error).forEach((key) => (error[key] = ''))
+    resetForm()
 }
 
-// Handle dialog close event (ESC key or backdrop click)
 const handleDialogClose = () => {
     closeModal()
 }
 
-// Switch between login/signup
 const switchMode = () => {
     mode.value = mode.value === 'login' ? 'signup' : 'login'
 }
 
-// Login logic
+// --- API LOGIC ---
+
 const login = async () => {
     error.general = ''
     try {
-        await auth.login(formData.tagOrEmail, formData.passwd, formData.rememberMe)
+        await auth.login(
+            formData.tagOrEmail.trim(), // Sanitize input
+            formData.passwd,
+            formData.rememberMe
+        )
 
         emit('success', auth.user)
         closeModal()
     } catch (err: any) {
-        if (err.message?.toLowerCase().includes('password')) {
-            error.password = err.message
-        } else if (
-            err.message?.toLowerCase().includes('tag') ||
-            err.message?.toLowerCase().includes('email')
-        ) {
-            error.tagOrEmail = err.message
-        } else {
-            error.general = err.message || 'Unknown error'
-        }
+        handleApiError(err)
     }
 }
 
-// Signup logic
 const signUp = async () => {
     error.general = ''
+
+    // 1. Frontend Validation
+    if (formData.passwd !== formData.passwdConfirm) {
+        error.passwdConfirm = "Passwords do not match"
+        return
+    }
+
     try {
+        // 2. API Call
         await auth.signUp(
-            formData.tag.toLowerCase(),
-            formData.email.toLowerCase(),
+            formData.tag.toLowerCase().trim(),
+            formData.email.toLowerCase().trim(),
             formData.passwd,
             formData.passwdConfirm,
         )
 
-        // Switch to login after successful signup
+        // 3. Success Handling
         mode.value = 'login'
-        formData.tagOrEmail = formData.email // Pre-fill with the email they just used
+        formData.tagOrEmail = formData.email // Auto-fill login
+        error.general = '✅ Account successfully registered! You can now login.'
 
-        // Show success message
-        error.general = '✅ Account successfully registered ! You can now login.'
     } catch (err: any) {
-        if (err.message?.toLowerCase().includes('password')) {
-            error.passwd = err.message
-            error.passwdConfirm = err.message
-        } else if (err.message?.toLowerCase().includes('email')) {
-            error.email = err.message
-        } else if (err.message?.toLowerCase().includes('tag')) {
-            error.tag = err.message
-        } else {
-            error.general = err.message || 'Unknown error'
-        }
+        handleApiError(err)
     }
 }
 
-// Computed properties for form configuration
-const formData = reactive({
-    tagOrEmail: '',
-    rememberMe: false,
-    tag: '',
-    email: '',
-    passwd: '',
-    passwdConfirm: '',
-})
+const handleApiError = (err: any) => {
+    const msg = err.message?.toLowerCase() || ''
 
-const fields = computed(() => {
+    if (msg.includes('password')) {
+        error.passwd = err.message
+        error.passwdConfirm = err.message
+    } else if (msg.includes('email')) {
+        error.email = err.message
+        error.tagOrEmail = err.message
+    } else if (msg.includes('tag')) {
+        error.tag = err.message
+        error.tagOrEmail = err.message
+    } else {
+        error.general = err.message || 'Unknown error'
+    }
+}
+
+// --- CONFIGURATION ---
+
+const fields = computed<FieldConfig[]>(() => {
     if (mode.value === 'login') {
         return [
             {
@@ -145,13 +169,13 @@ const fields = computed(() => {
             {
                 label: 'Password',
                 type: 'password',
-                placeholder: 'Keep it a secret !',
+                placeholder: 'Keep it a secret!',
                 vmodel: 'passwd',
             },
             {
-                label: 'Remember Me ?',
+                label: 'Remember Me?',
                 type: 'checkbox',
-                placeholder: 'rememberMe',
+                placeholder: '',
                 vmodel: 'rememberMe',
             },
         ]
@@ -159,11 +183,11 @@ const fields = computed(() => {
         return [
             { label: 'Tag', type: 'text', placeholder: 'comxfan-number1', vmodel: 'tag' },
             { label: 'Email', type: 'email', placeholder: 'comx@fan.me', vmodel: 'email' },
-            { label: 'Password', type: 'password', placeholder: 'Keep it a secret !', vmodel: 'passwd' },
+            { label: 'Password', type: 'password', placeholder: 'Create a password', vmodel: 'passwd' },
             {
                 label: 'Confirm Password',
                 type: 'password',
-                placeholder: 'Just to be sure...',
+                placeholder: 'Repeat password',
                 vmodel: 'passwdConfirm',
             },
         ]
@@ -180,28 +204,23 @@ const formConfig = computed(() => {
 </script>
 
 <template>
-    <!-- DaisyUI Dialog Modal -->
     <dialog ref="dialogRef" class="modal modal-middle" @close="handleDialogClose">
         <div class="modal-box w-11/12 max-w-md p-0">
-            <!-- Close button -->
             <form method="dialog">
                 <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
             </form>
 
-            <!-- Modal Content -->
             <div class="space-y-4">
-                <!-- Form -->
+
                 <Form method="POST" :title="formConfig.title" :submitButtonText="formConfig.submitButtonText"
                     :submitAction="formConfig.submitAction" :fieldSetBorder="false">
-                    <!-- Header -->
                     <template #header>
                         <div v-if="mode === 'signup'" class="text-center text-sm opacity-90">
-                            You don't have an account yet ? Sign up now and join the
-                            <span class="app-title">COMX</span> community !
+                            You don't have an account yet? Sign up now and join the
+                            <span class="font-bold text-primary">COMX</span> community!
                         </div>
                     </template>
 
-                    <!-- General Error/Success -->
                     <div v-if="error.general" :class="[
                         'alert text-sm mb-4',
                         error.general.includes('✅') ? 'alert-success' : 'alert-error',
@@ -209,44 +228,43 @@ const formConfig = computed(() => {
                         <span>{{ error.general }}</span>
                     </div>
 
-                    <!-- Form Fields -->
                     <template #fields>
-                        <div v-for="(field, index) in fields" :key="index" class="flex gap-2"
+                        <div v-for="field in fields" :key="field.vmodel" class="flex gap-2"
                             :class="field.type === 'checkbox' ? 'form-control' : 'form-control w-full flex-col'">
                             <label :class="[
                                 'label',
                                 field.type === 'checkbox' ? 'cursor-pointer justify-start gap-3' : '',
                             ]">
-                                {{ field.label }}
+                                <span class="label-text">{{ field.label }}</span>
                             </label>
+
                             <input :type="field.type" :class="[
                                 field.type === 'checkbox'
                                     ? 'checkbox checkbox-primary'
                                     : 'input input-bordered w-full',
                                 error[field.vmodel] && 'input-error',
                             ]" :placeholder="field.type !== 'checkbox' ? field.placeholder : ''"
-                                v-model="formData[field.vmodel]" @input="() => (error[field.vmodel] = '')" />
+                                v-model="formData[field.vmodel]" @input="() => delete error[field.vmodel]" />
+
                             <div v-if="error[field.vmodel]" class="label">
                                 <span class="label-text-alt text-error">{{ error[field.vmodel] }}</span>
                             </div>
                         </div>
                     </template>
 
-                    <!-- Switch Mode Link -->
                     <template #small>
-                        <div class="text-center text-sm">
+                        <div class="text-center text-sm mt-2">
                             <span v-if="mode === 'login'">
-                                Don't have an account ?
-                                <button @click="switchMode" class="link link-primary">Sign Up</button>
+                                Don't have an account?
+                                <button type="button" @click="switchMode" class="link link-primary">Sign Up</button>
                             </span>
                             <span v-else>
-                                Already have an account ?
-                                <button @click="switchMode" class="link link-primary">Login</button>
+                                Already have an account?
+                                <button type="button" @click="switchMode" class="link link-primary">Login</button>
                             </span>
                         </div>
                     </template>
 
-                    <!-- Additional Buttons (only for login) -->
                     <template #moreBtns v-if="mode === 'login'">
                         <div class="divider text-xs opacity-60">OR</div>
                         <GoogleLoginBtn />
@@ -255,7 +273,6 @@ const formConfig = computed(() => {
             </div>
         </div>
 
-        <!-- Modal backdrop - closes when clicked -->
         <form method="dialog" class="modal-backdrop">
             <button>close</button>
         </form>

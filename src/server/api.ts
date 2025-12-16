@@ -23,9 +23,12 @@ import { SqlDatabase } from 'remult'
 import { BetterSqlite3DataProvider } from 'remult/remult-better-sqlite3'
 import Database from 'better-sqlite3'
 
-import dotenv from 'dotenv'
 import { UserController } from './controllers/UserController'
 import { GameController } from './controllers/GameController'
+import { AdminController } from './controllers/AdminController'
+import { MarketController } from './controllers/MarketController'
+
+import dotenv from 'dotenv'
 dotenv.config({
   path: './src/server/.env',
 })
@@ -59,7 +62,7 @@ export const api = remultApi({
     Tile,
     Island,
   ],
-  controllers: [AuthController, UserController, GameController],
+  controllers: [AuthController, UserController, GameController, AdminController, MarketController],
   getUser: (req) => req.session!.user,
   admin: true, // UI Interface for admins
 })

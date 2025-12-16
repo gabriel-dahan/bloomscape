@@ -57,16 +57,7 @@ watch(() => props.userTag, () => {
 </script>
 
 <template>
-    <div class="absolute top-0 left-0 w-full p-4 pointer-events-none z-999 flex justify-center md:justify-end md:pr-8">
-
-        <button
-            class="btn btn-circle btn-ghost glass absolute top-4 left-4 pointer-events-auto md:hidden text-emerald-400"
-            @click="uiStore.toggleSidebar">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
-            </svg>
-        </button>
+    <div class="absolute top-0 left-0 w-full p-4 pointer-events-none flex justify-center md:justify-end md:pr-8">
 
         <div
             class="pointer-events-auto glass-panel rounded-full px-6 py-2 flex items-center gap-6 shadow-2xl shadow-black/40 mt-12 md:mt-2 transition-all duration-300">

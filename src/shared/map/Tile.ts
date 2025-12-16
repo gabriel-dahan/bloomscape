@@ -1,6 +1,7 @@
-import { Entity, Fields, Relations } from 'remult'
+import { Entity, Field, Fields, Relations } from 'remult'
 import { Island } from './Island'
 import { TileType } from '../types'
+import { FlowerSpecies } from '../flowers/FlowerSpecies'
 
 @Entity('tiles', {
   allowApiCrud: true, // TODO: Restrict logic later
@@ -27,4 +28,10 @@ export class Tile {
 
   @Relations.toOne(() => Island, { field: 'islandId' })
   island?: Island
+
+  @Fields.string()
+  flowerId?: string
+
+  @Relations.toOne(() => FlowerSpecies, { field: 'flowerId' })
+  flower?: FlowerSpecies
 }

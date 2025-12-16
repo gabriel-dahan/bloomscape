@@ -2,11 +2,10 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 export const useUIStore = defineStore('ui', () => {
-  const isSidebarOpen = ref(false) // Mobile: Drawer open/close
-  const isSidebarExpanded = ref(false) // Desktop: Hover expansion
+  const isSidebarOpen = ref(false)
+  const isSidebarHovered = ref(false)
 
   function toggleSidebar() {
-    console.log('Changed sidebar state.')
     isSidebarOpen.value = !isSidebarOpen.value
   }
 
@@ -16,7 +15,7 @@ export const useUIStore = defineStore('ui', () => {
 
   return {
     isSidebarOpen,
-    isSidebarExpanded,
+    isSidebarHovered,
     toggleSidebar,
     closeSidebar,
   }

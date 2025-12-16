@@ -9,11 +9,13 @@ export class Friendship {
 
   @Fields.string()
   requesterId!: string
+
   @Relations.toOne(() => User, 'requesterId')
   requester?: User
 
   @Fields.string()
   receiverId!: string
+
   @Relations.toOne(() => User, 'receiverId')
   receiver?: User
 

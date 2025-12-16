@@ -48,3 +48,11 @@ export const TileType = {
 } as const
 
 export type TileType = (typeof TileType)[keyof typeof TileType]
+
+export const ItemType = {
+  CONSUMABLE: 'CONSUMABLE', // Fertilizer, potions
+  RESOURCE: 'RESOURCE', // Wood, stone (for tool crafting)
+  TOOL: 'TOOL', // Improved watering can, shovel, rake
+} as const
+
+export type ItemType = (typeof ItemType)[keyof typeof ItemType]
