@@ -15,6 +15,7 @@ import {
   UserAchievement,
   UserClaim,
   UserFlower,
+  UserItem,
 } from '@/shared/'
 
 import { remultApi } from 'remult/remult-express'
@@ -29,6 +30,7 @@ import { AdminController } from './controllers/AdminController'
 import { MarketController } from './controllers/MarketController'
 
 import dotenv from 'dotenv'
+
 dotenv.config({
   path: './src/server/.env',
 })
@@ -49,6 +51,7 @@ export const api = remultApi({
 
     FlowerSpecies,
     UserFlower,
+    UserItem,
 
     MarketListing,
     MarketHistory,

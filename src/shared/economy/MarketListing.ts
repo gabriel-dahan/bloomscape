@@ -9,11 +9,13 @@ export class MarketListing {
 
   @Fields.string()
   sellerId!: string
+
   @Relations.toOne(() => User, 'sellerId')
   seller?: User
 
   @Fields.string()
   flowerId!: string
+
   @Relations.toOne(() => UserFlower, 'flowerId')
   flower?: UserFlower
 

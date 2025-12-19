@@ -4,7 +4,6 @@ import { TileData } from './LandSceneManager'
 
 export class WorldElementManager {
   private scene: THREE.Scene
-  // Map to store meshes: "tree_pine" -> InstancedMesh
   private meshMap: Map<string, THREE.InstancedMesh> = new Map()
   private dummy: THREE.Object3D = new THREE.Object3D()
 

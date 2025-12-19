@@ -5,8 +5,8 @@ import { useModalStore } from '@/stores/modal'
 import { FlowerRarity } from '@/shared/types'
 import { FlowerSpecies, MarketListing, MarketStats } from '@/shared'
 import { MarketController } from '@/server/controllers/MarketController'
+import { GameController } from '@/server/controllers/GameController'
 
-// --- CHART.JS IMPORTS ---
 import { Line } from 'vue-chartjs'
 import {
     Chart as ChartJS,
@@ -31,12 +31,6 @@ ChartJS.register(
     Filler
 )
 
-// Repositories
-const speciesRepo = remult.repo(FlowerSpecies)
-const listingRepo = remult.repo(MarketListing)
-const statsRepo = remult.repo(MarketStats)
-
-// State
 const speciesList = ref<FlowerSpecies[]>([])
 const listings = ref<MarketListing[]>([])
 const stats = ref<MarketStats[]>([])
@@ -47,15 +41,16 @@ const buyingId = ref<string | null>(null)
 const timeFilter = ref<'7d' | '30d' | '1y'>('7d')
 const rarityFilter = ref<FlowerRarity | 'ALL'>('ALL')
 
-// --- Data Fetching ---
+// Stocke le dernier prix connu AVANT le début du graphique
+const initialPrice = ref(0)
 
 const fetchData = async () => {
     isLoading.value = true
     try {
-        speciesList.value = await speciesRepo.find({ orderBy: { name: 'asc' } })
-        listings.value = await listingRepo.find({
-            include: { flower: true, seller: true }
-        })
+        const { listings: l, speciesList: sL } = await MarketController.getMarketplaceData()
+
+        speciesList.value = sL
+        listings.value = l
 
         if (!selectedSpeciesId.value && speciesList.value.length > 0) {
             selectedSpeciesId.value = speciesList.value[0].id
@@ -71,22 +66,27 @@ watch([selectedSpeciesId, timeFilter], async () => {
     if (!selectedSpeciesId.value) return
 
     const date = new Date()
+    date.setHours(0, 0, 0, 0)
+
     if (timeFilter.value === '7d') date.setDate(date.getDate() - 7)
     if (timeFilter.value === '30d') date.setDate(date.getDate() - 30)
     if (timeFilter.value === '1y') date.setFullYear(date.getFullYear() - 1)
 
-    stats.value = await statsRepo.find({
-        where: {
-            speciesId: selectedSpeciesId.value,
-            date: { "$gte": date }
-        },
-        orderBy: { date: 'asc' }
-    })
+    // 1. Récupérer les stats sur la période demandée
+    const currentStats = await MarketController.getSpeciesMarketStats(
+        selectedSpeciesId.value,
+        { after: date }
+    )
+    stats.value = currentStats
+
+    // 2. Récupérer le dernier prix connu AVANT cette période (pour la ligne plate)
+    const prevStat = await MarketController.getLastSaleStat(selectedSpeciesId.value, date)
+
+    // Si on a une stat précédente, on l'utilise comme base. Sinon 0.
+    initialPrice.value = prevStat ? prevStat.averagePrice : 0
 })
 
 onMounted(fetchData)
-
-// --- Computed Logic ---
 
 const marketOverview = computed(() => {
     const map = new Map<string, { count: number, minPrice: number }>()
@@ -120,11 +120,74 @@ const activeListingsForSelected = computed(() =>
         .sort((a, b) => a.price - b.price)
 )
 
+// Pour les stats "24h", on prend la dernière valeur du tableau (si elle date d'aujourd'hui idéalement, mais ici on prend la dernière connue)
+const latestStat = computed(() => stats.value.length > 0 ? stats.value[stats.value.length - 1] : null)
+
 // --- CHART DATA CONFIGURATION ---
 
 const chartData = computed(() => {
-    const labels = stats.value.map(s => new Date(s.date).toLocaleDateString(undefined, { day: 'numeric', month: 'numeric' }))
-    const prices = stats.value.map(s => s.averagePrice)
+    const isYearly = timeFilter.value === '1y';
+
+    // 1. Determine Start/End Date
+    const endDate = new Date()
+    endDate.setHours(0, 0, 0, 0)
+    const startDate = new Date(endDate)
+
+    if (timeFilter.value === '7d') startDate.setDate(startDate.getDate() - 7)
+    else if (timeFilter.value === '30d') startDate.setDate(startDate.getDate() - 30)
+    else startDate.setFullYear(startDate.getFullYear() - 1)
+
+    // 2. Prepare Data Map
+    const statsMap = new Map<string, number>()
+    stats.value.forEach(s => {
+        const d = new Date(s.date)
+        d.setHours(0, 0, 0, 0)
+        statsMap.set(d.toISOString(), s.averagePrice)
+    })
+
+    const labels: string[] = []
+    const prices: number[] = []
+
+    let lastKnownPrice = initialPrice.value
+
+    const stepDays = isYearly ? 7 : 1;
+
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + stepDays)) {
+
+        labels.push(d.toLocaleDateString(undefined, { day: 'numeric', month: 'numeric' }))
+
+        if (isYearly) {
+            const weekEnd = new Date(d);
+            weekEnd.setDate(weekEnd.getDate() + 7);
+
+            let sum = 0;
+
+            const weekStats = stats.value.filter(s => {
+                const sDate = new Date(s.date);
+                return sDate >= d && sDate < weekEnd;
+            });
+
+            if (weekStats.length > 0) {
+                weekStats.forEach(ws => sum += ws.averagePrice);
+                const avg = Math.round(sum / weekStats.length);
+                prices.push(avg);
+                lastKnownPrice = avg;
+            } else {
+                prices.push(lastKnownPrice);
+            }
+
+        } else {
+            // -- DAILY LOGIC --
+            const iso = d.toISOString()
+            if (statsMap.has(iso)) {
+                const price = statsMap.get(iso)!
+                prices.push(price)
+                lastKnownPrice = price
+            } else {
+                prices.push(lastKnownPrice)
+            }
+        }
+    }
 
     return {
         labels,
@@ -141,10 +204,17 @@ const chartData = computed(() => {
                     return gradient;
                 },
                 borderWidth: 2,
-                pointRadius: 0,
+                pointRadius: (ctx: any) => {
+                    const index = ctx.dataIndex;
+                    const val = ctx.dataset.data[index];
+                    const prev = ctx.dataset.data[index - 1];
+                    // On affiche un point seulement si la valeur change, ou au début/fin
+                    return (index === 0 || index === ctx.dataset.data.length - 1 || val !== prev) ? 3 : 0;
+                },
                 pointHoverRadius: 6,
                 pointBackgroundColor: '#10b981',
                 fill: true,
+                spanGaps: true,
                 tension: 0.4
             }
         ]
@@ -178,7 +248,7 @@ const chartOptions = {
         y: {
             grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false },
             ticks: { color: '#64748b' },
-            beginAtZero: false
+            beginAtZero: true
         }
     },
     interaction: {
@@ -187,8 +257,6 @@ const chartOptions = {
         intersect: false
     }
 }
-
-// --- Actions ---
 
 const handleBuy = async (listing: MarketListing) => {
     if (!confirm(`Buy this flower for ${listing.price} Sap?`)) return
@@ -208,8 +276,6 @@ const handleBuy = async (listing: MarketListing) => {
         buyingId.value = null
     }
 }
-
-// --- NOUVEAUX HELPERS POUR LE STYLE GLOW ---
 
 const getRarityGlowStyle = (rarity?: FlowerRarity) => {
     const colors: Record<FlowerRarity, string> = {
@@ -238,6 +304,13 @@ const getRarityTextColorClass = (rarity?: FlowerRarity) => {
         default: return 'text-slate-400 border-slate-400/30';
     }
 }
+
+const getQualityColor = (quality: number = 0) => {
+    if (quality >= 0.9) return 'text-amber-400';
+    if (quality >= 0.7) return 'text-purple-400';
+    if (quality >= 0.5) return 'text-blue-400';
+    return 'text-slate-400';
+}
 </script>
 
 <template>
@@ -259,20 +332,25 @@ const getRarityTextColorClass = (rarity?: FlowerRarity) => {
 
                     <div class="w-10 h-10 rounded-lg bg-slate-900 flex items-center justify-center transition-all duration-300 border border-transparent"
                         :style="selectedSpeciesId === species.id ? getRarityGlowStyle(species.rarity) : {}">
-                        <img :src="species.assetUrl"
+                        <img :src="GameController.getFlowerAssetUrl(species.slugName, 'MATURE', 'icon')"
                             class="w-8 h-8 opacity-80 group-hover:opacity-100 transition-opacity" />
                     </div>
 
                     <div class="flex-1 min-w-0">
                         <div class="font-bold truncate text-sm"
-                            :class="selectedSpeciesId === species.id ? 'text-white' : 'text-slate-300'">{{ species.name
-                            }}</div>
+                            :class="selectedSpeciesId === species.id ? 'text-white' : 'text-slate-300'">
+                            {{ species.name }}
+                        </div>
+
                         <div class="text-xs opacity-60 flex justify-between mt-1">
                             <span>Stock: {{ marketOverview.get(species.id)?.count || 0 }}</span>
-                            <span v-if="marketOverview.get(species.id)?.minPrice !== Infinity" class="text-emerald-400">
+
+                            <span v-if="marketOverview.get(species.id)?.count" class="text-emerald-400">
                                 {{ marketOverview.get(species.id)?.minPrice }} Sap
                             </span>
-                            <span v-else class="text-slate-500">No Listings</span>
+                            <span v-else class="text-slate-500 italic">
+                                No stock
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -285,7 +363,7 @@ const getRarityTextColorClass = (rarity?: FlowerRarity) => {
                 <div class="flex gap-4">
                     <div class="w-20 h-20 bg-slate-900/50 rounded-xl p-2 border shadow-lg transition-all duration-300"
                         :style="getRarityGlowStyle(selectedSpecies.rarity)">
-                        <img :src="selectedSpecies.spriteUrl"
+                        <img :src="GameController.getFlowerAssetUrl(selectedSpecies.slugName, 'MATURE', 'sprite')"
                             class="w-full h-full object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
                     </div>
                     <div>
@@ -300,19 +378,47 @@ const getRarityTextColorClass = (rarity?: FlowerRarity) => {
                     </div>
                 </div>
 
-                <div class="text-right">
-                    <div class="text-sm text-slate-400 mb-1">Lowest Ask</div>
-                    <div class="text-3xl font-mono font-bold text-emerald-400">
-                        {{ marketOverview.get(selectedSpecies.id)?.minPrice !== Infinity ?
-                            marketOverview.get(selectedSpecies.id)?.minPrice : '--' }}
-                        <span class="text-sm text-emerald-600">Sap</span>
+                <div class="flex flex-col items-end gap-2">
+                    <div class="text-right">
+                        <div class="text-xs text-slate-400 mb-0.5 uppercase tracking-wide">Lowest Ask</div>
+
+                        <div v-if="marketOverview.get(selectedSpecies.id)?.count"
+                            class="text-3xl font-mono font-bold text-emerald-400 leading-none">
+                            {{ marketOverview.get(selectedSpecies.id)?.minPrice }}
+                            <span class="text-sm text-emerald-600">Sap</span>
+                        </div>
+                        <div v-else class="text-xl font-mono text-slate-500 font-bold">
+                            --
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="p-6 min-h-[250px] border-b border-slate-700/50 flex flex-col">
+            <div class="grid grid-cols-4 gap-4 px-6 py-4 border-b border-slate-700/50 bg-slate-800/20">
+                <div>
+                    <div class="text-xs text-slate-500 uppercase">24h Vol</div>
+                    <div class="font-mono text-white text-lg">{{ latestStat?.volume || 0 }}</div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500 uppercase">24h Avg</div>
+                    <div class="font-mono text-white text-lg">{{ latestStat?.averagePrice || '--' }} <span
+                            class="text-xs text-slate-500">Sap</span></div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500 uppercase">24h High</div>
+                    <div class="font-mono text-white text-lg">{{ latestStat?.maxPrice || '--' }} <span
+                            class="text-xs text-slate-500">Sap</span></div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500 uppercase">24h Low</div>
+                    <div class="font-mono text-emerald-400 text-lg">{{ latestStat?.minPrice || '--' }} <span
+                            class="text-xs text-slate-500">Sap</span></div>
+                </div>
+            </div>
+
+            <div class="p-6 min-h-[200px] border-b border-slate-700/50 flex flex-col">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-slate-300">Price History</h3>
+                    <h3 class="font-bold text-slate-300">Average Price History</h3>
                     <div class="flex gap-2 bg-slate-800 p-1 rounded-lg">
                         <button v-for="t in ['7d', '30d', '1y']" :key="t" @click="timeFilter = t as any"
                             class="px-3 py-1 text-xs rounded transition-colors"
@@ -324,14 +430,11 @@ const getRarityTextColorClass = (rarity?: FlowerRarity) => {
 
                 <div
                     class="w-full flex-1 bg-slate-800/20 rounded-lg relative overflow-hidden border border-slate-700/30 p-2">
-
-                    <div v-if="stats.length === 0"
+                    <div v-if="stats.length === 0 && initialPrice === 0"
                         class="flex h-full items-center justify-center text-slate-500 text-sm">
-                        No historical data available for this period.
+                        No trade history available ever.
                     </div>
-
                     <Line v-else :data="chartData" :options="chartOptions as any" />
-
                 </div>
             </div>
 
@@ -348,6 +451,7 @@ const getRarityTextColorClass = (rarity?: FlowerRarity) => {
                         <thead class="text-xs uppercase text-slate-500 sticky top-0 bg-slate-900/90 backdrop-blur pb-2">
                             <tr>
                                 <th class="pb-3 pl-2">Seller</th>
+                                <th class="pb-3">Quality</th>
                                 <th class="pb-3">Listed At</th>
                                 <th class="pb-3 text-right">Price</th>
                                 <th class="pb-3"></th>
@@ -358,6 +462,10 @@ const getRarityTextColorClass = (rarity?: FlowerRarity) => {
                                 class="border-b border-slate-800/50 hover:bg-white/5 transition-colors group">
                                 <td class="py-3 pl-2 text-sm text-slate-300">
                                     {{ listing.seller?.tag || 'Unknown' }}
+                                </td>
+                                <td class="py-3 text-sm font-bold">
+                                    <span :class="getQualityColor(listing.flower?.quality)">{{
+                                        Math.round((listing.flower?.quality || 0) * 100) }}</span>%
                                 </td>
                                 <td class="py-3 text-xs text-slate-500">
                                     {{ new Date(listing.listedAt || '').toLocaleDateString() }}
@@ -374,13 +482,14 @@ const getRarityTextColorClass = (rarity?: FlowerRarity) => {
                                     </button>
                                 </td>
                             </tr>
-                            <tr v-if="activeListingsForSelected.length === 0">
-                                <td colspan="4" class="py-8 text-center text-slate-500 italic">
-                                    No one is selling this flower currently.
-                                </td>
-                            </tr>
                         </tbody>
                     </table>
+
+                    <div v-if="activeListingsForSelected.length === 0" class="flex h-[50%] items-center justify-center">
+                        <span class="text-slate-500 italic">
+                            No one is selling this flower currently.
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>

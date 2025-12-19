@@ -97,8 +97,6 @@ const handleStartAdventure = async () => {
 onMounted(async () => {
     await auth.fetchSessionUser();
 
-    console.log(auth.user)
-
     if (!canvasContainerRef.value) return;
 
     sceneManager = new LandSceneManager({

@@ -5,8 +5,10 @@ import { useAuthStore } from '@/stores/auth';
 import { FlowerStatus, FlowerRarity, ItemType } from '@/shared/types';
 import { UserItem } from '@/shared/user/UserItem';
 import { UserFlower } from '@/shared';
+import { MarketController } from '@/server/controllers/MarketController';
+import { GameController } from '@/server/controllers/GameController';
 
-const authStore = useAuthStore();
+const auth = useAuthStore();
 const flowerRepo = remult.repo(UserFlower);
 const itemRepo = remult.repo(UserItem);
 
@@ -18,28 +20,26 @@ const rawFlowers = ref<UserFlower[]>([]);
 const rawItems = ref<UserItem[]>([]);
 
 const searchQuery = ref('');
+const currentMarketPrice = ref<number | null>(null);
+const activeListingCount = ref<number>(0);
 
 type DisplaySize = 'SMALL' | 'MEDIUM' | 'LARGE';
-const displaySize = ref<DisplaySize>('MEDIUM');
+const displaySize = ref<DisplaySize>('SMALL');
 
 type SortOption = 'QUALITY_DESC' | 'QUALITY_ASC' | 'RARITY_DESC' | 'NAME_ASC' | 'QUANTITY_DESC';
 const flowerSort = ref<SortOption>('RARITY_DESC');
 const itemSort = ref<SortOption>('QUANTITY_DESC');
 
 const fetchInventory = async () => {
-    if (!authStore.user) return;
+    if (!auth.user) return;
 
     isLoading.value = true;
     try {
-        rawFlowers.value = await flowerRepo.find({
-            where: { ownerId: authStore.user.id, status: FlowerStatus.SEED },
-            include: { species: true }
-        });
+        const { flowers, items } = await GameController.getUserInventory()
 
-        rawItems.value = await itemRepo.find({
-            where: { userId: authStore.user.id },
-            include: { definition: true }
-        });
+        rawFlowers.value = flowers
+
+        rawItems.value = items
     } catch (e) {
         console.error(e);
     } finally {
@@ -48,7 +48,7 @@ const fetchInventory = async () => {
 };
 
 onMounted(async () => {
-    if (!authStore.user) await authStore.fetchSessionUser();
+    if (!auth.user) await auth.fetchSessionUser();
     fetchInventory();
 });
 
@@ -101,6 +101,24 @@ const items = computed(() => {
             return list.sort((a, b) => (a.definition?.name || '').localeCompare(b.definition?.name || ''));
         default:
             return list;
+    }
+});
+
+// Logic to fetch live market data using the Backend Controller
+watch(selectedObject, async (newVal) => {
+    currentMarketPrice.value = null;
+    activeListingCount.value = 0;
+
+    if (newVal && isFlower(newVal) && newVal.speciesId) {
+        try {
+            // Using the new Controller method to bypass "Admin Only" restriction on MarketListing Entity
+            const metrics = await MarketController.getFlowerMarketMetrics(newVal.speciesId);
+
+            currentMarketPrice.value = metrics.lowestPrice;
+            activeListingCount.value = metrics.count;
+        } catch (e) {
+            console.error("Error fetching market data", e);
+        }
     }
 });
 
@@ -265,7 +283,7 @@ watch(activeTab, () => {
                         :style="selectedObject?.id === flower.id ? getRarityGlowStyle(flower.species?.rarity) : { borderColor: 'rgba(51, 65, 85, 0.5)' }">
 
                         <div class="w-full h-full p-2 flex items-center justify-center">
-                            <img :src="flower.species?.assetUrl"
+                            <img :src="GameController.getFlowerAssetUrl(flower.species?.slugName, 'SEED', 'icon')"
                                 class="w-full h-full object-contain drop-shadow-md opacity-90 group-hover:opacity-100" />
                         </div>
 
@@ -315,12 +333,12 @@ watch(activeTab, () => {
                     <div class="flex justify-center mb-6">
                         <div class="w-32 h-32 rounded-2xl bg-slate-900/50 border shadow-lg transition-all duration-300 flex items-center justify-center relative overflow-hidden"
                             :style="getRarityGlowStyle(selectedObject.species?.rarity)">
-                            <img :src="selectedObject.species?.spriteUrl"
+                            <img :src="GameController.getFlowerAssetUrl(selectedObject.species?.slugName, 'SEED', 'sprite')"
                                 class="w-24 h-24 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] scale-125" />
                         </div>
                     </div>
 
-                    <div class="mb-6">
+                    <div class="mb-4">
                         <div class="flex items-center justify-between mb-1">
                             <h2 class="text-xl font-bold text-white">{{ selectedObject.species?.name }}</h2>
                             <span class="text-xs px-2 py-0.5 rounded border uppercase font-bold"
@@ -334,12 +352,29 @@ watch(activeTab, () => {
                         </p>
                     </div>
 
+                    <div class="bg-slate-800/40 p-3 rounded-lg border border-slate-700/50 mb-4">
+                        <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-700/30">
+                            <span class="text-xs font-bold text-slate-400 uppercase">Market Data</span>
+                            <span class="text-xs text-slate-500">{{ activeListingCount }} Listings</span>
+                        </div>
+                        <div class="flex justify-between items-end">
+                            <span class="text-xs text-slate-400">Est. Market Value</span>
+                            <div v-if="currentMarketPrice !== null"
+                                class="text-lg font-mono text-emerald-400 font-bold">
+                                {{ currentMarketPrice }} <span class="text-xs font-normal">Sap</span>
+                            </div>
+                            <div v-else class="text-sm text-slate-500 italic">
+                                Unavailable
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="space-y-3 mb-auto">
                         <div class="bg-slate-800/50 p-3 rounded-lg border border-slate-700/50">
                             <div class="flex justify-between text-xs mb-1">
                                 <span class="text-slate-400">Quality</span>
                                 <span class="text-emerald-400 font-mono">{{ Math.round(selectedObject.quality * 100)
-                                    }}%</span>
+                                }}%</span>
                             </div>
                             <progress class="progress progress-success w-full h-1.5"
                                 :value="selectedObject.quality * 100" max="100"></progress>
@@ -377,7 +412,7 @@ watch(activeTab, () => {
                         <h2 class="text-xl font-bold text-white mb-1">{{ selectedObject.definition?.name }}</h2>
                         <div class="flex gap-2 mb-3">
                             <span class="badge badge-neutral text-xs font-mono">{{ selectedObject.definition?.type
-                                }}</span>
+                            }}</span>
                             <span v-if="selectedObject.definition?.isTradable"
                                 class="badge badge-ghost text-xs">Tradable</span>
                         </div>
@@ -395,7 +430,7 @@ watch(activeTab, () => {
 
                         <div
                             class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg border border-slate-700/30">
-                            <span class="text-sm text-slate-400">Est. Value</span>
+                            <span class="text-sm text-slate-400">Base Value</span>
                             <span class="text-sm font-mono text-emerald-400">
                                 {{ (selectedObject.definition?.basePrice || 0) * selectedObject.quantity }} Sap
                             </span>

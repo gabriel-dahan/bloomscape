@@ -1,4 +1,4 @@
-import { Island, Tile, User } from '@/shared'
+import { FlowerStatus, Island, Tile, User, UserFlower, UserItem } from '@/shared'
 import { BackendMethod, remult } from 'remult'
 import { PRICES } from '../ext'
 import { useAuthStore } from '@/stores/auth'
@@ -99,5 +99,31 @@ export class GameController {
       type: 'land',
       createdAt: new Date(),
     })
+  }
+
+  @BackendMethod({ allowed: true })
+  static async getUserInventory() {
+    const flowerRepo = remult.repo(UserFlower)
+    const itemRepo = remult.repo(UserItem)
+
+    const flowers = await flowerRepo.find({
+      where: { ownerId: remult.user.id, status: FlowerStatus.SEED },
+      include: { species: true },
+    })
+
+    const items = await itemRepo.find({
+      where: { userId: remult.user.id },
+      include: { definition: true },
+    })
+
+    return { flowers, items }
+  }
+
+  static getFlowerAssetUrl(
+    flowerSlugName: string,
+    status: FlowerStatus = FlowerStatus.MATURE,
+    type: 'icon' | 'sprite' = 'icon',
+  ) {
+    return `/api/images/flowers/${flowerSlugName}/${status.toLowerCase()}/${type.toLowerCase()}`
   }
 }

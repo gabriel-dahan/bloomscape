@@ -13,6 +13,7 @@ export * from './user/UserAchievement'
 // Flowers
 export * from './flowers/FlowerSpecies'
 export * from './flowers/UserFlower'
+export * from './user/UserItem'
 
 // Economy
 export * from './economy/MarketListing'

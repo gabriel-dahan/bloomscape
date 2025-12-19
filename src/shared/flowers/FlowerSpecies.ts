@@ -1,5 +1,5 @@
 import { Entity, Fields } from 'remult'
-import { FlowerAvailability, FlowerRarity } from '../types'
+import { FlowerAvailability, FlowerRarity, FlowerStatus } from '../types'
 
 @Entity('flower_species', { allowApiCrud: 'admin' })
 export class FlowerSpecies {
@@ -8,6 +8,9 @@ export class FlowerSpecies {
 
   @Fields.string()
   name!: string
+
+  @Fields.string()
+  slugName!: string
 
   @Fields.string()
   description: string = ''
@@ -23,12 +26,4 @@ export class FlowerSpecies {
 
   @Fields.integer()
   growthDuration: number = 60 * 60 // In seconds (default 1h)
-
-  get assetUrl() {
-    return `/api/images/flowers/${this.id}/icon`
-  }
-
-  get spriteUrl() {
-    return `/api/images/flowers/${this.id}/sprite`
-  }
 }

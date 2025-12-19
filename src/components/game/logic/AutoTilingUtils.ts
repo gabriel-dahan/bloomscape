@@ -1,6 +1,7 @@
+// 1 = North, 2 = East, 4 = South, 8 = West
+
 import { TileData } from './LandSceneManager'
 
-// 1 = North, 2 = East, 4 = South, 8 = West
 // Summing these gives a unique number from 0 to 15
 export interface TileLayout {
   type: 'center' | 'edge' | 'corner' | 'tip' | 'island'

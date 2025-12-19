@@ -8,7 +8,7 @@ import { fileURLToPath } from 'url'
 import { dirname } from 'path'
 
 import dotenv from 'dotenv'
-import { UserFlower } from '@/shared'
+import { UserFlower, FlowerSpecies } from '@/shared'
 dotenv.config({
   path: './src/server/.env',
 })
@@ -26,24 +26,40 @@ app.use(
 )
 app.use(express.json())
 
-app.get('/api/images/flowers/:speciesId/:type', async (req, res) => {
+// Route updated to use :slugName instead of :speciesId
+app.get('/api/images/flowers/:slugName/:status/:type', async (req, res) => {
   await api.withRemult(req, res, async () => {
-    const { speciesId, type } = req.params
+    const { slugName, status, type } = req.params
 
-    if (type !== 'icon' && type !== 'sprite') return res.status(404).send()
+    const validTypes = ['icon', 'sprite']
+    const validStages = ['seed', 'planted', 'mature', 'withered']
+
+    if (!validTypes.includes(type) || !validStages.includes(status)) {
+      return res
+        .status(404)
+        .send(
+          'Invalid image type (icon, sprite) or flower status (seed, planted, mature, withered)',
+        )
+    }
 
     const secureDir = path.join(__dirname, '../private/assets/flowers', type)
-    const realPath = path.join(secureDir, `${speciesId}.png`)
+    const fileName = `${slugName}_${status}.png`
+    const realPath = path.join(secureDir, fileName)
     const unknownPath = path.join(secureDir, 'unknown.png')
 
     let allowed = false
 
     if (remult.user) {
-      const count = await remult.repo(UserFlower).count({
-        ownerId: remult.user.id,
-        speciesId: speciesId,
-      })
-      if (count > 0) allowed = true
+      const speciesRepo = remult.repo(FlowerSpecies)
+      const species = await speciesRepo.findFirst({ slugName })
+
+      if (species) {
+        const count = await remult.repo(UserFlower).count({
+          ownerId: remult.user.id,
+          speciesId: species.id,
+        })
+        if (count > 0) allowed = true
+      }
     }
 
     if (allowed && fs.existsSync(realPath)) {

@@ -587,7 +587,6 @@ export class LandSceneManager {
     if (this.selectionMesh.visible) {
       const scale = 1 + Math.sin(time * 0.005) * 0.03
       this.selectionMesh.scale.set(scale, 1, scale)
-
       ;(this.selectionMesh.material as THREE.LineBasicMaterial).opacity =
         0.5 + Math.sin(time * 0.01) * 0.5
     }
