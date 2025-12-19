@@ -1,8 +1,9 @@
 @import 'tailwindcss';
 
-@plugin "daisyui" 
+@plugin "daisyui" {
+  themes: forest --default --prefersdark;
+}
 
-/* 4. Configuration du Thème (Breakpoints et couleurs) */
 @theme {
   --breakpoint-phone: 450px;
   --breakpoint-sm: 640px;

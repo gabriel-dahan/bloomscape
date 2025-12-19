@@ -15,9 +15,6 @@ export interface TileInteraction {
 }
 
 export const useGameStore = defineStore('game', () => {
-  const islandRepo = remult.repo(Island)
-  const tileRepo = remult.repo(Tile)
-
   const currentIsland = ref<Island | null>(null)
   const tiles = ref<Tile[]>([])
 
@@ -27,7 +24,6 @@ export const useGameStore = defineStore('game', () => {
   const isLoading = ref(false)
   const playerBalance = ref(0)
 
-  // Computed: Get the full Database Entity for the selected tile
   const selectedEntity = computed(() => {
     if (!selectedTile.value) return null
     return (
@@ -44,13 +40,11 @@ export const useGameStore = defineStore('game', () => {
     tiles.value = []
 
     try {
-      const island = await islandRepo.findFirst({ ownerId: userId })
-      if (island) {
-        currentIsland.value = island
-        // Fetch tiles for this island
-        tiles.value = await tileRepo.find({
-          where: { islandId: island.id },
-        })
+      const result = await GameController.getIslandDetails(userId)
+
+      if (result) {
+        currentIsland.value = result.island
+        tiles.value = result.tiles
       }
     } catch (e) {
       console.error(e)
@@ -96,6 +90,8 @@ export const useGameStore = defineStore('game', () => {
         selectedTile.value.isOwned = true
         selectedTile.value.id = newTile.id
       }
+
+      await fetchBalance()
     } catch (e: any) {
       const modal = useModalStore()
       modal.open({

@@ -1,3 +1,4 @@
+import { router } from '@/routes'
 import { defineStore } from 'pinia'
 import { ref, markRaw, type Component } from 'vue'
 
@@ -22,6 +23,7 @@ export const useModalStore = defineStore('modal', () => {
   const fullscreenSideBarMargin = ref(false)
 
   const previousPath = ref<string | null>(null)
+  const closingPath = ref<string | null>(null)
 
   function open(payload: {
     title: string
@@ -31,7 +33,8 @@ export const useModalStore = defineStore('modal', () => {
     component?: Component
     componentProps?: Record<string, any>
     actions?: ModalAction[]
-    path?: string
+    path?: string // false url shown when the modal is opened
+    closingPath?: string // url the modal should return to when closed
     fullscreenSideBarMargin?: boolean
   }) {
     title.value = payload.title
@@ -39,6 +42,7 @@ export const useModalStore = defineStore('modal', () => {
     type.value = payload.type || 'info'
     size.value = payload.size || 'standard'
     fullscreenSideBarMargin.value = payload.fullscreenSideBarMargin || false
+    closingPath.value = payload.closingPath || null
 
     // Gestion du composant
     if (payload.component) {
@@ -80,6 +84,8 @@ export const useModalStore = defineStore('modal', () => {
     if (previousPath.value) {
       window.history.pushState({}, '', previousPath.value)
       previousPath.value = null
+    } else if (closingPath.value) {
+      router.push(closingPath.value)
     }
 
     setTimeout(() => {

@@ -20,6 +20,7 @@ export * from './economy/MarketListing'
 export * from './economy/MarketHistory'
 export * from './economy/SapPurchase'
 export * from './economy/MarketStat'
+export * from './economy/Item'
 
 // Social
 export * from './social/Friendship'

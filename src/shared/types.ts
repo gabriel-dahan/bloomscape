@@ -25,13 +25,27 @@ export const FlowerAvailability = {
 export type FlowerAvailability = (typeof FlowerAvailability)[keyof typeof FlowerAvailability]
 
 export const FlowerStatus = {
-  SEED: 'SEED', // In Inventory
-  PLANTED: 'PLANTED', // In Garden (Growing)
-  MATURE: 'MATURE', // In Garden (Ready/Decorative)
-  WITHERED: 'WITHERED', // Needs revival
+  SEED: 'SEED',
+  SPROUT1: 'SPROUT1',
+  SPROUT2: 'SPROUT2',
+  GROWING1: 'GROWING1',
+  GROWING2: 'GROWING2',
+  MATURE: 'MATURE',
+  WITHERED: 'WITHERED',
 } as const
 
 export type FlowerStatus = (typeof FlowerStatus)[keyof typeof FlowerStatus]
+
+export const FlowerWaterConsumption = {
+  VERY_LOW: 'VERY_LOW',
+  LOW: 'LOW',
+  NORMAL: 'NORMAL',
+  HIGH: 'HIGH',
+  VERY_HIGH: 'VERY_HIGH',
+} as const
+
+export type FlowerWaterConsumption =
+  (typeof FlowerWaterConsumption)[keyof typeof FlowerWaterConsumption]
 
 export const FriendshipStatus = {
   PENDING: 'PENDING',

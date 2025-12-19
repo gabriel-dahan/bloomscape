@@ -6,6 +6,7 @@ import AuthModal from './components/auth/AuthModal.vue'
 import { useAuthModal } from '@/components/auth/logic/useAuthModal'
 
 import GlobalModal from './components/GlobalModal.vue'
+import GlobalChatDrawer from './components/chat/GlobalChatDrawer.vue'
 
 const auth = useAuthStore()
 
@@ -19,6 +20,7 @@ onMounted(async () => {
 <template>
   <AuthModal v-model:is-open="isOpen" :mode="mode" @success="handleSuccess" />
   <GlobalModal />
+  <GlobalChatDrawer />
 
   <Base>
     <RouterView />

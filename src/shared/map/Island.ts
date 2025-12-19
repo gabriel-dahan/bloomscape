@@ -3,7 +3,7 @@ import { User } from '../user/User'
 import { Tile } from './Tile'
 
 @Entity('islands', {
-  allowApiCrud: true,
+  allowApiCrud: 'admin',
 })
 export class Island {
   @Fields.uuid()

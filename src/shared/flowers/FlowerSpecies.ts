@@ -1,5 +1,5 @@
 import { Entity, Fields } from 'remult'
-import { FlowerAvailability, FlowerRarity, FlowerStatus } from '../types'
+import { FlowerAvailability, FlowerRarity, FlowerWaterConsumption } from '../types'
 
 @Entity('flower_species', { allowApiCrud: 'admin' })
 export class FlowerSpecies {
@@ -26,4 +26,7 @@ export class FlowerSpecies {
 
   @Fields.integer()
   growthDuration: number = 60 * 60 // In seconds (default 1h)
+
+  @Fields.string() // Enum
+  waterNeeds: FlowerWaterConsumption = FlowerWaterConsumption.NORMAL
 }

@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import HomeMarketTicker from '@/components/HomeMarketTicker.vue';
 
-
-// Logic for styling the Rarity cards specific to this page
 const getRarityGlowStyle = (rarity: string) => {
     const colors: Record<string, string> = {
         'COMMON': '#94a3b8',
@@ -21,17 +19,25 @@ const getRarityGlowStyle = (rarity: string) => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-950 text-slate-200 font-sans overflow-x-hidden selection:bg-emerald-500/30">
+    <div
+        class="w-screen max-w-[100vw] min-h-screen bg-slate-950 text-slate-200 font-sans overflow-x-hidden selection:bg-emerald-500/30">
 
-        <header class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+        <header class="relative w-full pt-24 pb-12 phone:pt-32 phone:pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+
             <div
-                class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl opacity-30 pointer-events-none">
-                <div class="absolute top-20 right-10 w-96 h-96 bg-emerald-500/30 rounded-full blur-[100px]"></div>
-                <div class="absolute bottom-10 left-10 w-72 h-72 bg-blue-600/20 rounded-full blur-[100px]"></div>
+                class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl opacity-30 pointer-events-none z-0">
+                <div
+                    class="absolute top-10 -right-20 phone:right-0 w-48 h-48 phone:w-96 phone:h-96 bg-emerald-500/30 rounded-full blur-[60px] phone:blur-[100px]">
+                </div>
+                <div
+                    class="absolute bottom-10 -left-20 phone:left-0 w-40 h-40 phone:w-72 phone:h-72 bg-blue-600/20 rounded-full blur-[60px] phone:blur-[100px]">
+                </div>
             </div>
 
-            <div class="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center relative z-10">
-                <div class="space-y-8">
+            <div
+                class="max-w-7xl mx-auto px-4 phone:px-12 grid lg:grid-cols-2 gap-12 items-center relative z-10 w-full">
+                <div class="space-y-6 phone:space-y-8 text-center lg:text-left">
+
                     <div
                         class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-700/50 text-xs font-medium text-emerald-400 shadow-sm">
                         <span class="relative flex h-2 w-2">
@@ -42,46 +48,48 @@ const getRarityGlowStyle = (rarity: string) => {
                         Closed Economy Alpha Live
                     </div>
 
-                    <h1 class="text-5xl lg:text-7xl font-bold leading-tight text-white">
+                    <h1
+                        class="text-4xl phone:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight text-white break-words">
                         Cultivate your <br>
-                        <span
-                            class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Digital
-                            Paradise</span>
+                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
+                            Digital Paradise
+                        </span>
                     </h1>
 
-                    <p class="text-lg text-slate-400 max-w-xl leading-relaxed">
+                    <p class="text-base phone:text-lg text-slate-400 max-w-xl mx-auto lg:mx-0 leading-relaxed">
                         Plant seeds, nurture rare flowers, and trade them in a fully player-driven economy.
                         Design your island and discover the secrets of botany in BloomScape.
                     </p>
 
-                    <div class="flex flex-col sm:flex-row gap-4">
+                    <div class="flex flex-col phone:flex-row gap-4 justify-center lg:justify-start w-full">
                         <button
-                            class="btn btn-lg bg-emerald-500 hover:bg-emerald-400 text-slate-900 border-none font-bold px-8 shadow-xl shadow-emerald-500/20 transition-all hover:scale-105 hover:-translate-y-1">
+                            class="btn btn-lg w-full phone:w-auto bg-emerald-500 hover:bg-emerald-400 text-slate-900 border-none font-bold px-8 shadow-xl shadow-emerald-500/20 transition-all active:scale-95 hover:scale-105 hover:-translate-y-1">
                             Start Your Garden
                         </button>
                         <button
-                            class="btn btn-lg btn-outline border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 hover:border-slate-600">
+                            class="btn btn-lg w-full phone:w-auto btn-outline border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 hover:border-slate-600">
                             Explore Market
                         </button>
                     </div>
 
-                    <div class="pt-8 flex items-center gap-8 border-t border-slate-800/60">
-                        <div>
+                    <div
+                        class="pt-8 flex flex-col phone:flex-row items-center justify-center lg:justify-start gap-6 phone:gap-8 border-t border-slate-800/60 w-full">
+                        <div class="text-center lg:text-left">
                             <div class="text-2xl font-bold text-white">12k+</div>
                             <div class="text-xs text-slate-500 uppercase tracking-wider font-bold">Active Plots</div>
                         </div>
-                        <div>
+                        <div class="text-center lg:text-left">
                             <div class="text-2xl font-bold text-white">850k</div>
                             <div class="text-xs text-slate-500 uppercase tracking-wider font-bold">Sap Traded</div>
                         </div>
-                        <div>
+                        <div class="text-center lg:text-left">
                             <div class="text-2xl font-bold text-white">142</div>
                             <div class="text-xs text-slate-500 uppercase tracking-wider font-bold">Species</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="relative group perspective-1000 hidden lg:block">
+                <div class="relative group perspective-1000 hidden lg:block w-full max-w-lg mx-auto">
                     <div
                         class="absolute inset-0 bg-gradient-to-tr from-emerald-500/20 to-cyan-500/20 rounded-3xl blur-3xl transform group-hover:scale-105 transition-transform duration-700">
                     </div>
@@ -93,10 +101,8 @@ const getRarityGlowStyle = (rarity: string) => {
                             </div>
                             <div class="absolute inset-0 flex items-center justify-center">
                                 <div class="relative">
-                                    <div class="text-8xl filter drop-shadow-lg animate-float">🌻</div>
-                                    <div
-                                        class="absolute -top-4 -right-8 bg-slate-900/90 backdrop-blur border border-emerald-500/30 text-emerald-400 text-xs px-2 py-1 rounded shadow-lg">
-                                        Ready!
+                                    <div class="text-8xl filter drop-shadow-lg animate-float">
+                                        <img src="/bloomscape_logo.png" width="100">
                                     </div>
                                 </div>
                             </div>
@@ -115,21 +121,21 @@ const getRarityGlowStyle = (rarity: string) => {
             </div>
         </header>
 
-        <HomeMarketTicker />
+        <HomeMarketTicker class="w-full max-w-full" />
 
-        <section class="py-24 bg-slate-950 relative">
-            <div class="max-w-7xl mx-auto px-6">
-                <div class="text-center mb-16">
-                    <h2 class="text-3xl lg:text-4xl font-bold text-white mb-4">Grow, Gather, Gain</h2>
-                    <p class="text-slate-400 max-w-2xl mx-auto">
+        <section class="py-16 phone:py-24 bg-slate-950 relative w-full overflow-hidden">
+            <div class="max-w-7xl mx-auto px-4 phone:px-6">
+                <div class="text-center mb-12 phone:mb-16">
+                    <h2 class="text-3xl phone:text-4xl font-bold text-white mb-4">Grow, Gather, Gain</h2>
+                    <p class="text-slate-400 max-w-2xl mx-auto text-sm phone:text-base">
                         BloomScape isn't just about clicking flowers. It's a complex ecosystem where soil quality, water
                         levels, and real-time market trends determine your success.
                     </p>
                 </div>
 
-                <div class="grid md:grid-cols-3 gap-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 phone:gap-8">
                     <div
-                        class="group p-8 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-900/50 border border-slate-800 hover:border-emerald-500/50 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-900/20">
+                        class="group p-6 phone:p-8 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-900/50 border border-slate-800 hover:border-emerald-500/50 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-900/20">
                         <div
                             class="w-14 h-14 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform">
                             💧
@@ -143,7 +149,7 @@ const getRarityGlowStyle = (rarity: string) => {
                     </div>
 
                     <div
-                        class="group p-8 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-900/50 border border-slate-800 hover:border-blue-500/50 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-blue-900/20">
+                        class="group p-6 phone:p-8 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-900/50 border border-slate-800 hover:border-blue-500/50 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-blue-900/20">
                         <div
                             class="w-14 h-14 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform">
                             📈
@@ -157,7 +163,7 @@ const getRarityGlowStyle = (rarity: string) => {
                     </div>
 
                     <div
-                        class="group p-8 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-900/50 border border-slate-800 hover:border-purple-500/50 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-purple-900/20">
+                        class="group p-6 phone:p-8 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-900/50 border border-slate-800 hover:border-purple-500/50 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-purple-900/20">
                         <div
                             class="w-14 h-14 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform">
                             🧬
@@ -173,20 +179,21 @@ const getRarityGlowStyle = (rarity: string) => {
             </div>
         </section>
 
-        <section class="py-32 relative overflow-hidden bg-slate-900/30 border-y border-slate-800/50">
+        <section class="py-20 phone:py-32 relative overflow-hidden bg-slate-900/30 border-y border-slate-800/50 w-full">
             <div class="max-w-7xl mx-auto px-6 relative z-10">
-                <div class="flex flex-col md:flex-row items-center justify-between gap-16">
-                    <div class="md:w-1/2">
-                        <h2 class="text-4xl font-bold text-white mb-6 leading-tight">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-12 phone:gap-16">
+
+                    <div class="md:w-1/2 text-center md:text-left">
+                        <h2 class="text-3xl phone:text-4xl font-bold text-white mb-6 leading-tight">
                             Collect the <span
                                 class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-amber-400">Unattainable</span>
                         </h2>
-                        <p class="text-slate-400 mb-8 text-lg leading-relaxed">
+                        <p class="text-slate-400 mb-8 text-base phone:text-lg leading-relaxed">
                             Some flowers are wild, others must be engineered. Will you be the first botanist to
                             stabilize the genome of the Legendary <span class="text-amber-400 font-bold">Solar
                                 Lotus</span>?
                         </p>
-                        <div class="space-y-4">
+                        <div class="space-y-4 max-w-md mx-auto md:mx-0 text-left">
                             <div
                                 class="flex items-center gap-4 p-4 rounded-xl bg-slate-800/40 border border-slate-700/50">
                                 <div
@@ -211,7 +218,8 @@ const getRarityGlowStyle = (rarity: string) => {
                         </div>
                     </div>
 
-                    <div class="md:w-1/2 relative h-96 w-full flex items-center justify-center perspective-1000">
+                    <div
+                        class="md:w-1/2 relative h-96 w-full flex items-center justify-center perspective-1000 scale-65 phone:scale-100">
                         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-72 bg-slate-800 rounded-2xl border flex flex-col items-center justify-center transition-all duration-500 hover:translate-y-[-120px] hover:rotate-0 hover:z-30 cursor-pointer shadow-xl"
                             style="transform: translate(-60px, 10px) rotate(-12deg);"
                             :style="getRarityGlowStyle('EPIC')">

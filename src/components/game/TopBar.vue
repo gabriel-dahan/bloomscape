@@ -4,15 +4,15 @@ import { remult } from 'remult';
 import { useUIStore } from '@/stores/ui';
 import { User } from '@/shared';
 import { UserController } from '@/server/controllers/UserController';
+import { ROUTES_ENUM as ROUTES } from '@/routes/routes_enum';
+import { useChatStore } from '@/stores/chat';
 
 // --- PROPS ---
 const props = defineProps<{
     userTag: string
 }>();
 
-// --- STORES & REPOS ---
-const uiStore = useUIStore();
-const userRepo = remult.repo(User);
+const chat = useChatStore()
 
 // --- STATE ---
 const displayedUser = ref<User | null>(null);
@@ -75,7 +75,8 @@ watch(() => props.userTag, () => {
 
             <div class="flex items-center gap-2">
                 <div class="tooltip tooltip-bottom" data-tip="Messages">
-                    <button class="btn btn-sm btn-circle btn-ghost text-gray-400 hover:text-white hover:bg-white/10">
+                    <button class="btn btn-sm btn-circle btn-ghost text-gray-400 hover:text-white hover:bg-white/10"
+                        @click="chat.toggle">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -91,7 +92,9 @@ watch(() => props.userTag, () => {
                 <div class="text-right hidden md:block min-w-[80px]">
                     <div v-if="!isLoading"
                         class="text-xs font-bold text-gray-200 group-hover:text-emerald-400 transition-colors">
-                        {{ displayedUser?.tag || 'Guest' }}
+                        <RouterLink :to="ROUTES.USER_PROFILE.pathDyn(displayedUser?.tag)">
+                            {{ displayedUser?.tag || 'Unknown' }}
+                        </RouterLink>
                     </div>
                     <div v-else class="h-3 w-20 bg-white/10 rounded animate-pulse mb-1 ml-auto"></div>
 

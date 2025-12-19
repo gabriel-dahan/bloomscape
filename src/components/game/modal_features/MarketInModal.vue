@@ -314,7 +314,7 @@ const getQualityColor = (quality: number = 0) => {
 </script>
 
 <template>
-    <div class="flex h-full text-slate-200">
+    <div class="flex w-full h-full text-slate-200">
 
         <div class="w-1/3 border-r border-slate-700/50 flex flex-col bg-slate-900/30">
             <div class="p-4 border-b border-slate-700/50">

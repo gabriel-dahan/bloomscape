@@ -2,6 +2,7 @@ import InventoryInModal from '@/components/game/modal_features/InventoryInModal.
 import MarketInModal from '@/components/game/modal_features/MarketInModal.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useModalStore } from '@/stores/modal'
+import { remult } from 'remult'
 import type {
   NavigationGuardNext,
   RouteLocationNormalizedGeneric,
@@ -32,6 +33,13 @@ export const ROUTES_ENUM = {
     viewPath: 'HomeView.vue',
   },
 
+  WIKI: {
+    name: 'wiki',
+    path: '/wiki',
+    windowTitle: 'Wiki',
+    viewPath: 'WikiView.vue',
+  },
+
   ABOUT: {
     name: 'about',
     path: '/about',
@@ -44,13 +52,6 @@ export const ROUTES_ENUM = {
     path: '/contact',
     windowTitle: 'Contact',
     viewPath: 'ContactView.vue',
-  },
-
-  FAQ: {
-    name: 'faq',
-    path: '/faq',
-    windowTitle: 'F.A.Q.',
-    viewPath: 'FAQView.vue',
   },
 
   // User routes
@@ -76,24 +77,6 @@ export const ROUTES_ENUM = {
       next(ROUTES_ENUM.HOME.path)
     },
   },
-  CURRENT_USER: {
-    name: 'current_profile',
-    path: '/p',
-    viewPath: 'user/ProfileView.vue',
-  },
-  USER: {
-    name: 'profile',
-    path: '/p/:tag',
-    pathDyn: (tag: string) => `/p/${tag}`,
-    viewPath: 'user/ProfileView.vue',
-  },
-
-  SETTINGS: {
-    name: 'userSettings',
-    path: '/p/:tag/settings',
-    pathDyn: (tag: string) => `/p/${tag}/settings`,
-    viewPath: 'user/SettingsView.vue',
-  },
 
   // GAME
 
@@ -109,15 +92,43 @@ export const ROUTES_ENUM = {
   USER_LAND: {
     name: 'userLand',
     path: '/land/:tag',
+    pathDyn: (tag: string) => `/land/${tag}`,
     windowTitleDyn: (tag: string) => `${tag}'s Land`,
     viewPath: 'game/LandView.vue',
     hideLayout: true,
   },
 
+  CURRENT_USER_PROFILE: {
+    name: 'currentUserProfile',
+    path: '/p',
+    windowTitle: 'My Profile',
+    viewPath: 'game/UserProfileView.vue',
+  },
+
+  USER_PROFILE: {
+    name: 'userProfile',
+    path: '/p/:tag',
+    pathDyn: (tag: string) => `/p/${tag}`,
+    windowTitleDyn: (tag: string) => `${tag}'s Profile`,
+    viewPath: 'game/UserProfileView.vue',
+  },
+
+  SETTINGS: {
+    name: 'userSettings',
+    path: '/p/:tag/settings',
+    pathDyn: (tag: string) => `/p/${tag}/settings`,
+    viewPath: 'user/SettingsView.vue',
+  },
+
   MARKET: {
     name: 'market',
+    path: '/market',
+    viewPath: 'game/MarketView.vue',
+  },
+
+  LAND_MARKET: {
+    name: 'landMarket',
     path: '/land/market',
-    hideLayout: true,
     beforeEnter: async (_, __, next) => {
       const modal = useModalStore()
       modal.open({
@@ -125,9 +136,13 @@ export const ROUTES_ENUM = {
         component: MarketInModal,
         size: 'fullscreen',
         fullscreenSideBarMargin: true,
+        closingPath: ROUTES_ENUM.LAND.path,
       })
-      next(ROUTES_ENUM.LAND.path)
+
+      next()
     },
+    viewPath: 'game/LandView.vue',
+    hideLayout: true,
   },
 
   INVENTORY: {
@@ -141,9 +156,19 @@ export const ROUTES_ENUM = {
         component: InventoryInModal,
         size: 'fullscreen',
         fullscreenSideBarMargin: true,
+        closingPath: ROUTES_ENUM.LAND.path,
       })
-      next(ROUTES_ENUM.LAND.path)
+
+      next()
     },
+    viewPath: 'game/LandView.vue',
+  },
+
+  FLORADEX: {
+    name: 'floradex',
+    path: '/floradex',
+    windowTitle: 'FloraDex',
+    viewPath: 'game/FloraDexView.vue',
   },
 
   ADMIN_DB_MANAGER: {
@@ -151,6 +176,24 @@ export const ROUTES_ENUM = {
     path: '/admin/db',
     windowTitle: 'Admin DB Manager',
     viewPath: 'admin/DBManagerView.vue',
+  },
+
+  ADMIN_MANAGER: {
+    name: 'adminManager',
+    path: '/admin/...',
+    windowTitle: 'Admin | Manager',
+    viewPath: 'admin/ManagerView.vue',
+    beforeEnter: (to, _, next) => {
+      if (!remult.isAllowed('admin')) {
+        next({
+          name: 'notFound',
+          params: { pathMatch: to.path.substring(1).split('/') },
+          replace: true,
+        })
+      } else {
+        next()
+      }
+    },
   },
 
   // Error routes

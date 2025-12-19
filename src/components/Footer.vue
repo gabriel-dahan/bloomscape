@@ -41,8 +41,8 @@ const discordServerURL = 'https://discord.gg/4sJyaynWdW'
             <RouterLink class="link link-hover hover:text-emerald-400 transition-colors" :to="routes.ABOUT.path">
                 About us
             </RouterLink>
-            <RouterLink class="link link-hover hover:text-emerald-400 transition-colors" :to="routes.FAQ.path">
-                F.A.Q.
+            <RouterLink class="link link-hover hover:text-emerald-400 transition-colors" :to="routes.WIKI.path">
+                Wiki
             </RouterLink>
             <RouterLink class="link link-hover hover:text-emerald-400 transition-colors" :to="routes.CONTACT.path">
                 Contact
@@ -61,10 +61,6 @@ const discordServerURL = 'https://discord.gg/4sJyaynWdW'
                     <DiscordIcon class="w-6 h-6" />
                 </a>
             </div>
-        </nav>
-
-        <nav class="md:justify-self-end">
-            <ThemeSwitcher />
         </nav>
     </footer>
 </template>

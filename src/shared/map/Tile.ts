@@ -4,7 +4,7 @@ import { TileType } from '../types'
 import { FlowerSpecies } from '../flowers/FlowerSpecies'
 
 @Entity('tiles', {
-  allowApiCrud: true, // TODO: Restrict logic later
+  allowApiCrud: 'admin', // TODO: Restrict logic later
 })
 export class Tile {
   @Fields.uuid()

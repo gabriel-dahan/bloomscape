@@ -64,7 +64,8 @@ onMounted(async () => {
             ]" @mouseenter="uiStore.isSidebarHovered = true" @mouseleave="uiStore.isSidebarHovered = false"
             @click="uiStore.toggleSidebar">
 
-            <div class="h-20 flex items-center border-b border-white/5 relative transition-all duration-300"
+            <button
+                class="h-20 flex items-center border-b border-white/5 relative transition-all duration-300 cursor-pointer"
                 :class="uiStore.isSidebarOpen ? 'px-6' : 'justify-center px-0'"
                 @click.prevent="router.push(ROUTES.HOME.path)">
 
@@ -77,14 +78,12 @@ onMounted(async () => {
                         <img src="/bloomscape_text.png" alt="BloomScape">
                     </span>
                 </transition>
-            </div>
+            </button>
 
             <nav class="flex-1 py-6 px-3 flex flex-col gap-2">
                 <a v-for="(item, index) in navigationArray" :key="index" :href="!item.action ? (item.link || '#') : '#'"
                     @click.stop="() => {
                         if (item.action) item.action()
-
-                        router.push(item.link ?? '#')
                     }"
                     class="group flex items-center p-3 rounded-lg transition-all duration-300 hover:bg-white/5 text-gray-400 hover:text-white relative overflow-hidden"
                     :class="uiStore.isSidebarOpen ? '' : 'justify-center'">

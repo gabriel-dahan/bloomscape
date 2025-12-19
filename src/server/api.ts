@@ -16,6 +16,7 @@ import {
   UserClaim,
   UserFlower,
   UserItem,
+  Item,
 } from '@/shared/'
 
 import { remultApi } from 'remult/remult-express'
@@ -57,6 +58,7 @@ export const api = remultApi({
     MarketHistory,
     SapPurchase,
     MarketStats,
+    Item,
 
     Friendship,
     ClaimLink,
