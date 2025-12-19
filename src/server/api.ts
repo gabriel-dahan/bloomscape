@@ -31,6 +31,8 @@ import { AdminController } from './controllers/AdminController'
 import { MarketController } from './controllers/MarketController'
 
 import dotenv from 'dotenv'
+import { ReportController } from './controllers/ReportController'
+import { UserReport } from '@/shared/analytics/UserReport'
 
 dotenv.config({
   path: './src/server/.env',
@@ -46,6 +48,8 @@ const db = new SqlDatabase(__DBProvider)
 export const api = remultApi({
   dataProvider: db,
   entities: [
+    UserReport,
+
     User,
     Achievement,
     UserAchievement,
@@ -67,7 +71,14 @@ export const api = remultApi({
     Tile,
     Island,
   ],
-  controllers: [AuthController, UserController, GameController, AdminController, MarketController],
+  controllers: [
+    AuthController,
+    UserController,
+    GameController,
+    AdminController,
+    MarketController,
+    ReportController,
+  ],
   getUser: (req) => req.session!.user,
   admin: true, // UI Interface for admins
 })

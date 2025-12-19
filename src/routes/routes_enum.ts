@@ -171,6 +171,13 @@ export const ROUTES_ENUM = {
     viewPath: 'game/FloraDexView.vue',
   },
 
+  SUPPORT: {
+    name: 'support',
+    path: '/support',
+    windowTitle: 'Support',
+    viewPath: 'user/SupportView.vue',
+  },
+
   ADMIN_DB_MANAGER: {
     name: 'adminDBFuncs',
     path: '/admin/db',

@@ -70,3 +70,19 @@ export const ItemType = {
 } as const
 
 export type ItemType = (typeof ItemType)[keyof typeof ItemType]
+
+export const ReportType = {
+  BUG: 'BUG',
+  FEATURE: 'FEATURE',
+  PLAYER_REPORT: 'PLAYER_REPORT',
+  OTHER: 'OTHER',
+} as const
+export type ReportType = (typeof ReportType)[keyof typeof ReportType]
+
+export const ReportStatus = {
+  OPEN: 'OPEN',
+  IN_PROGRESS: 'IN_PROGRESS',
+  RESOLVED: 'RESOLVED',
+  REJECTED: 'REJECTED',
+} as const
+export type ReportStatus = (typeof ReportStatus)[keyof typeof ReportStatus]

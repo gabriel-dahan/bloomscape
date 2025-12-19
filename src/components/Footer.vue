@@ -44,8 +44,8 @@ const discordServerURL = 'https://discord.gg/4sJyaynWdW'
             <RouterLink class="link link-hover hover:text-emerald-400 transition-colors" :to="routes.WIKI.path">
                 Wiki
             </RouterLink>
-            <RouterLink class="link link-hover hover:text-emerald-400 transition-colors" :to="routes.CONTACT.path">
-                Contact
+            <RouterLink class="link link-hover hover:text-emerald-400 transition-colors" :to="routes.SUPPORT.path">
+                Support
             </RouterLink>
         </nav>
 

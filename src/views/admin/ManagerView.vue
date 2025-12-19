@@ -7,6 +7,7 @@ import AdminDatabase from '@/components/admin/integrated_views/AdminDatabase.vue
 import AdminLogs from '@/components/admin/integrated_views/AdminLogs.vue'
 import AdminModeration from '@/components/admin/integrated_views/AdminModeration.vue'
 import AdminOverview from '@/components/admin/integrated_views/AdminOverview.vue'
+import AdminReports from '@/components/admin/integrated_views/AdminReports.vue'
 import AdminUsers from '@/components/admin/integrated_views/AdminUsers.vue'
 
 import { ref, computed } from 'vue'
@@ -17,6 +18,7 @@ const activeTabId = ref('OVERVIEW')
 const menuItems: MenuItem[] = [
     { id: 'OVERVIEW', label: 'Stats & Analytics' },
     { id: 'MODERATION', label: 'Moderation Queue' },
+    { id: 'REPORTS', label: 'Player Reports' },
     { id: 'USERS', label: 'User Management' },
     { id: 'DATABASE', label: 'Database Editor' },
     { id: 'CONFIG', label: 'Game Config' },
@@ -28,6 +30,7 @@ const currentView = computed(() => {
     switch (activeTabId.value) {
         case 'OVERVIEW': return AdminOverview
         case 'MODERATION': return AdminModeration
+        case 'REPORTS': return AdminReports
         case 'USERS': return AdminUsers
         case 'DATABASE': return AdminDatabase
         case 'CONFIG': return AdminConfig
