@@ -163,7 +163,7 @@ const fields = computed<FieldConfig[]>(() => {
             {
                 label: 'Tag or Email',
                 type: 'text',
-                placeholder: 'comx-fan or comx@fan.me',
+                placeholder: 'bloom-scape1231 or bloom@scape.me',
                 vmodel: 'tagOrEmail',
             },
             {
@@ -181,8 +181,8 @@ const fields = computed<FieldConfig[]>(() => {
         ]
     } else {
         return [
-            { label: 'Tag', type: 'text', placeholder: 'comxfan-number1', vmodel: 'tag' },
-            { label: 'Email', type: 'email', placeholder: 'comx@fan.me', vmodel: 'email' },
+            { label: 'Tag', type: 'text', placeholder: 'bloomscape-fan.number1', vmodel: 'tag' },
+            { label: 'Email', type: 'email', placeholder: 'bloom@scape.me', vmodel: 'email' },
             { label: 'Password', type: 'password', placeholder: 'Create a password', vmodel: 'passwd' },
             {
                 label: 'Confirm Password',
@@ -217,7 +217,7 @@ const formConfig = computed(() => {
                     <template #header>
                         <div v-if="mode === 'signup'" class="text-center text-sm opacity-90">
                             You don't have an account yet? Sign up now and join the
-                            <span class="font-bold text-primary">COMX</span> community!
+                            <span class="font-bold text-primary">BloomScape</span> community!
                         </div>
                     </template>
 

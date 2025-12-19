@@ -17,9 +17,7 @@ const route = useRoute()
 <template>
     <Header v-if="!route.meta.hideLayout" />
 
-    <main class="container mx-auto h-full flex flex-col gap-10 items-center justify-center" :class="{
-        'p-4 sm:p-8 md:p-20': !route.meta.hideLayout,
-    }">
+    <main class="container mx-auto h-full flex flex-col gap-10 items-center justify-center">
         <slot />
     </main>
 

@@ -42,9 +42,9 @@ app.get('/api/images/flowers/:slugName/:status/:type', async (req, res) => {
         )
     }
 
-    const secureDir = path.join(__dirname, '../private/assets/flowers', type)
-    const fileName = `${slugName}_${status}.png`
-    const realPath = path.join(secureDir, fileName)
+    const secureDir = path.join(__dirname, '../private/assets/flowers')
+    const fileName = `${status}.png`
+    const realPath = path.join(secureDir, slugName, type, fileName)
     const unknownPath = path.join(secureDir, 'unknown.png')
 
     let allowed = false

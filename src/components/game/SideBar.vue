@@ -65,7 +65,8 @@ onMounted(async () => {
             @click="uiStore.toggleSidebar">
 
             <div class="h-20 flex items-center border-b border-white/5 relative transition-all duration-300"
-                :class="uiStore.isSidebarOpen ? 'px-6' : 'justify-center px-0'">
+                :class="uiStore.isSidebarOpen ? 'px-6' : 'justify-center px-0'"
+                @click.prevent="router.push(ROUTES.HOME.path)">
 
                 <div>
                     <img src="/bloomscape_logo.png" alt="Logo" width="50" height="50" />
