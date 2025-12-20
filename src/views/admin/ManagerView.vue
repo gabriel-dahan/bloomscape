@@ -54,10 +54,6 @@ const activeTitle = computed(() =>
                 <h1 class="text-2xl font-bold text-white">
                     {{ activeTitle }}
                 </h1>
-                <div class="flex gap-2">
-                    <button class="btn btn-sm btn-ghost text-slate-400">Notifications</button>
-                    <button class="btn btn-sm bg-slate-800 border-slate-700 text-slate-200">Logout</button>
-                </div>
             </header>
 
             <Transition name="fade" mode="out-in">
@@ -68,7 +64,6 @@ const activeTitle = computed(() =>
 </template>
 
 <style scoped>
-/* Optional: Simple fade transition between tabs */
 .fade-enter-active,
 .fade-leave-active {
     transition: opacity 0.2s ease;

@@ -5,7 +5,6 @@ import { useModalStore } from '@/stores/modal'
 import { FlowerRarity } from '@/shared/types'
 import { FlowerSpecies, MarketListing, MarketStats } from '@/shared'
 import { MarketController } from '@/server/controllers/MarketController'
-import { GameController } from '@/server/controllers/GameController'
 
 import { Line } from 'vue-chartjs'
 import {
@@ -19,6 +18,7 @@ import {
     Legend,
     Filler
 } from 'chart.js'
+import FlowerImage from '@/components/FlowerImage.vue'
 
 ChartJS.register(
     CategoryScale,
@@ -41,7 +41,6 @@ const buyingId = ref<string | null>(null)
 const timeFilter = ref<'7d' | '30d' | '1y'>('7d')
 const rarityFilter = ref<FlowerRarity | 'ALL'>('ALL')
 
-// Stocke le dernier prix connu AVANT le début du graphique
 const initialPrice = ref(0)
 
 const fetchData = async () => {
@@ -72,17 +71,13 @@ watch([selectedSpeciesId, timeFilter], async () => {
     if (timeFilter.value === '30d') date.setDate(date.getDate() - 30)
     if (timeFilter.value === '1y') date.setFullYear(date.getFullYear() - 1)
 
-    // 1. Récupérer les stats sur la période demandée
     const currentStats = await MarketController.getSpeciesMarketStats(
         selectedSpeciesId.value,
         { after: date }
     )
     stats.value = currentStats
 
-    // 2. Récupérer le dernier prix connu AVANT cette période (pour la ligne plate)
     const prevStat = await MarketController.getLastSaleStat(selectedSpeciesId.value, date)
-
-    // Si on a une stat précédente, on l'utilise comme base. Sinon 0.
     initialPrice.value = prevStat ? prevStat.averagePrice : 0
 })
 
@@ -120,15 +115,11 @@ const activeListingsForSelected = computed(() =>
         .sort((a, b) => a.price - b.price)
 )
 
-// Pour les stats "24h", on prend la dernière valeur du tableau (si elle date d'aujourd'hui idéalement, mais ici on prend la dernière connue)
 const latestStat = computed(() => stats.value.length > 0 ? stats.value[stats.value.length - 1] : null)
-
-// --- CHART DATA CONFIGURATION ---
 
 const chartData = computed(() => {
     const isYearly = timeFilter.value === '1y';
 
-    // 1. Determine Start/End Date
     const endDate = new Date()
     endDate.setHours(0, 0, 0, 0)
     const startDate = new Date(endDate)
@@ -137,7 +128,6 @@ const chartData = computed(() => {
     else if (timeFilter.value === '30d') startDate.setDate(startDate.getDate() - 30)
     else startDate.setFullYear(startDate.getFullYear() - 1)
 
-    // 2. Prepare Data Map
     const statsMap = new Map<string, number>()
     stats.value.forEach(s => {
         const d = new Date(s.date)
@@ -177,7 +167,6 @@ const chartData = computed(() => {
             }
 
         } else {
-            // -- DAILY LOGIC --
             const iso = d.toISOString()
             if (statsMap.has(iso)) {
                 const price = statsMap.get(iso)!
@@ -208,7 +197,6 @@ const chartData = computed(() => {
                     const index = ctx.dataIndex;
                     const val = ctx.dataset.data[index];
                     const prev = ctx.dataset.data[index - 1];
-                    // On affiche un point seulement si la valeur change, ou au début/fin
                     return (index === 0 || index === ctx.dataset.data.length - 1 || val !== prev) ? 3 : 0;
                 },
                 pointHoverRadius: 6,
@@ -332,8 +320,8 @@ const getQualityColor = (quality: number = 0) => {
 
                     <div class="w-10 h-10 rounded-lg bg-slate-900 flex items-center justify-center transition-all duration-300 border border-transparent"
                         :style="selectedSpeciesId === species.id ? getRarityGlowStyle(species.rarity) : {}">
-                        <img :src="GameController.getFlowerAssetUrl(species.slugName, 'MATURE', 'icon')"
-                            class="w-8 h-8 opacity-80 group-hover:opacity-100 transition-opacity" />
+                        <FlowerImage :slug="species.slugName" status="MATURE" type="icon" size="32px"
+                            class="opacity-80 group-hover:opacity-100 transition-opacity" />
                     </div>
 
                     <div class="flex-1 min-w-0">
@@ -363,8 +351,8 @@ const getQualityColor = (quality: number = 0) => {
                 <div class="flex gap-4">
                     <div class="w-20 h-20 bg-slate-900/50 rounded-xl p-2 border shadow-lg transition-all duration-300"
                         :style="getRarityGlowStyle(selectedSpecies.rarity)">
-                        <img :src="GameController.getFlowerAssetUrl(selectedSpecies.slugName, 'MATURE', 'sprite')"
-                            class="w-full h-full object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+                        <FlowerImage :slug="selectedSpecies.slugName" status="MATURE" type="sprite" size="100%"
+                            class="drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
                     </div>
                     <div>
                         <div class="flex items-center gap-2 mb-1">

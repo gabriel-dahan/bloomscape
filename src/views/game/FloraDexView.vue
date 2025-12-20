@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { GameController } from '@/server/controllers/GameController'
 import { FlowerRarity } from '@/shared/types'
+import FlowerImage from '@/components/FlowerImage.vue'
 
 interface FloradexEntry {
     id: string
@@ -17,7 +18,6 @@ const isLoading = ref(true)
 const searchQuery = ref('')
 const sortOption = ref<'RARITY_DESC' | 'RARITY_ASC' | 'NAME_ASC' | 'DISCOVERED'>('RARITY_DESC')
 
-// Rarity Weight for Sorting
 const RARITY_WEIGHT: Record<string, number> = {
     'LEGENDARY': 5,
     'EPIC': 4,
@@ -44,19 +44,15 @@ const processedFloradex = computed(() => {
         switch (sortOption.value) {
             case 'NAME_ASC':
                 return a.name.localeCompare(b.name)
-
             case 'RARITY_ASC':
                 return (RARITY_WEIGHT[a.rarity] - RARITY_WEIGHT[b.rarity]) || a.name.localeCompare(b.name)
-
             case 'RARITY_DESC':
                 return (RARITY_WEIGHT[b.rarity] - RARITY_WEIGHT[a.rarity]) || a.name.localeCompare(b.name)
-
             case 'DISCOVERED':
                 if (a.discovered === b.discovered) {
                     return (RARITY_WEIGHT[b.rarity] - RARITY_WEIGHT[a.rarity])
                 }
                 return a.discovered ? -1 : 1
-
             default: return 0
         }
     })
@@ -75,7 +71,6 @@ const fetchFloradex = async () => {
 
 onMounted(fetchFloradex)
 
-// Helper for Rarity Colors
 const getRarityColor = (rarity: FlowerRarity) => {
     const colors: Record<string, string> = {
         'COMMON': 'text-slate-400 border-slate-700',
@@ -107,7 +102,7 @@ const getRarityBg = (rarity: FlowerRarity) => {
                 <div class="w-full lg:w-auto ml-5">
                     <h1
                         class="text-4xl font-bold text-white mb-2 flex items-center justify-center lg:justify-start gap-3">
-                        Floradex
+                        FloraDex
                     </h1>
                     <p class="text-slate-400 flex justify-center lg:justify-start">Track your botanical discoveries.</p>
                 </div>
@@ -157,8 +152,9 @@ const getRarityBg = (rarity: FlowerRarity) => {
                     </div>
 
                     <div class="aspect-square relative p-6 flex items-center justify-center bg-slate-950/30">
-                        <img :src="GameController.getFlowerAssetUrl(flower.slugName, 'MATURE', 'sprite')"
-                            class="w-full h-full object-contain transition-all duration-500"
+
+                        <FlowerImage :slug="flower.slugName" status="MATURE" type="icon" size="100%"
+                            class="transition-all duration-500"
                             :class="flower.discovered
                                 ? 'drop-shadow-[0_4px_6px_rgba(0,0,0,0.5)] group-hover:scale-110'
                                 : 'brightness-0 opacity-20 grayscale blur-[2px] group-hover:blur-0 group-hover:opacity-40'" />

@@ -57,4 +57,7 @@ export class User {
 
   @Fields.json()
   roles: Role[] = [Role.USER]
+
+  @Fields.boolean()
+  banned: boolean = false
 }

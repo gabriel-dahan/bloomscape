@@ -33,6 +33,7 @@ import { MarketController } from './controllers/MarketController'
 import dotenv from 'dotenv'
 import { ReportController } from './controllers/ReportController'
 import { UserReport } from '@/shared/analytics/UserReport'
+import { ModerationLog } from '@/shared/analytics/ModerationLog'
 
 dotenv.config({
   path: './src/server/.env',
@@ -49,6 +50,7 @@ export const api = remultApi({
   dataProvider: db,
   entities: [
     UserReport,
+    ModerationLog,
 
     User,
     Achievement,

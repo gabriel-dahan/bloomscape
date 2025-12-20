@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { remult, type Repository, type FieldMetadata, type ClassType } from 'remult'
 
-import { Achievement, FlowerSpecies, Island, Item, SapPurchase, Tile, User } from '@/shared'
+import { Achievement, ClaimLink, FlowerSpecies, Island, Item, SapPurchase, Tile, User } from '@/shared'
 
 type EntityConfig = {
     label: string
@@ -18,6 +18,7 @@ const ENTITY_MAP: EntityConfig[] = [
     { label: 'Islands', key: 'islands', entity: Island },
     { label: 'Tiles', key: 'tiles', entity: Tile },
     { label: 'Sap Purchases', key: 'sap', entity: SapPurchase },
+    { label: 'Claim Links', key: 'claimlinks', entity: ClaimLink },
 ]
 
 const activeEntityKey = ref(ENTITY_MAP[0].key)

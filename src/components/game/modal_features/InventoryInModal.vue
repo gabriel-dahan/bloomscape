@@ -7,6 +7,7 @@ import { UserItem } from '@/shared/user/UserItem';
 import { UserFlower } from '@/shared';
 import { MarketController } from '@/server/controllers/MarketController';
 import { GameController } from '@/server/controllers/GameController';
+import FlowerImage from '@/components/FlowerImage.vue';
 
 const auth = useAuthStore();
 const flowerRepo = remult.repo(UserFlower);
@@ -36,9 +37,7 @@ const fetchInventory = async () => {
     isLoading.value = true;
     try {
         const { flowers, items } = await GameController.getUserInventory()
-
         rawFlowers.value = flowers
-
         rawItems.value = items
     } catch (e) {
         console.error(e);
@@ -104,16 +103,13 @@ const items = computed(() => {
     }
 });
 
-// Logic to fetch live market data using the Backend Controller
 watch(selectedObject, async (newVal) => {
     currentMarketPrice.value = null;
     activeListingCount.value = 0;
 
     if (newVal && isFlower(newVal) && newVal.speciesId) {
         try {
-            // Using the new Controller method to bypass "Admin Only" restriction on MarketListing Entity
             const metrics = await MarketController.getFlowerMarketMetrics(newVal.speciesId);
-
             currentMarketPrice.value = metrics.lowestPrice;
             activeListingCount.value = metrics.count;
         } catch (e) {
@@ -283,8 +279,8 @@ watch(activeTab, () => {
                         :style="selectedObject?.id === flower.id ? getRarityGlowStyle(flower.species?.rarity) : { borderColor: 'rgba(51, 65, 85, 0.5)' }">
 
                         <div class="w-full h-full p-2 flex items-center justify-center">
-                            <img :src="GameController.getFlowerAssetUrl(flower.species?.slugName, 'SEED', 'icon')"
-                                class="w-full h-full object-contain drop-shadow-md opacity-90 group-hover:opacity-100" />
+                            <FlowerImage :slug="flower.species?.slugName || ''" status="SEED" type="icon" size="100%"
+                                class="drop-shadow-md opacity-90 group-hover:opacity-100" />
                         </div>
 
                         <div
@@ -333,8 +329,9 @@ watch(activeTab, () => {
                     <div class="flex justify-center mb-6">
                         <div class="w-32 h-32 rounded-2xl bg-slate-900/50 border shadow-lg transition-all duration-300 flex items-center justify-center relative overflow-hidden"
                             :style="getRarityGlowStyle(selectedObject.species?.rarity)">
-                            <img :src="GameController.getFlowerAssetUrl(selectedObject.species?.slugName, 'SEED', 'sprite')"
-                                class="w-24 h-24 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] scale-125" />
+
+                            <FlowerImage :slug="selectedObject.species?.slugName || ''" status="SEED" type="sprite"
+                                size="96px" class="drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] scale-125" />
                         </div>
                     </div>
 
@@ -374,7 +371,7 @@ watch(activeTab, () => {
                             <div class="flex justify-between text-xs mb-1">
                                 <span class="text-slate-400">Quality</span>
                                 <span class="text-emerald-400 font-mono">{{ Math.round(selectedObject.quality * 100)
-                                }}%</span>
+                                    }}%</span>
                             </div>
                             <progress class="progress progress-success w-full h-1.5"
                                 :value="selectedObject.quality * 100" max="100"></progress>
@@ -412,7 +409,7 @@ watch(activeTab, () => {
                         <h2 class="text-xl font-bold text-white mb-1">{{ selectedObject.definition?.name }}</h2>
                         <div class="flex gap-2 mb-3">
                             <span class="badge badge-neutral text-xs font-mono">{{ selectedObject.definition?.type
-                            }}</span>
+                                }}</span>
                             <span v-if="selectedObject.definition?.isTradable"
                                 class="badge badge-ghost text-xs">Tradable</span>
                         </div>

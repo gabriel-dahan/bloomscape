@@ -32,7 +32,7 @@ app.get('/api/images/flowers/:slugName/:status/:type', async (req, res) => {
     const { slugName, status, type } = req.params
 
     const validTypes = ['icon', 'sprite']
-    const validStages = ['seed', 'planted', 'mature', 'withered']
+    const validStages = ['seed', 'sprout1', 'sprout2', 'growing1', 'growing2', 'mature', 'withered']
 
     if (!validTypes.includes(type) || !validStages.includes(status)) {
       return res
