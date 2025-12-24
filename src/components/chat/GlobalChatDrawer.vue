@@ -1,17 +1,26 @@
 <script setup lang="ts">
-import { ref, nextTick, watch } from 'vue';
+import { ref, nextTick, watch, onMounted } from 'vue';
 import { useChatStore } from '@/stores/chat';
+import { useAuthStore } from '@/stores/auth';
 
 const store = useChatStore();
+const auth = useAuthStore();
 const messageInput = ref('');
 const scrollContainer = ref<HTMLElement | null>(null);
 
-// Auto-scroll to bottom when new messages arrive
+onMounted(() => {
+    if (auth.user) store.init();
+});
+
 watch(() => store.currentMessages.length, async () => {
     await nextTick();
     if (scrollContainer.value) {
         scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight;
     }
+});
+
+watch(() => store.searchQuery, () => {
+    store.performSearch();
 });
 
 const handleSend = () => {
@@ -20,8 +29,9 @@ const handleSend = () => {
     messageInput.value = '';
 };
 
-// Formatting helper for time
-const formatTime = (date?: Date) => {
+const isMine = (senderId: string) => senderId === auth.user?.id;
+
+const formatTime = (date?: Date | string) => {
     if (!date) return '';
     return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
@@ -40,12 +50,10 @@ const formatTime = (date?: Date) => {
             :class="store.isOpen ? 'translate-x-0' : 'translate-x-full'">
 
             <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
-
-                <h2 v-if="!store.activeConversationId" class="font-bold text-white flex items-center gap-2">
+                <h2 v-if="!store.activeChatId" class="font-bold text-white flex items-center gap-2">
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                     Communications
                 </h2>
-
                 <div v-else class="flex items-center gap-3">
                     <button @click="store.closeConversation"
                         class="btn btn-circle btn-ghost btn-xs text-slate-400 hover:text-white">
@@ -54,19 +62,19 @@ const formatTime = (date?: Date) => {
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                         </svg>
                     </button>
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-inner"
-                            :class="store.activeFriend?.avatarColor">
-                            {{ store.activeFriend?.tag.substring(0, 2).toUpperCase() }}
+                    <div class="flex items-center gap-2" v-if="store.activeChat?.otherUser">
+                        <div
+                            class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-white shadow-inner border border-slate-700">
+                            {{ store.activeChat.otherUser.tag.substring(0, 2).toUpperCase() }}
                         </div>
                         <div>
-                            <div class="text-sm font-bold text-white leading-none">{{ store.activeFriend?.tag }}</div>
-                            <div class="text-[10px] text-emerald-400" v-if="store.activeFriend?.isOnline">Online</div>
-                            <div class="text-[10px] text-slate-500" v-else>Offline</div>
+                            <div class="text-sm font-bold text-white leading-none">
+                                {{ store.activeChat.otherUser.tag }}
+                            </div>
+                            <div class="text-[10px] text-slate-500">Connected</div>
                         </div>
                     </div>
                 </div>
-
                 <button @click="store.toggle" class="btn btn-square btn-ghost btn-sm text-slate-400 hover:text-red-400">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                         stroke="currentColor" class="w-6 h-6">
@@ -75,8 +83,7 @@ const formatTime = (date?: Date) => {
                 </button>
             </div>
 
-            <div v-if="!store.activeConversationId" class="flex-1 flex flex-col min-h-0">
-
+            <div v-if="!store.activeChatId" class="flex-1 flex flex-col min-h-0">
                 <div class="p-4">
                     <div class="relative">
                         <input type="text" v-model="store.searchQuery" placeholder="Search friends or users..."
@@ -90,87 +97,80 @@ const formatTime = (date?: Date) => {
                 </div>
 
                 <div class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
-
-                    <div v-if="store.filteredFriends.length > 0">
-                        <div class="text-[10px] uppercase font-bold text-slate-500 px-2 mb-2">Recent Conversations</div>
-                        <div v-for="friend in store.filteredFriends" :key="friend.id" @click="store.openChat(friend.id)"
-                            class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800 cursor-pointer transition-colors group">
-
+                    <div v-if="store.filteredChats?.length > 0">
+                        <div class="text-[10px] uppercase font-bold text-slate-500 px-2 mb-2">Inbox</div>
+                        <div v-for="chat in store.filteredChats" :key="chat.id" @click="store.openChat(chat.id)"
+                            class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800 cursor-pointer transition-colors group relative">
                             <div class="relative">
-                                <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-lg"
-                                    :class="friend.avatarColor">
-                                    {{ friend.tag.substring(0, 2).toUpperCase() }}
+                                <div
+                                    class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white bg-slate-700 shadow-lg border border-slate-600">
+                                    {{ chat.otherUser?.tag.substring(0, 2).toUpperCase() || '?' }}
                                 </div>
-                                <span v-if="friend.isOnline"
-                                    class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full"></span>
+                                <span v-if="chat.hasUnread"
+                                    class="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full animate-pulse"></span>
                             </div>
-
                             <div class="flex-1 min-w-0">
                                 <div class="flex justify-between items-baseline">
                                     <span
-                                        class="text-sm font-bold text-slate-200 group-hover:text-emerald-400 transition-colors">{{
-                                            friend.tag }}</span>
-                                    <span class="text-[10px] text-slate-500">{{ formatTime(friend.lastMessageAt)
-                                        }}</span>
+                                        class="text-sm font-bold text-slate-200 group-hover:text-emerald-400 transition-colors">
+                                        {{ chat.otherUser?.tag || 'Unknown User' }}
+                                    </span>
+                                    <span class="text-[10px] text-slate-500">
+                                        {{ formatTime(chat.lastMessageAt) }}
+                                    </span>
                                 </div>
-                                <p class="text-xs text-slate-400 truncate">
-                                    {{ friend.lastMessage || "Start a conversation" }}
+                                <p class="text-xs text-slate-400 truncate"
+                                    :class="{ 'font-bold text-white': chat.hasUnread }">
+                                    {{ chat.lastMessagePreview || "Start a conversation" }}
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    <div v-if="store.searchQuery && store.filteredGlobal.length > 0"
+                    <div v-if="store.searchQuery && store.globalSearchResults.length > 0"
                         class="mt-4 pt-4 border-t border-slate-800">
-                        <div class="text-[10px] uppercase font-bold text-slate-500 px-2 mb-2">Global Search</div>
-                        <div v-for="user in store.filteredGlobal" :key="user.id" @click="store.openChat(user.id)"
+                        <div class="text-[10px] uppercase font-bold text-slate-500 px-2 mb-2">New Connections</div>
+                        <div v-for="user in store.globalSearchResults" :key="user.id"
+                            @click="store.startChatWithUser(user.id)"
                             class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800 cursor-pointer transition-colors opacity-75 hover:opacity-100">
-
                             <div
-                                class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white bg-slate-700">
+                                class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white bg-slate-700 border border-dashed border-slate-500">
                                 {{ user.tag.substring(0, 2).toUpperCase() }}
                             </div>
                             <div>
                                 <div class="text-sm font-bold text-slate-300">{{ user.tag }}</div>
-                                <div class="text-xs text-slate-500">Click to connect</div>
+                                <div class="text-xs text-emerald-500">Click to say Hi 👋</div>
                             </div>
                         </div>
                     </div>
 
-                    <div v-if="store.filteredFriends.length === 0 && store.filteredGlobal.length === 0"
-                        class="text-center py-10">
-                        <div class="text-4xl mb-2">🦗</div>
-                        <p class="text-sm text-slate-500">No users found.</p>
+                    <div v-if="(!store.filteredChats || store.filteredChats.length === 0) && store.globalSearchResults.length === 0"
+                        class="text-center py-10 opacity-50">
+                        <div class="text-4xl mb-2">📡</div>
+                        <p class="text-sm text-slate-500">No signals found.</p>
+                        <p class="text-xs text-slate-600 mt-2">Search for a username to start.</p>
                     </div>
-
                 </div>
             </div>
 
             <div v-else class="flex-1 flex flex-col min-h-0 bg-slate-950/30">
-
                 <div ref="scrollContainer" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-
                     <div v-if="store.currentMessages.length === 0" class="text-center py-10 text-slate-500 text-sm">
-                        This is the start of your history with <span class="text-emerald-400 font-bold">{{
-                            store.activeFriend?.tag }}</span>.
-                        <br>Say hello! 👋
+                        This is the start of your history with
+                        <span class="text-emerald-400 font-bold">{{ store.activeChat?.otherUser?.tag }}</span>.
                     </div>
-
                     <div v-for="msg in store.currentMessages" :key="msg.id" class="flex flex-col"
-                        :class="msg.isMine ? 'items-end' : 'items-start'">
-
-                        <div class="max-w-[80%] rounded-2xl px-4 py-2 text-sm shadow-sm" :class="msg.isMine
+                        :class="isMine(msg.senderId) ? 'items-end' : 'items-start'">
+                        <div class="max-w-[85%] rounded-2xl px-4 py-2 text-sm shadow-sm break-words" :class="isMine(msg.senderId)
                             ? 'bg-emerald-600 text-white rounded-br-none'
                             : 'bg-slate-800 text-slate-200 rounded-bl-none'">
-                            {{ msg.text }}
+                            {{ msg.content }}
                         </div>
                         <span class="text-[10px] text-slate-600 mt-1 px-1">
                             {{ formatTime(msg.createdAt) }}
                         </span>
                     </div>
-
                 </div>
-
                 <div class="p-3 border-t border-slate-800 bg-slate-900">
                     <form @submit.prevent="handleSend" class="flex gap-2">
                         <input v-model="messageInput" type="text" placeholder="Type a message..."
@@ -186,7 +186,6 @@ const formatTime = (date?: Date) => {
                     </form>
                 </div>
             </div>
-
         </div>
     </Teleport>
 </template>

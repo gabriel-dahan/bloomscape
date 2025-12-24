@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, defineComponent, h, markRaw, onMounted, ref } from 'vue';
 import LandScene from '@/components/game/LandScene.vue';
 import SideBar from '@/components/game/SideBar.vue';
 import TopBar from '@/components/game/TopBar.vue';
@@ -7,6 +7,9 @@ import { useGameStore } from '@/stores/game';
 import { useAuthStore } from '@/stores/auth';
 import { useRoute } from 'vue-router';
 import { UserController } from '@/server/controllers/UserController';
+import { useModalStore } from '@/stores/modal';
+import TileManagerInModal from '@/components/game/modal_features/TileManagerInModal.vue';
+import { ROUTES_ENUM as ROUTES } from '@/routes/routes_enum';
 
 const gameStore = useGameStore();
 const auth = useAuthStore();
@@ -79,7 +82,26 @@ const activeTile = computed(() => gameStore.selectedTile || gameStore.hoveredTil
                                 v-if="gameStore.selectedTile">
 
                                 <button v-if="activeTile.isOwned"
-                                    class="btn btn-sm btn-primary w-full text-white shadow-lg shadow-emerald-500/20">
+                                    class="btn btn-sm btn-primary w-full text-white shadow-lg shadow-emerald-500/20"
+                                    @click="() => {
+                                        const componentWithProps = defineComponent({
+                                            render() {
+                                                return h(TileManagerInModal, {
+                                                    x: activeTile.x,
+                                                    z: activeTile.z
+                                                })
+                                            }
+                                        })
+
+                                        const modal = useModalStore();
+                                        modal.open({
+                                            title: 'Tile Manager',
+                                            component: markRaw(componentWithProps),
+                                            size: 'large',
+                                            path: ROUTES.TILE_MANAGER.path,
+                                            fullscreenSideBarMargin: true,
+                                        });
+                                    }">
                                     Manage
                                 </button>
 

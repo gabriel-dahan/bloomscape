@@ -34,6 +34,12 @@ import dotenv from 'dotenv'
 import { ReportController } from './controllers/ReportController'
 import { UserReport } from '@/shared/analytics/UserReport'
 import { ModerationLog } from '@/shared/analytics/ModerationLog'
+import { FlowerDiscovery } from '@/shared/analytics/FlowerDiscovery'
+import { ChatController } from './controllers/ChatController'
+import { Chat } from '@/shared/chat/Chat'
+import { ChatMessage } from '@/shared/chat/ChatMessage'
+import { ChatParticipant } from '@/shared/chat/ChatParticipant'
+import { LandController } from './controllers/LandController'
 
 dotenv.config({
   path: './src/server/.env',
@@ -51,6 +57,7 @@ export const api = remultApi({
   entities: [
     UserReport,
     ModerationLog,
+    FlowerDiscovery,
 
     User,
     Achievement,
@@ -72,14 +79,20 @@ export const api = remultApi({
 
     Tile,
     Island,
+
+    Chat,
+    ChatMessage,
+    ChatParticipant,
   ],
   controllers: [
     AuthController,
     UserController,
     GameController,
+    LandController,
     AdminController,
     MarketController,
     ReportController,
+    ChatController,
   ],
   getUser: (req) => req.session!.user,
   admin: true, // UI Interface for admins

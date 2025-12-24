@@ -1,5 +1,6 @@
 import {
   Achievement,
+  DiscoverySource,
   FlowerAvailability,
   FlowerSpecies,
   FlowerStatus,
@@ -12,6 +13,7 @@ import {
 } from '@/shared'
 import { BackendMethod, remult } from 'remult'
 import { PRICES } from '../ext'
+import { FlowerDiscovery } from '@/shared/analytics/FlowerDiscovery'
 
 export class GameController {
   // --- READ ACTIONS ---
@@ -70,27 +72,27 @@ export class GameController {
     if (!user) throw new Error('Not authenticated')
 
     const speciesRepo = remult.repo(FlowerSpecies)
-    const flowerRepo = remult.repo(UserFlower)
+    const discoveryRepo = remult.repo(FlowerDiscovery)
 
-    const userFlowers = await flowerRepo.find({
-      where: { ownerId: user.id },
-    })
-    const ownedSpeciesIds = new Set(userFlowers.map((f) => f.speciesId))
-
-    const allVisibleSpecies = await speciesRepo.find({
-      where: {
-        $or: [
-          { availability: FlowerAvailability.WILD },
-          { id: { $in: Array.from(ownedSpeciesIds) } },
-        ],
-      },
+    const allSpecies = await speciesRepo.find({
       orderBy: { rarity: 'asc', name: 'asc' },
     })
 
-    const floradexData = allVisibleSpecies.map((s) => ({
-      ...s,
-      discovered: ownedSpeciesIds.has(s.id),
-    }))
+    const myDiscoveries = await discoveryRepo.find({
+      where: { userId: user.id },
+    })
+
+    const floradexData = allSpecies.map((s) => {
+      const discovery = myDiscoveries.find((d) => d.speciesId === s.id)
+
+      return {
+        ...s,
+        discovered: !!discovery,
+        discoveryDate: discovery?.discoveredAt,
+        discoverySource: discovery?.source,
+        initialQuality: discovery?.initialQuality,
+      }
+    })
 
     return floradexData
   }
@@ -217,5 +219,32 @@ export class GameController {
     dbUser.sap -= amount
     await userRepo.save(dbUser)
     return dbUser.sap
+  }
+
+  static async registerDiscovery(
+    userId: string,
+    speciesId: string,
+    quality: number,
+    source: DiscoverySource,
+  ) {
+    const discRepo = remult.repo(FlowerDiscovery)
+
+    const existing = await discRepo.findFirst({
+      userId,
+      speciesId,
+    })
+
+    if (!existing) {
+      await discRepo.insert({
+        userId,
+        speciesId,
+        initialQuality: quality,
+        source,
+        discoveredAt: new Date(),
+      })
+      return true
+    }
+
+    return false
   }
 }

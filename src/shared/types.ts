@@ -86,3 +86,13 @@ export const ReportStatus = {
   REJECTED: 'REJECTED',
 } as const
 export type ReportStatus = (typeof ReportStatus)[keyof typeof ReportStatus]
+
+export const DiscoverySource = {
+  WILD: 'WILD',
+  BREEDING: 'BREEDING',
+  MARKET: 'MARKET',
+  GIFT: 'GIFT',
+  UNKNOWN: 'UNKNOWN',
+} as const
+
+export type DiscoverySource = (typeof DiscoverySource)[keyof typeof DiscoverySource]

@@ -3,50 +3,11 @@ import { ref, computed } from 'vue'
 import { FlowerRarity } from '@/shared/types'
 
 // --- NAVIGATION STATE ---
-type WikiCategory = 'OVERVIEW' | 'BOTANY' | 'TOOLS' | 'ECONOMY' | 'MECHANICS'
+type WikiCategory = 'OVERVIEW' | 'TOOLS' | 'ECONOMY' | 'MECHANICS'
 const activeCategory = ref<WikiCategory>('OVERVIEW')
 const searchQuery = ref('')
 
 // --- MOCK DATA ---
-
-const flowerDatabase = [
-    {
-        id: 'rose',
-        name: 'Moon Rose',
-        rarity: 'COMMON',
-        growthTime: '2h',
-        waterNeeds: 'Medium',
-        desc: 'A staple of any garden. It blooms best under the moonlight.',
-        basePrice: 50
-    },
-    {
-        id: 'tulip',
-        name: 'Void Tulip',
-        rarity: 'RARE',
-        growthTime: '6h',
-        waterNeeds: 'High',
-        desc: 'Absorbs light around it. Needs rich soil to maintain its dark hue.',
-        basePrice: 400
-    },
-    {
-        id: 'sun',
-        name: 'Sun Sunflower',
-        rarity: 'UNCOMMON',
-        growthTime: '3h',
-        waterNeeds: 'Low',
-        desc: 'Generates warmth. Often used to speed up growth of adjacent plants.',
-        basePrice: 150
-    },
-    {
-        id: 'lotus',
-        name: 'Solar Lotus',
-        rarity: 'LEGENDARY',
-        growthTime: '24h',
-        waterNeeds: 'Very High',
-        desc: 'A mythical flower said to contain the power of a star.',
-        basePrice: 3000
-    },
-]
 
 const itemDatabase = [
     { name: 'Rusty Can', type: 'Tool', desc: 'Basic watering can. Holds 10L.', cost: 'Free' },
@@ -83,11 +44,6 @@ const getRarityColor = (rarity: string) => {
     }
 }
 
-const filteredFlowers = computed(() => {
-    if (!searchQuery.value) return flowerDatabase
-    return flowerDatabase.filter(f => f.name.toLowerCase().includes(searchQuery.value.toLowerCase()))
-})
-
 </script>
 
 <template>
@@ -102,11 +58,6 @@ const filteredFlowers = computed(() => {
                         class="w-full text-left px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                         :class="activeCategory === 'OVERVIEW' ? 'bg-emerald-500/10 text-emerald-400' : 'text-slate-400 hover:text-white hover:bg-slate-800'">
                         Overview
-                    </button>
-                    <button @click="activeCategory = 'BOTANY'"
-                        class="w-full text-left px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                        :class="activeCategory === 'BOTANY' ? 'bg-emerald-500/10 text-emerald-400' : 'text-slate-400 hover:text-white hover:bg-slate-800'">
-                        Botany Database
                     </button>
                     <button @click="activeCategory = 'TOOLS'"
                         class="w-full text-left px-4 py-2 rounded-lg text-sm font-medium transition-colors"
@@ -143,17 +94,10 @@ const filteredFlowers = computed(() => {
                 <div>
                     <h1 class="text-3xl font-bold text-white mb-2">
                         {{ activeCategory === 'OVERVIEW' ? 'Welcome to BloomScape' :
-                            activeCategory === 'BOTANY' ? 'Botany Database' :
-                                activeCategory === 'TOOLS' ? 'Equipment & Items' :
-                                    activeCategory === 'MECHANICS' ? 'Advanced Mechanics' : 'Economic Theory' }}
+                            activeCategory === 'TOOLS' ? 'Equipment & Items' :
+                                activeCategory === 'MECHANICS' ? 'Advanced Mechanics' : 'Economic Theory' }}
                     </h1>
                     <p class="text-slate-400">The official guide to cultivating your digital paradise.</p>
-                </div>
-
-                <div v-if="activeCategory === 'BOTANY'" class="relative w-full md:w-64">
-                    <input v-model="searchQuery" type="text" placeholder="Search species..."
-                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 placeholder-slate-500">
-                    <span class="absolute right-3 top-2.5 text-slate-500 text-xs">🔍</span>
                 </div>
             </div>
 
@@ -169,13 +113,6 @@ const filteredFlowers = computed(() => {
                 </div>
 
                 <div class="grid md:grid-cols-3 gap-6">
-                    <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 hover:border-emerald-500/30 transition-colors cursor-pointer"
-                        @click="activeCategory = 'BOTANY'">
-                        <div class="text-4xl mb-4">🌱</div>
-                        <h3 class="font-bold text-white mb-2">Getting Started</h3>
-                        <p class="text-sm text-slate-400">Learn about the basic flowers and how to plant your first
-                            seed.</p>
-                    </div>
                     <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 hover:border-blue-500/30 transition-colors cursor-pointer"
                         @click="activeCategory = 'TOOLS'">
                         <div class="text-4xl mb-4">💧</div>
@@ -188,55 +125,6 @@ const filteredFlowers = computed(() => {
                         <h3 class="font-bold text-white mb-2">Making Profit</h3>
                         <p class="text-sm text-slate-400">Understanding supply, demand, and market crashes.</p>
                     </div>
-                </div>
-            </div>
-
-            <div v-if="activeCategory === 'BOTANY'" class="animate-fade-in">
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    <div v-for="flower in filteredFlowers" :key="flower.id"
-                        class="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden group hover:border-slate-600 transition-all hover:shadow-lg">
-
-                        <div
-                            class="p-6 border-b border-slate-800 relative bg-gradient-to-br from-slate-900 to-slate-800">
-                            <div class="flex justify-between items-start">
-                                <h3 class="text-xl font-bold text-white">{{ flower.name }}</h3>
-                                <span class="text-xs px-2 py-1 rounded border font-bold tracking-wider"
-                                    :class="getRarityColor(flower.rarity)">
-                                    {{ flower.rarity }}
-                                </span>
-                            </div>
-                            <div class="mt-4 flex justify-center">
-                                <div
-                                    class="w-16 h-16 bg-slate-950 rounded-full flex items-center justify-center text-3xl shadow-inner border border-slate-800">
-                                    🌻
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-6 space-y-4">
-                            <p class="text-sm text-slate-400 italic">{{ flower.desc }}</p>
-
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800/50">
-                                    <div class="text-xs text-slate-500 uppercase mb-1">Growth</div>
-                                    <div class="text-slate-200 font-mono">{{ flower.growthTime }}</div>
-                                </div>
-                                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800/50">
-                                    <div class="text-xs text-slate-500 uppercase mb-1">Water</div>
-                                    <div class="text-blue-400 font-mono">{{ flower.waterNeeds }}</div>
-                                </div>
-                            </div>
-
-                            <div class="pt-2 border-t border-slate-800/50 flex justify-between items-center">
-                                <span class="text-xs text-slate-500">Base Value</span>
-                                <span class="text-emerald-400 font-bold font-mono">{{ flower.basePrice }} Sap</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div v-if="filteredFlowers.length === 0" class="text-center py-20 text-slate-500">
-                    No species found matching "{{ searchQuery }}"
                 </div>
             </div>
 

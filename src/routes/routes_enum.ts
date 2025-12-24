@@ -1,5 +1,6 @@
 import InventoryInModal from '@/components/game/modal_features/InventoryInModal.vue'
 import MarketInModal from '@/components/game/modal_features/MarketInModal.vue'
+import TileManagerInModal from '@/components/game/modal_features/TileManagerInModal.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useModalStore } from '@/stores/modal'
 import { remult } from 'remult'
@@ -94,6 +95,25 @@ export const ROUTES_ENUM = {
     path: '/land/:tag',
     pathDyn: (tag: string) => `/land/${tag}`,
     windowTitleDyn: (tag: string) => `${tag}'s Land`,
+    viewPath: 'game/LandView.vue',
+    hideLayout: true,
+  },
+
+  TILE_MANAGER: {
+    name: 'tileManager',
+    path: '/land/tile/:x/:z',
+    pathDyn: (x: number, z: number) => `/land/tile/${x}/${z}`,
+    beforeEnter: async (_, __, next) => {
+      const modal = useModalStore()
+      modal.open({
+        title: 'Tile Manager',
+        component: TileManagerInModal,
+        size: 'large',
+        closingPath: ROUTES_ENUM.LAND.path,
+      })
+
+      next()
+    },
     viewPath: 'game/LandView.vue',
     hideLayout: true,
   },

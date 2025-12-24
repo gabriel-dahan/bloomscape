@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { GameController } from '@/server/controllers/GameController'
-import { FlowerRarity } from '@/shared/types'
+import { DiscoverySource, FlowerRarity } from '@/shared/types'
 import FlowerImage from '@/components/FlowerImage.vue'
 
+// Updated Interface
 interface FloradexEntry {
     id: string
     name: string
@@ -11,12 +12,15 @@ interface FloradexEntry {
     description: string
     rarity: FlowerRarity
     discovered: boolean
+    discoveryDate?: string
+    discoverySource?: typeof DiscoverySource[keyof typeof DiscoverySource]
+    initialQuality?: number
 }
 
 const floradex = ref<FloradexEntry[]>([])
 const isLoading = ref(true)
 const searchQuery = ref('')
-const sortOption = ref<'RARITY_DESC' | 'RARITY_ASC' | 'NAME_ASC' | 'DISCOVERED'>('RARITY_DESC')
+const sortOption = ref<'RARITY_DESC' | 'RARITY_ASC' | 'NAME_ASC' | 'DISCOVERED' | 'DATE_DESC'>('RARITY_DESC')
 
 const RARITY_WEIGHT: Record<string, number> = {
     'LEGENDARY': 5,
@@ -49,10 +53,12 @@ const processedFloradex = computed(() => {
             case 'RARITY_DESC':
                 return (RARITY_WEIGHT[b.rarity] - RARITY_WEIGHT[a.rarity]) || a.name.localeCompare(b.name)
             case 'DISCOVERED':
-                if (a.discovered === b.discovered) {
-                    return (RARITY_WEIGHT[b.rarity] - RARITY_WEIGHT[a.rarity])
-                }
-                return a.discovered ? -1 : 1
+                if (a.discovered === b.discovered) return 0;
+                return a.discovered ? -1 : 1;
+            case 'DATE_DESC':
+                const dateA = a.discoveryDate ? new Date(a.discoveryDate).getTime() : 0;
+                const dateB = b.discoveryDate ? new Date(b.discoveryDate).getTime() : 0;
+                return dateB - dateA;
             default: return 0
         }
     })
@@ -61,7 +67,7 @@ const processedFloradex = computed(() => {
 const fetchFloradex = async () => {
     isLoading.value = true
     try {
-        floradex.value = await GameController.getFloradex()
+        floradex.value = await GameController.getFloradex() as any
     } catch (e) {
         console.error(e)
     } finally {
@@ -92,6 +98,17 @@ const getRarityBg = (rarity: FlowerRarity) => {
     }
     return colors[rarity] || 'bg-slate-800/50'
 }
+
+// Helper to format source nicely
+const getSourceLabel = (source?: string) => {
+    switch (source) {
+        case 'WILD': return 'Found in Wild';
+        case 'BREEDING': return 'Cross-Bred';
+        case 'MARKET': return 'Bought';
+        case 'GIFT': return 'Gifted';
+        default: return 'Unknown';
+    }
+}
 </script>
 
 <template>
@@ -120,7 +137,8 @@ const getRarityBg = (rarity: FlowerRarity) => {
                         <option value="RARITY_DESC">Rarity (High to Low)</option>
                         <option value="RARITY_ASC">Rarity (Low to High)</option>
                         <option value="NAME_ASC">Name (A-Z)</option>
-                        <option value="DISCOVERED">Discovered First</option>
+                        <option value="DATE_DESC">Date Discovered</option>
+                        <option value="DISCOVERED">Discovered Status</option>
                     </select>
                 </div>
             </div>
@@ -152,7 +170,6 @@ const getRarityBg = (rarity: FlowerRarity) => {
                     </div>
 
                     <div class="aspect-square relative p-6 flex items-center justify-center bg-slate-950/30">
-
                         <FlowerImage :slug="flower.slugName" status="MATURE" type="icon" size="100%"
                             class="transition-all duration-500"
                             :class="flower.discovered
@@ -168,10 +185,27 @@ const getRarityBg = (rarity: FlowerRarity) => {
                         </div>
                     </div>
 
-                    <div class="p-4 border-t border-white/5">
+                    <div class="p-4 border-t border-white/5 flex flex-col h-full">
                         <div v-if="flower.discovered">
                             <h3 class="font-bold text-white truncate">{{ flower.name }}</h3>
-                            <p class="text-xs text-white/50 line-clamp-2 mt-1">{{ flower.description }}</p>
+                            <p class="text-xs text-white/50 line-clamp-2 mt-1 mb-2 min-h-[2.5em]">{{ flower.description
+                                }}</p>
+
+                            <div class="mt-auto pt-2 border-t border-white/5 space-y-1">
+                                <div class="flex justify-between items-center text-[10px] text-slate-400">
+                                    <span class="uppercase tracking-wider">Date</span>
+                                    <span class="font-mono text-slate-200">
+                                        {{ flower.discoveryDate ? new Date(flower.discoveryDate).toLocaleDateString() :
+                                            '-' }}
+                                    </span>
+                                </div>
+                                <div class="flex justify-between items-center text-[10px] text-slate-400">
+                                    <span class="uppercase tracking-wider">Source</span>
+                                    <span class="text-emerald-400 font-bold">
+                                        {{ getSourceLabel(flower.discoverySource) }}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                         <div v-else>
                             <h3 class="font-bold text-slate-600">Unknown Species</h3>
@@ -185,24 +219,18 @@ const getRarityBg = (rarity: FlowerRarity) => {
                     <div
                         class="absolute inset-0 bg-gradient-to-br from-purple-900/10 to-blue-900/10 opacity-0 group-hover:opacity-100 transition-opacity">
                     </div>
-
                     <div class="relative z-10 transform transition-transform group-hover:scale-110 duration-500">
                         <div
                             class="text-6xl mb-4 opacity-30 group-hover:opacity-100 transition-opacity filter blur-[1px] group-hover:blur-0">
                             🧬
                         </div>
                     </div>
-
                     <div class="relative z-10">
                         <h3 class="font-bold text-slate-500 group-hover:text-purple-400 transition-colors">Secret
                             Variations</h3>
                         <p class="text-xs text-slate-600 mt-2 group-hover:text-slate-400 transition-colors">
                             Rare mutations & event exclusives hide in the shadows.
                         </p>
-                    </div>
-
-                    <div
-                        class="absolute -bottom-10 -right-10 w-32 h-32 bg-purple-500/20 rounded-full blur-[50px] pointer-events-none group-hover:bg-purple-500/30 transition-all">
                     </div>
                 </div>
 
