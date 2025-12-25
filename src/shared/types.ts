@@ -5,6 +5,25 @@ export const Role = {
 
 export type Role = (typeof Role)[keyof typeof Role]
 
+export interface FlowerDTO {
+  id: string
+  status: FlowerStatus
+  waterLevel: number
+  quality: number
+  plantedAt?: Date
+  isShiny: boolean
+  species: {
+    name: string
+    slugName: string
+    rarity: FlowerRarity
+    description?: string
+    description_lore?: string
+    waterNeeds: FlowerWaterConsumption
+    growthDuration: number
+    preferredSeason: PreferredSeasons
+  }
+}
+
 export const FlowerRarity = {
   COMMON: 'COMMON',
   UNCOMMON: 'UNCOMMON',
@@ -35,6 +54,16 @@ export const FlowerStatus = {
 } as const
 
 export type FlowerStatus = (typeof FlowerStatus)[keyof typeof FlowerStatus]
+
+export const PreferredSeasons = {
+  SPRING: 'SPRING',
+  SUMMER: 'SUMMER',
+  AUTUMN: 'AUTUMN',
+  WINTER: 'WINTER',
+  NO: null,
+} as const
+
+export type PreferredSeasons = (typeof PreferredSeasons)[keyof typeof PreferredSeasons]
 
 export const FlowerWaterConsumption = {
   VERY_LOW: 'VERY_LOW',

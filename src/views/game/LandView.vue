@@ -29,7 +29,7 @@ const activeTile = computed(() => gameStore.selectedTile || gameStore.hoveredTil
 </script>
 
 <template>
-    <div class="relative w-screen h-screen overflow-hidden bg-slate-900 text-slate-200 z-0">
+    <div class="relative w-screen h-screen overflow-hidden bg-slate-900 text-slate-200 z-0 overflow-hidden">
 
         <LandScene v-if="userId" quality="high" :user-id="userId" />
 
@@ -39,12 +39,13 @@ const activeTile = computed(() => gameStore.selectedTile || gameStore.hoveredTil
         </div>
 
         <div class="absolute inset-0 z-10 pointer-events-none">
-            <SideBar />
+            <SideBar class="hidden phone:block" />
             <TopBar :user-tag="route.params.tag || auth.user?.tag || ''" />
 
             <transition name="slide-up">
-                <div v-if="activeTile" class="absolute bottom-8 right-8 pointer-events-auto">
-                    <div class="card w-72 glass-card shadow-2xl border-t border-white/10">
+                <div v-if="activeTile"
+                    class="fixed bottom-0 w-screen phone:w-fit phone:bottom-8 phone:right-8 pointer-events-auto">
+                    <div class="phone:card w-full phone:w-72 glass-card shadow-2xl border-white/10">
                         <div class="card-body p-5">
 
                             <div class="flex justify-between items-start mb-2">
@@ -78,7 +79,7 @@ const activeTile = computed(() => gameStore.selectedTile || gameStore.hoveredTil
                                 </p>
                             </div>
 
-                            <div class="card-actions justify-end mt-2 pt-4 border-t border-white/5"
+                            <div class="card-actions justify-end mt-2 pt-4 border-white/5"
                                 v-if="gameStore.selectedTile">
 
                                 <button v-if="activeTile.isOwned"
@@ -88,7 +89,8 @@ const activeTile = computed(() => gameStore.selectedTile || gameStore.hoveredTil
                                             render() {
                                                 return h(TileManagerInModal, {
                                                     x: activeTile.x,
-                                                    z: activeTile.z
+                                                    z: activeTile.z,
+                                                    islandId: gameStore.currentIsland.id
                                                 })
                                             }
                                         })
@@ -98,8 +100,8 @@ const activeTile = computed(() => gameStore.selectedTile || gameStore.hoveredTil
                                             title: 'Tile Manager',
                                             component: markRaw(componentWithProps),
                                             size: 'large',
-                                            path: ROUTES.TILE_MANAGER.path,
-                                            fullscreenSideBarMargin: true,
+                                            path: ROUTES.TILE_MANAGER.pathDyn(activeTile.x, activeTile.z),
+                                            sideBarMargin: true,
                                         });
                                     }">
                                     Manage

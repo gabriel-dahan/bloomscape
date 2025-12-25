@@ -13,6 +13,7 @@ import { useModalStore } from '@/stores/modal';
 import { router } from '@/routes';
 import MarketInModal from './modal_features/MarketInModal.vue';
 import InventoryInModal from './modal_features/InventoryInModal.vue';
+import { useBreakpoints } from '@/stores/breakpoints';
 
 const uiStore = useUIStore();
 
@@ -30,7 +31,7 @@ const navigationArray = [
                 component: MarketInModal,
                 size: 'fullscreen',
                 path: ROUTES.MARKET.path,
-                fullscreenSideBarMargin: true,
+                sideBarMargin: true,
             });
         }
     },
@@ -43,7 +44,7 @@ const navigationArray = [
                 component: InventoryInModal,
                 size: 'fullscreen',
                 path: ROUTES.INVENTORY.path,
-                fullscreenSideBarMargin: true,
+                sideBarMargin: true,
             })
         }
     },
@@ -57,6 +58,19 @@ onMounted(async () => {
 
 <template>
     <teleport to="body">
+        <button v-if="!uiStore.isSidebarOpen" @click="uiStore.toggleSidebar"
+            class="fixed top-4 right-4 z-[100] p-2 bg-slate-800/80 backdrop-blur-md border border-white/10 rounded-full text-white shadow-lg md:hidden hover:bg-slate-700 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                stroke="currentColor" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+        </button>
+
+        <transition name="fade">
+            <div v-if="uiStore.isSidebarOpen" @click="uiStore.toggleSidebar"
+                class="fixed inset-0 bg-black/60 z-[100] backdrop-blur-sm md:hidden"></div>
+        </transition>
+
         <aside
             class="fixed top-5 left-5 h-[calc(100%-40px)] transition-all duration-300 ease-in-out glass-panel border-r border-white/10 flex flex-col z-[101] pointer-events-auto rounded-2xl overflow-hidden isolate"
             :class="[
@@ -67,7 +81,7 @@ onMounted(async () => {
             <button
                 class="h-20 flex items-center border-b border-white/5 relative transition-all duration-300 cursor-pointer"
                 :class="uiStore.isSidebarOpen ? 'px-6' : 'justify-center px-0'"
-                @click.prevent="router.push(ROUTES.HOME.path)">
+                @click.stop.prevent="router.push(ROUTES.HOME.path)">
 
                 <div>
                     <img src="/bloomscape_logo.png" alt="Logo" width="50" height="50" />
@@ -83,7 +97,9 @@ onMounted(async () => {
             <nav class="flex-1 py-6 px-3 flex flex-col gap-2">
                 <a v-for="(item, index) in navigationArray" :key="index" :href="!item.action ? (item.link || '#') : '#'"
                     @click.stop="() => {
-                        if (item.action) item.action()
+                        const bp = useBreakpoints()
+                        if (item.action) item.action();
+                        if (window.innerWidth < bp.md) uiStore.toggleSidebar();
                     }"
                     class="group flex items-center p-3 rounded-lg transition-all duration-300 hover:bg-white/5 text-gray-400 hover:text-white relative overflow-hidden"
                     :class="uiStore.isSidebarOpen ? '' : 'justify-center'">

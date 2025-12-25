@@ -155,7 +155,7 @@ export const ROUTES_ENUM = {
         title: 'Marketplace',
         component: MarketInModal,
         size: 'fullscreen',
-        fullscreenSideBarMargin: true,
+        sideBarMargin: true,
         closingPath: ROUTES_ENUM.LAND.path,
       })
 
@@ -175,7 +175,7 @@ export const ROUTES_ENUM = {
         title: 'Inventory',
         component: InventoryInModal,
         size: 'fullscreen',
-        fullscreenSideBarMargin: true,
+        sideBarMargin: true,
         closingPath: ROUTES_ENUM.LAND.path,
       })
 

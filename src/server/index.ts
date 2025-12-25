@@ -30,6 +30,7 @@ app.use(express.json())
 app.get('/api/images/flowers/:slugName/:status/:type', async (req, res) => {
   await api.withRemult(req, res, async () => {
     const { slugName, status, type } = req.params
+    const noFallback = req.query.noFallback === 'true' || req.query.noFallback === 'True'
 
     const validTypes = ['icon', 'sprite']
     const validStages = ['seed', 'sprout1', 'sprout2', 'growing1', 'growing2', 'mature', 'withered']
@@ -64,6 +65,10 @@ app.get('/api/images/flowers/:slugName/:status/:type', async (req, res) => {
 
     if (allowed && fs.existsSync(realPath)) {
       return res.sendFile(realPath)
+    }
+
+    if (noFallback) {
+      return res.status(404).send('Image not found')
     }
 
     return res.sendFile(unknownPath)

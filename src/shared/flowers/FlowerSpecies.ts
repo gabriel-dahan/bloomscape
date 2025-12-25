@@ -1,5 +1,10 @@
 import { Entity, Fields } from 'remult'
-import { FlowerAvailability, FlowerRarity, FlowerWaterConsumption } from '../types'
+import {
+  FlowerAvailability,
+  FlowerRarity,
+  FlowerWaterConsumption,
+  PreferredSeasons,
+} from '../types'
 
 @Entity('flower_species', { allowApiCrud: 'admin' })
 export class FlowerSpecies {
@@ -14,6 +19,12 @@ export class FlowerSpecies {
 
   @Fields.string()
   description: string = ''
+
+  @Fields.string()
+  preferredSeason: PreferredSeasons = PreferredSeasons.NO
+
+  @Fields.string()
+  description_lore: string = '' // a more poetic description
 
   @Fields.string() // Enum
   rarity: FlowerRarity = FlowerRarity.COMMON

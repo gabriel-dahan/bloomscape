@@ -28,6 +28,13 @@ export interface TileData {
   x: number
   z: number
   flowerId?: string
+  // Added flower data structure for rendering
+  flower?: {
+    status: string
+    species: {
+      slugName: string
+    }
+  } | null
 }
 
 // Les 5 catégories de textures d'eau
@@ -42,6 +49,7 @@ export class LandSceneManager {
   private raycaster: THREE.Raycaster
   private mouse: THREE.Vector2
   private animationId: number = 0
+  private loader: THREE.TextureLoader // Promoted to class property
 
   private elementManager: WorldElementManager
 
@@ -79,6 +87,13 @@ export class LandSceneManager {
   private meshEdge!: THREE.InstancedMesh
   private meshCorner!: THREE.InstancedMesh
 
+  // --- GESTION FLEURS ---
+  // Map 'x,z' -> { mesh: Sprite, currentSlug: string, currentStatus: string }
+  private flowerMeshes = new Map<
+    string,
+    { mesh: THREE.Sprite; currentSlug: string; currentStatus: string }
+  >()
+
   private onDownPosition = new THREE.Vector2()
   private container: HTMLElement | null = null
   private config: SceneConfig
@@ -87,6 +102,7 @@ export class LandSceneManager {
     this.config = config
     this.raycaster = new THREE.Raycaster()
     this.mouse = new THREE.Vector2()
+    this.loader = new THREE.TextureLoader()
 
     // Binding des méthodes
     this.onMouseMove = this.onMouseMove.bind(this)
@@ -172,7 +188,6 @@ export class LandSceneManager {
   // ---- WORLD GENERATION ---- //
   private createWorld() {
     const { tileSize } = this.config
-    const loader = new THREE.TextureLoader()
 
     // --- 1. CHARGEMENT DES TEXTURES D'EAU (15 FRAMES PAR CATÉGORIE) ---
     const loadFrames = (folder: string): THREE.Texture[] => {
@@ -180,7 +195,7 @@ export class LandSceneManager {
       for (let i = 1; i <= 16; i++) {
         // Chemin attendu : /textures/water/open/frame1.png
         const path = `/textures/water/${folder}/frame${i}.png`
-        const tex = loader.load(path)
+        const tex = this.loader.load(path)
         tex.magFilter = THREE.NearestFilter
         tex.minFilter = THREE.NearestFilter
         tex.colorSpace = THREE.SRGBColorSpace
@@ -273,7 +288,7 @@ export class LandSceneManager {
 
     // --- 6. LAND MESHES (TERRE) ---
     const setupTex = (url: string) => {
-      const tex = loader.load(url)
+      const tex = this.loader.load(url)
       tex.magFilter = THREE.NearestFilter
       tex.minFilter = THREE.NearestFilter
       tex.colorSpace = THREE.SRGBColorSpace
@@ -391,23 +406,16 @@ export class LandSceneManager {
         if (w) neighborsCount++
 
         let category: WaterCategory = 'open'
-        let rotationY = 0 // Rotation autour de l'axe vertical (qui est Z pour un Plane à plat ?)
-        // Note: PlaneGeometry rotateX(-PI/2) met le plan à plat. L'axe de rotation "sur la table" devient Z.
-
-        // Logique d'orientation des textures
-        // Hypothèse : Les textures '1side', '2sides', etc. sont dessinées avec la terre en HAUT (Nord).
+        let rotationY = 0
 
         if (neighborsCount === 0) {
           category = 'open'
         } else if (neighborsCount === 1) {
           category = '1side'
-          if (n)
-            rotationY = 0 // Terre Nord -> Pas de rotation
-          else if (e)
-            rotationY = -Math.PI / 2 // Terre Est -> -90°
-          else if (s)
-            rotationY = Math.PI // Terre Sud -> 180°
-          else if (w) rotationY = Math.PI / 2 // Terre Ouest -> 90°
+          if (n) rotationY = 0
+          else if (e) rotationY = -Math.PI / 2
+          else if (s) rotationY = Math.PI
+          else if (w) rotationY = Math.PI / 2
         } else if (neighborsCount === 2) {
           category = '2sides'
           // Cas "Coin"
@@ -416,20 +424,16 @@ export class LandSceneManager {
           else if (s && w) rotationY = Math.PI
           else if (w && n) rotationY = Math.PI / 2
           // Cas "Canal" (Opposés)
-          // Si tu as une texture spécifique 'canal', ajoute une catégorie. Sinon on utilise '2sides' ou 'open'
           else if (n && s) {
             category = '2sides'
             rotationY = 0
-          } // Ou une texture canal
-          else if (e && w) {
+          } else if (e && w) {
             category = '2sides'
             rotationY = Math.PI / 2
           }
         } else if (neighborsCount === 3) {
           category = '3sides'
-          // On oriente vers le "vide" (l'ouverture)
-          if (!s)
-            rotationY = 0 // Vide au Sud (donc Terre N, E, O)
+          if (!s) rotationY = 0
           else if (!w) rotationY = -Math.PI / 2
           else if (!n) rotationY = Math.PI
           else if (!e) rotationY = Math.PI / 2
@@ -458,6 +462,113 @@ export class LandSceneManager {
         mesh.instanceMatrix.needsUpdate = true
       }
     })
+
+    // --- ETAPE 3 : UPDATE FLEURS ---
+    this.updateFlowers(landTiles)
+  }
+
+  // ---- FLEURS (SPRITES) LOGIC ---- //
+
+  private updateFlowers(tiles: TileData[]) {
+    const visitedKeys = new Set<string>()
+
+    tiles.forEach((tile) => {
+      // On ne traite que les tuiles qui ont une fleur définie
+      if (!tile.flower) return
+
+      const key = `${tile.x},${tile.z}`
+      visitedKeys.add(key)
+
+      const existing = this.flowerMeshes.get(key)
+      const slug = tile.flower.species.slugName
+      const status = tile.flower.status
+
+      // Si le mesh existe déjà pour cette case
+      if (existing) {
+        // On vérifie si la fleur a changé (évolution ou remplacement)
+        if (existing.currentSlug !== slug || existing.currentStatus !== status) {
+          this.loadFlowerTextureWithFallback(slug, status, (tex) => {
+            existing.mesh.material.map = tex
+            existing.mesh.material.needsUpdate = true
+            existing.currentSlug = slug
+            existing.currentStatus = status
+          })
+        }
+        // Pas besoin de changer la position, elle est fixe sur la grille
+      } else {
+        // Création d'une nouvelle fleur
+        const material = new THREE.SpriteMaterial({
+          transparent: true,
+          // map sera chargé en async
+        })
+        const sprite = new THREE.Sprite(material)
+
+        // Configuration de la position et taille
+        sprite.position.set(tile.x, 1, tile.z) // Y=1 pour "flotter" au dessus du sol
+        sprite.scale.set(1.5, 1.5, 1.5) // Ajuster la taille selon le visuel voulu
+        // center.y = 0 permet d'ancrer le bas du sprite au point de position (Y=1)
+        // Mais par défaut center est 0.5,0.5.
+        // Si on veut qu'il soit posé sur le sol (Y=0.5), on peut régler :
+        sprite.center.set(0.5, 0.0) // Ancrage en bas au milieu
+        sprite.position.y = 0.55 // Juste au dessus du bloc de terre (qui fait 0.5 de haut)
+
+        this.scene.add(sprite)
+
+        // Stockage
+        const entry = { mesh: sprite, currentSlug: slug, currentStatus: status }
+        this.flowerMeshes.set(key, entry)
+
+        // Chargement texture
+        this.loadFlowerTextureWithFallback(slug, status, (tex) => {
+          sprite.material.map = tex
+          sprite.material.needsUpdate = true
+        })
+      }
+    })
+
+    // Nettoyage des fleurs qui ne sont plus là (récoltées ou tuile supprimée)
+    this.flowerMeshes.forEach((entry, key) => {
+      if (!visitedKeys.has(key)) {
+        this.scene.remove(entry.mesh)
+        entry.mesh.material.dispose()
+        this.flowerMeshes.delete(key)
+      }
+    })
+  }
+
+  // Tente de charger le sprite, sinon l'icone
+  private loadFlowerTextureWithFallback(
+    slug: string,
+    status: string,
+    onLoaded: (tex: THREE.Texture) => void,
+  ) {
+    const spriteUrl = `/api/images/flowers/${slug}/${status.toLowerCase()}/sprite?noFallback=True`
+    const iconUrl = `/api/images/flowers/${slug}/${status.toLowerCase()}/icon`
+
+    this.loader.load(
+      spriteUrl,
+      (tex) => {
+        tex.colorSpace = THREE.SRGBColorSpace
+        tex.magFilter = THREE.NearestFilter
+        onLoaded(tex)
+      },
+      undefined,
+      () => {
+        // Erreur (404 par ex), on tente l'icone
+        this.loader.load(
+          iconUrl,
+          (tex) => {
+            tex.colorSpace = THREE.SRGBColorSpace
+            tex.magFilter = THREE.NearestFilter
+            onLoaded(tex)
+          },
+          undefined,
+          (err) => {
+            console.warn(`Impossible de charger la texture pour ${slug} (${status})`, err)
+          },
+        )
+      },
+    )
   }
 
   // ---- HELPERS & EVENTS ---- //
@@ -611,6 +722,13 @@ export class LandSceneManager {
     window.removeEventListener('resize', this.onWindowResize)
     this.container?.removeEventListener('click', this.onMouseClick)
     this.container?.removeEventListener('mousedown', this.onMouseDown)
+
+    // Nettoyage des fleurs
+    this.flowerMeshes.forEach((entry, _) => {
+      this.scene.remove(entry.mesh)
+      entry.mesh.material.dispose()
+    })
+    this.flowerMeshes.clear()
 
     // Nettoyage des textures
     Object.values(this.waterTextureSets).forEach((texArray) => {

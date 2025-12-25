@@ -20,7 +20,7 @@ export const useModalStore = defineStore('modal', () => {
   const component = ref<Component | null>(null)
   const componentProps = ref<Record<string, any>>({})
   const actions = ref<ModalAction[]>([])
-  const fullscreenSideBarMargin = ref(false)
+  const sideBarMargin = ref(false)
 
   const previousPath = ref<string | null>(null)
   const closingPath = ref<string | null>(null)
@@ -35,13 +35,13 @@ export const useModalStore = defineStore('modal', () => {
     actions?: ModalAction[]
     path?: string // false url shown when the modal is opened
     closingPath?: string // url the modal should return to when closed
-    fullscreenSideBarMargin?: boolean
+    sideBarMargin?: boolean
   }) {
     title.value = payload.title
     message.value = payload.message || ''
     type.value = payload.type || 'info'
     size.value = payload.size || 'standard'
-    fullscreenSideBarMargin.value = payload.fullscreenSideBarMargin || false
+    sideBarMargin.value = payload.sideBarMargin || false
     closingPath.value = payload.closingPath || null
 
     // Gestion du composant
@@ -106,7 +106,7 @@ export const useModalStore = defineStore('modal', () => {
     size,
     component,
     componentProps,
-    fullscreenSideBarMargin,
+    sideBarMargin,
     actions,
     open,
     close,

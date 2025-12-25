@@ -39,7 +39,6 @@ import { ChatController } from './controllers/ChatController'
 import { Chat } from '@/shared/chat/Chat'
 import { ChatMessage } from '@/shared/chat/ChatMessage'
 import { ChatParticipant } from '@/shared/chat/ChatParticipant'
-import { LandController } from './controllers/LandController'
 
 dotenv.config({
   path: './src/server/.env',
@@ -88,7 +87,6 @@ export const api = remultApi({
     AuthController,
     UserController,
     GameController,
-    LandController,
     AdminController,
     MarketController,
     ReportController,

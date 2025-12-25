@@ -57,21 +57,22 @@ watch(() => props.userTag, () => {
 </script>
 
 <template>
-    <div class="absolute top-0 left-0 w-full p-4 pointer-events-none flex justify-center md:justify-end md:pr-8">
+    <div
+        class="absolute top-0 left-0 w-full phone:h-fit p-4 pointer-events-none flex justify-start sm:justify-center md:justify-end md:pr-8">
 
         <div
-            class="pointer-events-auto glass-panel rounded-full px-6 py-2 flex items-center gap-6 shadow-2xl shadow-black/40 mt-12 md:mt-2 transition-all duration-300">
+            class="pointer-events-auto glass-panel rounded-full px-6 py-2 flex items-center gap-6 shadow-2xl shadow-black/40 transition-all duration-300">
 
-            <div class="hidden sm:flex flex-col text-right min-w-[80px]">
+            <div class="flex flex-col text-right min-w-[80px]">
                 <span class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Sector</span>
 
-                <span v-if="!isLoading" class="text-sm font-bold text-gray-200 animate-pulse-once">
+                <span v-if="!isLoading" class="text-xs font-bold text-gray-200 animate-pulse-once">
                     {{ sectorName }}
                 </span>
                 <div v-else class="h-4 w-16 bg-white/10 rounded animate-pulse mt-1 ml-auto"></div>
             </div>
 
-            <div class="h-8 w-px bg-white/10 hidden sm:block"></div>
+            <div class="h-8 w-px bg-white/10 block"></div>
 
             <div class="flex items-center gap-2">
                 <div class="tooltip tooltip-bottom" data-tip="Messages">
@@ -106,7 +107,7 @@ watch(() => props.userTag, () => {
 
                 <div class="avatar" :class="{ 'online': !isLoading }">
                     <div
-                        class="w-9 rounded-full ring ring-emerald-500 ring-offset-slate-900 ring-offset-2 bg-slate-800">
+                        class="w-5 rounded-full ring ring-emerald-500 ring-offset-slate-900 ring-offset-2 bg-slate-800">
                         <img v-if="!isLoading" :src="avatarUrl" alt="Avatar" class="transition-opacity duration-500" />
                         <div v-else class="w-full h-full bg-slate-700 animate-pulse"></div>
                     </div>

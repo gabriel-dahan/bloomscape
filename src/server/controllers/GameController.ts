@@ -10,6 +10,7 @@ import {
   UserAchievement,
   UserFlower,
   UserItem,
+  FlowerDTO,
 } from '@/shared'
 import { BackendMethod, remult } from 'remult'
 import { PRICES } from '../ext'
@@ -22,6 +23,7 @@ export class GameController {
   static async getIslandDetails(ownerId: string) {
     const islandRepo = remult.repo(Island)
     const tileRepo = remult.repo(Tile)
+    const flowerRepo = remult.repo(UserFlower)
 
     const island = await islandRepo.findFirst({ ownerId })
 
@@ -33,7 +35,19 @@ export class GameController {
       where: { islandId: island.id },
     })
 
-    return { island, tiles }
+    const flowerIds = tiles.map((t) => t.flowerId).filter((id) => !!id)
+
+    const flowers = await flowerRepo.find({
+      where: { id: { $in: flowerIds } },
+      include: { species: true },
+    })
+
+    const enrichedTiles = tiles.map((t) => {
+      const flower = flowers.find((f) => f.id === t.flowerId)
+      return { ...t, flower }
+    })
+
+    return { island, tiles: enrichedTiles }
   }
 
   @BackendMethod({ allowed: true })
@@ -103,6 +117,101 @@ export class GameController {
     type: 'icon' | 'sprite' = 'icon',
   ) {
     return `/api/images/flowers/${flowerSlugName}/${status.toLowerCase()}/${type.toLowerCase()}`
+  }
+
+  // --- NEW MODAL ACTIONS (DTO BASED) ---
+
+  @BackendMethod({ allowed: true })
+  static async getTileData(x: number, z: number, islandId: string) {
+    if (!remult.user) throw new Error('Not authenticated')
+
+    const tileRepo = remult.repo(Tile)
+    const flowerRepo = remult.repo(UserFlower)
+
+    const tile = await tileRepo.findFirst({ x, z }, { where: { islandId } })
+    if (!tile) return null
+
+    let flowerDTO: FlowerDTO | null = null
+
+    if (tile.flowerId) {
+      const flower = await flowerRepo.findId(tile.flowerId, { include: { species: true } })
+      if (flower) {
+        flowerDTO = GameController.toFlowerDTO(flower)
+      }
+    }
+
+    return { tile, flower: flowerDTO }
+  }
+
+  @BackendMethod({ allowed: true })
+  static async getAvailableSeeds(): Promise<FlowerDTO[]> {
+    if (!remult.user) return []
+
+    const seeds = await remult.repo(UserFlower).find({
+      where: {
+        ownerId: remult.user.id,
+        status: FlowerStatus.SEED,
+      },
+      include: { species: true },
+    })
+
+    return seeds.map((s) => GameController.toFlowerDTO(s))
+  }
+
+  @BackendMethod({ allowed: true })
+  static async plantSeed(tileId: string, flowerId: string) {
+    if (!remult.user) throw new Error('Not authenticated')
+
+    const tileRepo = remult.repo(Tile)
+    const flowerRepo = remult.repo(UserFlower)
+
+    const tile = await tileRepo.findId(tileId, { include: { island: true } })
+    if (!tile) throw new Error('Tile not found')
+    if (tile.island.ownerId !== remult.user.id) throw new Error('Not your land')
+    if (tile.flowerId) throw new Error('Tile is already occupied')
+
+    const flower = await flowerRepo.findId(flowerId)
+    if (!flower) throw new Error('Seed not found')
+    if (flower.ownerId !== remult.user.id) throw new Error('Not your seed')
+    if (flower.status !== FlowerStatus.SEED) throw new Error('Item is not a seed')
+
+    flower.status = FlowerStatus.SPROUT1
+    flower.plantedAt = new Date()
+    flower.waterLevel = 50
+    // Optional: set grid position if you use it for other logic
+    flower.gridX = tile.x
+    flower.gridY = tile.z
+
+    await flowerRepo.save(flower)
+
+    tile.flowerId = flower.id
+    await tileRepo.save(tile)
+
+    return { success: true }
+  }
+
+  @BackendMethod({ allowed: true })
+  static async waterFlower(tileId: string) {
+    if (!remult.user) throw new Error('Not authenticated')
+
+    const tileRepo = remult.repo(Tile)
+    const flowerRepo = remult.repo(UserFlower)
+
+    const tile = await tileRepo.findFirst({ id: tileId }, { include: { island: true } })
+
+    if (!tile || tile.island.ownerId !== remult.user.id) throw new Error('Invalid tile')
+    if (!tile.flowerId) throw new Error('Nothing to water here')
+
+    const flower = await flowerRepo.findId(tile.flowerId)
+    if (!flower) throw new Error('Flower data missing')
+
+    const newLevel = Math.min(100, (flower.waterLevel || 0) + 25)
+
+    flower.waterLevel = newLevel
+    flower.lastWateredAt = new Date()
+    await flowerRepo.save(flower)
+
+    return { level: newLevel }
   }
 
   // --- WRITE ACTIONS ---
@@ -202,7 +311,30 @@ export class GameController {
     }))
   }
 
-  // --- INTERNAL HELPERS (NOT EXPOSED TO API) ---
+  // --- INTERNAL HELPERS ---
+
+  private static toFlowerDTO(flower: UserFlower): FlowerDTO {
+    const species = flower.species!
+
+    return {
+      id: flower.id,
+      status: flower.status,
+      waterLevel: flower.waterLevel,
+      quality: flower.quality,
+      plantedAt: flower.plantedAt,
+      isShiny: flower.isShiny,
+      species: {
+        name: species.name,
+        slugName: species.slugName,
+        rarity: species.rarity,
+        description: species.description,
+        description_lore: species.description_lore,
+        waterNeeds: species.waterNeeds,
+        growthDuration: species.growthDuration,
+        preferredSeason: species.preferredSeason,
+      },
+    }
+  }
 
   static async removeSap(amount: number) {
     const user = remult.user

@@ -4,7 +4,7 @@ import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 
 const modalStore = useModalStore();
-const { isOpen, title, message, type, actions, size, component, componentProps, fullscreenSideBarMargin } = storeToRefs(modalStore);
+const { isOpen, title, message, type, actions, size, component, componentProps, sideBarMargin } = storeToRefs(modalStore);
 
 // Configuration visuelle selon le type (couleurs)
 const config = computed(() => {
@@ -20,12 +20,10 @@ const config = computed(() => {
 const sizeClasses = computed(() => {
     switch (size.value) {
         case 'large':
-            // Idéal pour le Market : Large et occupe 85% de la hauteur
-            return 'w-full max-w-6xl h-[85vh]';
+            return 'w-full h-full phone:max-w-6xl phone:h-[85vh] phone:mx-5' + (sideBarMargin.value ? ' md:ml-25' : '');
         case 'fullscreen':
-            return 'w-full h-full max-w-none border-1' + (fullscreenSideBarMargin.value ? ' md:ml-25' : '');
+            return 'w-full h-full max-w-none border-1' + (sideBarMargin.value ? ' md:ml-25' : '');
         default:
-            // Standard
             return 'w-full max-w-md';
     }
 });
@@ -44,7 +42,7 @@ const getBtnClass = (variant?: string) => {
 <template>
     <transition name="fade">
         <div v-if="isOpen"
-            class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4"
+            class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm md:p-4"
             @click.self="modalStore.close">
 
             <transition name="scale">
@@ -57,12 +55,12 @@ const getBtnClass = (variant?: string) => {
                     </div>
 
                     <div class="flex-none flex items-center gap-4 mb-4">
-                        <h3 class="text-xl font-bold tracking-wide" :class="config.color">
+                        <h3 class="text-md phone:text-xl font-bold tracking-wide" :class="config.color">
                             {{ title }}
                         </h3>
                     </div>
 
-                    <div class="flex-1 overflow-y-auto min-h-0 custom-scrollbar mb-4">
+                    <div class="flex-1 overflow-y-auto min-h-0 custom-scrollbar phone:mb-4">
 
                         <component v-if="component" :is="component" v-bind="componentProps" />
 
@@ -71,7 +69,7 @@ const getBtnClass = (variant?: string) => {
                         </p>
                     </div>
 
-                    <div class="flex-none flex justify-end gap-3 border-t border-white/5 pt-4">
+                    <div class="flex-none flex justify-end gap-3 phone:border-t phone:border-white/5 pt-2 phone:pt-4">
                         <button v-for="(action, idx) in actions" :key="idx" @click="action.onClick"
                             class="btn btn-sm rounded-lg font-bold transition-transform hover:scale-105"
                             :class="getBtnClass(action.variant)">
