@@ -316,14 +316,13 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 
                 </div>
 
-                <div>
-                    <div
-                        class="flex sm:flex-col items-center gap-1 bg-slate-600 p-1.5 rounded-lg border border-emerald-500 h-fit">
+                <div class="flex justify-center items-center">
+                    <div class="flex sm:flex-col items-center gap-1 bg-slate-800 p-1.5 rounded-lg border h-fit w-fit">
                         <div v-for="(stage, index) in GROWTH_STAGES" :key="stage"
-                            class="relative w-10 h-10 sm:w-20 sm:h-20 flex items-center justify-center transition-all duration-300"
+                            class="relative w-10 h-10 sm:w-15 sm:h-15 flex items-center justify-center transition-all duration-300"
                             :title="stage">
                             <div class="w-full h-full flex items-center justify-center" :class="{
-                                'filter brightness-30 opacity-60': index > currentStageIndex,
+                                'filter brightness-0 invert-100 opacity-20': index > currentStageIndex,
                                 'border rounded-lg border-emerald-500': index === currentStageIndex
                             }">
                                 <FlowerImage :slug="flower.species.slugName" :status="stage" type="icon" size="100%" />

@@ -39,7 +39,7 @@ const activeTile = computed(() => gameStore.selectedTile || gameStore.hoveredTil
         </div>
 
         <div class="absolute inset-0 z-10 pointer-events-none">
-            <SideBar class="hidden phone:block" />
+            <SideBar />
             <TopBar :user-tag="route.params.tag || auth.user?.tag || ''" />
 
             <transition name="slide-up">
@@ -48,8 +48,8 @@ const activeTile = computed(() => gameStore.selectedTile || gameStore.hoveredTil
                     <div class="phone:card w-full phone:w-72 glass-card shadow-2xl border-white/10">
                         <div class="card-body p-5">
 
-                            <div class="flex justify-between items-start mb-2">
-                                <div>
+                            <div class="flex justify-between items-start phone:mb-2">
+                                <div class="flex gap-4 items-center phone:block">
                                     <h2 class="card-title text-base font-bold" :class="{
                                         'text-emerald-300': activeTile.isOwned,
                                         'text-slate-400': !activeTile.isOwned
@@ -66,7 +66,7 @@ const activeTile = computed(() => gameStore.selectedTile || gameStore.hoveredTil
                                 </div>
                             </div>
 
-                            <div class="text-xs text-slate-300 flex flex-col gap-2 my-2">
+                            <div class="text-xs text-slate-300 flex flex-col gap-2 my-2 hidden phone:block">
                                 <p v-if="activeTile.isOwned">
                                     Occupied Land.
                                     <span v-if="gameStore.selectedEntity?.createdAt">
