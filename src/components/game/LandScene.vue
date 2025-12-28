@@ -5,6 +5,7 @@ import { useTimeStore } from '@/stores/time';
 import { storeToRefs } from 'pinia';
 import { LandSceneManager } from './logic/LandSceneManager';
 import { useAuthStore } from '@/stores/auth';
+import GameClock from './GameClock.vue';
 
 const props = withDefaults(defineProps<{
     userId: string,
@@ -141,18 +142,7 @@ watch(selectedTile, (newVal) => {
 
         <div ref="canvasContainerRef" class="absolute inset-0 z-0 block"></div>
 
-        <div class="absolute top-20 left-5 sm:top-auto sm:bottom-6 sm:left-10 md:left-40 z-20 pointer-events-none">
-            <div
-                class="bg-slate-900/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 shadow-xl flex flex-col items-end">
-                <span class="sm:text-2xl font-mono font-bold text-white tracking-widest drop-shadow-md">
-                    {{ formattedTime }}
-                </span>
-                <span class="text-[10px] uppercase font-bold tracking-wider hidden sm:block"
-                    :class="timeStore.now.isDay ? 'text-yellow-400' : 'text-blue-400'">
-                    {{ timeStore.now.isDay ? 'DAY TIME' : 'NIGHT TIME' }}
-                </span>
-            </div>
-        </div>
+        <GameClock v-ui-block></GameClock>
 
         <transition name="fade">
             <div v-if="!isLoading && !hasIsland"

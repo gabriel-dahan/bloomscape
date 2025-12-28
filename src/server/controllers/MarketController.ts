@@ -6,6 +6,7 @@ import {
   UserFlower,
   FlowerSpecies,
   DiscoverySource,
+  FlowerStatus,
 } from '@/shared'
 import { BackendMethod, remult } from 'remult'
 import { FlowerAvailability, FlowerRarity } from '@/shared/types'
@@ -33,7 +34,6 @@ export class MarketController {
       throw new Error(`Insufficient funds. You need ${listing.price} Sap.`)
     }
 
-    // Process Transaction
     buyer.sap -= listing.price
 
     const seller = await userRepo.findId(listing.sellerId)
@@ -43,13 +43,10 @@ export class MarketController {
     }
     await userRepo.save(buyer)
 
-    // Transfer Ownership
     if (listing.flower) {
       listing.flower.ownerId = buyer.id
-      // Reset any specific status if needed
       await flowerRepo.save(listing.flower)
 
-      // NEW: Register Discovery for the buyer
       if (listing.flower.speciesId) {
         await GameController.registerDiscovery(
           buyer.id,
@@ -60,14 +57,12 @@ export class MarketController {
       }
     }
 
-    // Record History
     await historyRepo.insert({
       speciesId: listing.flower?.speciesId || '',
       price: listing.price,
       soldAt: new Date(),
     })
 
-    // Update Daily Stats
     if (listing.flower?.speciesId) {
       await MarketController.updateDailyStats(listing.flower.speciesId, listing.price)
     }
@@ -78,27 +73,54 @@ export class MarketController {
   }
 
   @BackendMethod({ allowed: true })
-  static async addListing(flowerId: string, price: number) {
+  static async addBulkListing(flowerIds: string[], pricePerUnit: number) {
     const user = remult.user
     if (!user) throw new Error('Not authenticated')
+
+    if (pricePerUnit <= 0) throw new Error('Price must be positive.')
+    if (!Number.isInteger(pricePerUnit)) throw new Error('Price must be an integer.')
+    if (flowerIds.length === 0) throw new Error('No flowers selected.')
 
     const flowerRepo = remult.repo(UserFlower)
     const listingRepo = remult.repo(MarketListing)
 
-    const flower = await flowerRepo.findId(flowerId)
-    if (!flower) throw new Error('Flower not found.')
-    if (flower.ownerId !== user.id) throw new Error('You do not own this flower.')
-
-    const listing = listingRepo.create({
-      flower: flower,
-      sellerId: user.id,
-      price: price,
-      listedAt: new Date(),
+    const flowers = await flowerRepo.find({
+      where: {
+        id: { $in: flowerIds },
+        ownerId: user.id,
+      },
     })
 
-    await listingRepo.insert(listing)
+    if (flowers.length !== flowerIds.length) {
+      throw new Error('Some flowers could not be found or do not belong to you.')
+    }
 
-    return { success: true, message: 'Listing added successfully.' }
+    const alreadyListed = await listingRepo.find({
+      where: { flowerId: { $in: flowerIds } },
+    })
+
+    if (alreadyListed.length > 0) {
+      throw new Error(`Some selected items are already listed.`)
+    }
+
+    for (const flower of flowers) {
+      if (flower.status !== FlowerStatus.SEED) {
+        throw new Error(`Item ${flower.id} is not a seed.`)
+      }
+    }
+
+    const listings = flowers.map((f) => {
+      return listingRepo.create({
+        flower: f,
+        sellerId: user.id,
+        price: pricePerUnit,
+        listedAt: new Date(),
+      })
+    })
+
+    await listingRepo.insert(listings)
+
+    return { success: true, message: `Successfully listed ${listings.length} items.` }
   }
 
   @BackendMethod({ allowed: true })
@@ -190,14 +212,10 @@ export class MarketController {
         speciesId,
         date: { $lt: dateLimit },
       },
-      { orderBy: { date: 'desc' } }, // The latest known price of a flower
+      { orderBy: { date: 'desc' } },
     )
   }
 
-  /**
-   * Calculates the recommended selling price for a specific flower
-   * based on its Rarity, Quality, and current Market Conditions.
-   */
   @BackendMethod({ allowed: true })
   static async getRecommendedPrice(speciesId: string, quality: number) {
     const statsRepo = remult.repo(MarketStats)
@@ -238,7 +256,6 @@ export class MarketController {
     return Math.round(pivotPrice * multiplier)
   }
 
-  // Internal helper
   static async updateDailyStats(speciesId: string, price: number) {
     const statsRepo = remult.repo(MarketStats)
     const today = new Date()

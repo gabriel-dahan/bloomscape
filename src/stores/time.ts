@@ -4,23 +4,23 @@ import { calculateGameTime, type GameTime } from '@/shared/gameTime'
 
 export const useTimeStore = defineStore('time', () => {
   const now = ref<GameTime>(calculateGameTime())
-  let intervalId: ReturnType<typeof setInterval> | null = null
-
-  function start() {
-    if (intervalId) return
-    update()
-    intervalId = setInterval(update, 1000)
-  }
-
-  function stop() {
-    if (intervalId) {
-      clearInterval(intervalId)
-      intervalId = null
-    }
-  }
+  let rafId: number | null = null
 
   function update() {
     now.value = calculateGameTime()
+    rafId = requestAnimationFrame(update)
+  }
+
+  function start() {
+    if (rafId) return
+    update()
+  }
+
+  function stop() {
+    if (rafId) {
+      cancelAnimationFrame(rafId)
+      rafId = null
+    }
   }
 
   onUnmounted(() => {

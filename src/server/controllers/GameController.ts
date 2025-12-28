@@ -137,7 +137,6 @@ export class GameController {
       let flower = await flowerRepo.findId(tile.flowerId, { include: { species: true } })
 
       if (flower) {
-        // Use the new reusable method to update growth status
         flower = await GameController.updateFlowerStatus(flower)
         flowerDTO = GameController.toFlowerDTO(flower)
       }
@@ -146,13 +145,7 @@ export class GameController {
     return { tile, flower: flowerDTO }
   }
 
-  /**
-   * Checks the elapsed time since planting and updates the flower's status
-   * (e.g., SPROUT -> GROWING -> MATURE) if necessary.
-   * This saves the flower to the database if a change occurs.
-   */
   static async updateFlowerStatus(flower: UserFlower): Promise<UserFlower> {
-    // If it's already mature, withered, or a seed, no growth logic needed
     if (
       flower.status === FlowerStatus.SEED ||
       flower.status === FlowerStatus.MATURE ||
@@ -161,9 +154,7 @@ export class GameController {
       return flower
     }
 
-    // Ensure we have necessary data
     if (!flower.plantedAt || !flower.species) {
-      // In a real scenario, you might want to fetch the species here if it's missing
       return flower
     }
 
@@ -174,7 +165,6 @@ export class GameController {
     let newStatus = flower.status
 
     if (elapsedSeconds >= duration) {
-      // Growth complete
       newStatus = FlowerStatus.MATURE
     } else {
       // Intermediate stages (0-25%, 25-50%, 50-75%, 75-100%)
@@ -376,6 +366,7 @@ export class GameController {
       plantedAt: flower.plantedAt,
       isShiny: flower.isShiny,
       species: {
+        id: species.id,
         name: species.name,
         slugName: species.slugName,
         rarity: species.rarity,

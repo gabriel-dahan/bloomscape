@@ -49,7 +49,7 @@ dotenv.config({
 const __DBProvider = new BetterSqlite3DataProvider(
   new Database(process.env.DB_PATH || './bloomscape.sqlite'),
 )
-const db = new SqlDatabase(__DBProvider)
+export const db = new SqlDatabase(__DBProvider)
 
 export const api = remultApi({
   dataProvider: db,

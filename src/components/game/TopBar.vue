@@ -57,7 +57,7 @@ watch(() => props.userTag, () => {
 </script>
 
 <template>
-    <div
+    <div v-ui-block
         class="absolute top-0 left-0 w-full phone:h-fit p-4 pointer-events-none flex justify-start sm:justify-center md:justify-end md:pr-8">
 
         <div

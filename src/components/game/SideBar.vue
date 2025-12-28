@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { GameController } from '@/server/controllers/GameController';
 import { useAuthStore } from '@/stores/auth';
 import { useUIStore } from '@/stores/ui';
-import { computed, onMounted, ref, Teleport } from 'vue';
+import { computed, onMounted } from 'vue';
 
 import HomeIcon from '../icons/navbar/HomeIcon.vue';
 import MarketIcon from '../icons/navbar/MarketIcon.vue';
@@ -30,7 +29,7 @@ const navigationArray = [
                 title: 'Marketplace',
                 component: MarketInModal,
                 size: 'fullscreen',
-                path: ROUTES.MARKET.path,
+                path: ROUTES.LAND_MARKET.path,
                 sideBarMargin: true,
             });
         }
@@ -50,6 +49,10 @@ const navigationArray = [
     },
     { name: 'Settings', icon: SettingsIcon, link: ROUTES.SETTINGS.pathDyn(auth.user?.tag) },
 ];
+
+import { useWindowSize } from '@vueuse/core'
+
+const { winWidth, _ } = useWindowSize()
 
 onMounted(async () => {
     await auth.fetchSessionUser();
@@ -71,8 +74,8 @@ onMounted(async () => {
                 class="fixed inset-0 bg-black/60 z-[100] backdrop-blur-sm md:hidden"></div>
         </transition>
 
-        <aside
-            class="fixed top-5 left-5 h-[calc(100%-40px)] transition-all duration-300 ease-in-out glass-panel border-r border-white/10 flex flex-col z-[101] pointer-events-auto rounded-2xl overflow-hidden isolate"
+        <aside v-ui-block
+            class="fixed top-5 left-5 h-[calc(100%-40px)] transition-all duration-300 ease-in-out glass-panel flex flex-col z-[101] pointer-events-auto rounded-2xl overflow-hidden isolate"
             :class="[
                 uiStore.isSidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full md:w-20 md:translate-x-0'
             ]" @mouseenter="uiStore.isSidebarHovered = true" @mouseleave="uiStore.isSidebarHovered = false"
@@ -99,7 +102,7 @@ onMounted(async () => {
                     @click.stop="() => {
                         const bp = useBreakpoints()
                         if (item.action) item.action();
-                        if (window.innerWidth < bp.md) uiStore.toggleSidebar();
+                        if (winWidth < bp.md) uiStore.toggleSidebar();
                     }"
                     class="group flex items-center p-3 rounded-lg transition-all duration-300 hover:bg-white/5 text-gray-400 hover:text-white relative overflow-hidden"
                     :class="uiStore.isSidebarOpen ? '' : 'justify-center'">

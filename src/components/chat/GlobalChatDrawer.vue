@@ -46,7 +46,8 @@ const formatTime = (date?: Date | string) => {
             </div>
         </Transition>
 
-        <div class="fixed top-0 right-0 h-full w-full md:w-96 bg-slate-900 border-l border-slate-700 shadow-2xl z-[201] transition-transform duration-300 ease-in-out flex flex-col pointer-events-auto"
+        <div v-ui-block
+            class="fixed top-0 right-0 h-full w-full md:w-96 bg-slate-900 border-l border-slate-700 shadow-2xl z-[201] transition-transform duration-300 ease-in-out flex flex-col pointer-events-auto"
             :class="store.isOpen ? 'translate-x-0' : 'translate-x-full'">
 
             <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">

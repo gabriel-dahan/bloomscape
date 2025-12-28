@@ -10,8 +10,6 @@ import { GameController } from '@/server/controllers/GameController';
 import FlowerImage from '@/components/FlowerImage.vue';
 
 const auth = useAuthStore();
-const flowerRepo = remult.repo(UserFlower);
-const itemRepo = remult.repo(UserItem);
 
 const activeTab = ref<'FLOWERS' | 'ITEMS'>('FLOWERS');
 const isLoading = ref(true);
@@ -371,7 +369,7 @@ watch(activeTab, () => {
                             <div class="flex justify-between text-xs mb-1">
                                 <span class="text-slate-400">Quality</span>
                                 <span class="text-emerald-400 font-mono">{{ Math.round(selectedObject.quality * 100)
-                                    }}%</span>
+                                }}%</span>
                             </div>
                             <progress class="progress progress-success w-full h-1.5"
                                 :value="selectedObject.quality * 100" max="100"></progress>
@@ -409,7 +407,7 @@ watch(activeTab, () => {
                         <h2 class="text-xl font-bold text-white mb-1">{{ selectedObject.definition?.name }}</h2>
                         <div class="flex gap-2 mb-3">
                             <span class="badge badge-neutral text-xs font-mono">{{ selectedObject.definition?.type
-                                }}</span>
+                            }}</span>
                             <span v-if="selectedObject.definition?.isTradable"
                                 class="badge badge-ghost text-xs">Tradable</span>
                         </div>

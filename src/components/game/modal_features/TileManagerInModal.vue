@@ -198,9 +198,6 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                                     <div class="text-[10px] text-slate-400 truncate">{{ seed.species?.rarity }}</div>
                                 </div>
                             </div>
-                            <div v-if="selectedSeedId === seed.id"
-                                class="absolute -top-1 -right-1 bg-primary text-black rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">
-                                L</div>
                         </button>
                     </div>
                 </div>
@@ -262,7 +259,8 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                                 <div class="space-y-3 p-3 bg-slate-800/30 rounded-lg border border-slate-700/30">
                                     <div class="space-y-1">
                                         <div class="flex justify-between text-xs font-bold text-slate-400">
-                                            <span>Growth</span><span>{{ growthProgress.toFixed(0) }}%</span>
+                                            <span>Growth</span><span>{{ growthProgress.toFixed(0) }}% ({{ growthProgress
+                                                }} game days remaining)</span>
                                         </div>
                                         <progress class="progress w-full h-2 bg-slate-900"
                                             :class="growthProgress >= 100 ? 'progress-primary' : 'progress-secondary'"

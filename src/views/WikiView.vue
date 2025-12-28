@@ -186,6 +186,8 @@ const getRarityColor = (rarity: string) => {
                             <li><strong>Prices</strong> are determined by the average of the last 24h of
                                 player-to-player trades.</li>
                         </ul>
+
+                        <p class="mt-4">Why is there a <strong>Market Tax</strong> when Flowers go onto the market ?</p>
                     </div>
                 </div>
             </div>

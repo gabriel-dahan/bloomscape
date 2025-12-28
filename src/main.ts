@@ -7,6 +7,7 @@ import { router } from './routes'
 
 import './assets/globals.css'
 import './assets/main.css'
+import { vUiBlock } from './directives/vUIBlock'
 
 const app = createApp(App)
 
@@ -16,5 +17,7 @@ app.use(GoogleSignInPlugin, {
 
 app.use(createPinia())
 app.use(router)
+
+app.directive('ui-block', vUiBlock)
 
 app.mount('#app')

@@ -55,6 +55,9 @@ export class User {
   @Fields.createdAt()
   createdAt?: Date
 
+  @Fields.date()
+  lastOnline: Date = new Date()
+
   @Fields.json()
   roles: Role[] = [Role.USER]
 

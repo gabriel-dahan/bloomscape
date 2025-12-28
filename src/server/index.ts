@@ -3,12 +3,13 @@ import session from 'cookie-session'
 import path from 'path'
 import fs from 'fs'
 import { remult } from 'remult'
-import { api } from './api'
+import { api, db } from './api'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
 
 import dotenv from 'dotenv'
 import { UserFlower, FlowerSpecies } from '@/shared'
+import { GameService } from './services/gameService'
 dotenv.config({
   path: './src/server/.env',
 })
@@ -81,4 +82,14 @@ app.get('/api', (_, res) => {
   res.json({ message: 'Hello from the server!' })
 })
 
-app.listen(3002, () => console.log('Server is running on port 3002'))
+app.listen(3002, () => {
+  console.log('Server is running on port 3002')
+
+  if (db) {
+    GameService.start(db)
+
+    console.log('\n---------------------')
+    console.log('Game service started')
+    console.log('---------------------\n')
+  }
+})

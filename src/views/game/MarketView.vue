@@ -4,5 +4,5 @@ import MarketInModal from '@/components/game/modal_features/MarketInModal.vue';
 </script>
 
 <template>
-    <MarketInModal></MarketInModal>
+    <MarketInModal class="w-screen"></MarketInModal>
 </template>

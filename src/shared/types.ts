@@ -13,6 +13,7 @@ export interface FlowerDTO {
   plantedAt?: Date
   isShiny: boolean
   species: {
+    id: string
     name: string
     slugName: string
     rarity: FlowerRarity
