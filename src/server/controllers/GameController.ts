@@ -134,13 +134,65 @@ export class GameController {
     let flowerDTO: FlowerDTO | null = null
 
     if (tile.flowerId) {
-      const flower = await flowerRepo.findId(tile.flowerId, { include: { species: true } })
+      let flower = await flowerRepo.findId(tile.flowerId, { include: { species: true } })
+
       if (flower) {
+        // Use the new reusable method to update growth status
+        flower = await GameController.updateFlowerStatus(flower)
         flowerDTO = GameController.toFlowerDTO(flower)
       }
     }
 
     return { tile, flower: flowerDTO }
+  }
+
+  /**
+   * Checks the elapsed time since planting and updates the flower's status
+   * (e.g., SPROUT -> GROWING -> MATURE) if necessary.
+   * This saves the flower to the database if a change occurs.
+   */
+  static async updateFlowerStatus(flower: UserFlower): Promise<UserFlower> {
+    // If it's already mature, withered, or a seed, no growth logic needed
+    if (
+      flower.status === FlowerStatus.SEED ||
+      flower.status === FlowerStatus.MATURE ||
+      flower.status === FlowerStatus.WITHERED
+    ) {
+      return flower
+    }
+
+    // Ensure we have necessary data
+    if (!flower.plantedAt || !flower.species) {
+      // In a real scenario, you might want to fetch the species here if it's missing
+      return flower
+    }
+
+    const now = new Date()
+    const elapsedSeconds = (now.getTime() - flower.plantedAt.getTime()) / 1000
+    const duration = flower.species.growthDuration
+
+    let newStatus = flower.status
+
+    if (elapsedSeconds >= duration) {
+      // Growth complete
+      newStatus = FlowerStatus.MATURE
+    } else {
+      // Intermediate stages (0-25%, 25-50%, 50-75%, 75-100%)
+      const progress = elapsedSeconds / duration
+
+      if (progress < 0.25) newStatus = FlowerStatus.SPROUT1
+      else if (progress < 0.5) newStatus = FlowerStatus.SPROUT2
+      else if (progress < 0.75) newStatus = FlowerStatus.GROWING1
+      else newStatus = FlowerStatus.GROWING2
+    }
+
+    // Only save if the status actually changed
+    if (newStatus !== flower.status) {
+      flower.status = newStatus
+      await remult.repo(UserFlower).save(flower)
+    }
+
+    return flower
   }
 
   @BackendMethod({ allowed: true })

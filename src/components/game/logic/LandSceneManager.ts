@@ -338,16 +338,23 @@ export class LandSceneManager {
         side: THREE.DoubleSide,
       })
       const mesh = new THREE.InstancedMesh(waterGeo, mat, 4000)
+
+      mesh.frustumCulled = false
       mesh.receiveShadow = true
       mesh.count = 0
       this.scene.add(mesh)
       this.waterMeshes[cat] = mesh
     })
 
-    // Raycast Plane (Invisible, for performance)
     const raycastGeo = new THREE.PlaneGeometry(WORLD_SIZE * tileSize * 2, WORLD_SIZE * tileSize * 2)
-    this.raycastPlane = new THREE.Mesh(raycastGeo, new THREE.MeshBasicMaterial({ visible: false }))
+    const raycastMat = new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide })
+
+    this.raycastPlane = new THREE.Mesh(raycastGeo, raycastMat)
+
+    // 1. Rotate to be flat
     this.raycastPlane.rotation.x = -Math.PI / 2
+    this.raycastPlane.position.y = 0.5
+
     this.scene.add(this.raycastPlane)
 
     // Grid
@@ -438,6 +445,8 @@ export class LandSceneManager {
       m.receiveShadow = true
       m.castShadow = true
       m.count = 0
+      m.frustumCulled = false
+
       this.scene.add(m)
     })
   }
@@ -604,6 +613,7 @@ export class LandSceneManager {
 
     tiles.forEach((tile) => {
       if (!tile.flower) return
+
       const key = `${tile.x},${tile.z}`
       visitedKeys.add(key)
 
@@ -612,6 +622,7 @@ export class LandSceneManager {
       const status = tile.flower.status
 
       if (existing) {
+        // OPTIMIZATION: Only reload texture if the flower changed (grew or different type)
         if (existing.currentSlug !== slug || existing.currentStatus !== status) {
           this.loadFlowerTextureWithFallback(slug, status, (tex) => {
             existing.mesh.material.map = tex
@@ -621,15 +632,33 @@ export class LandSceneManager {
           })
         }
       } else {
-        const sprite = new THREE.Sprite(
-          new THREE.SpriteMaterial({ transparent: true, depthWrite: false }),
-        )
+        // --- NEW FLOWER CREATION ---
+
+        // 1. Create Material
+        const material = new THREE.SpriteMaterial({
+          transparent: true,
+          depthWrite: false, // Prevents "cutout" artifacts
+          // Note: We do NOT set 'map' here yet, because we need to load it async
+        })
+
+        const sprite = new THREE.Sprite(material)
+
+        // 2. Position & Sort
         sprite.position.set(tile.x, 0.55, tile.z)
         sprite.scale.set(1.5, 1.5, 1.5)
         sprite.center.set(0.5, 0.0)
+
+        // FIX FROM BEFORE: Ensure it draws on top of water
+        sprite.renderOrder = 10
+
         this.scene.add(sprite)
 
-        this.flowerMeshes.set(key, { mesh: sprite, currentSlug: slug, currentStatus: status })
+        // 3. Register in Map
+        const entry = { mesh: sprite, currentSlug: slug, currentStatus: status }
+        this.flowerMeshes.set(key, entry)
+
+        // 4. IMPORTANT: Actually load the image!
+        // If this part is missing, the sprite stays a white square.
         this.loadFlowerTextureWithFallback(slug, status, (tex) => {
           sprite.material.map = tex
           sprite.material.needsUpdate = true
@@ -641,7 +670,8 @@ export class LandSceneManager {
     this.flowerMeshes.forEach((entry, key) => {
       if (!visitedKeys.has(key)) {
         this.scene.remove(entry.mesh)
-        entry.mesh.material.dispose()
+        entry.mesh.material.dispose() // Clean up memory
+        entry.mesh.material.map?.dispose() // Clean up texture memory
         this.flowerMeshes.delete(key)
       }
     })
@@ -664,6 +694,19 @@ export class LandSceneManager {
       this.loader.load(iconUrl, setProps, undefined, (e) =>
         console.warn(`Missing flower tex: ${slug}`, e),
       )
+    })
+  }
+
+  public isAdjacentToLand(x: number, z: number, existingTiles: TileData[]): boolean {
+    const { tileSize } = this.config
+    const neighbors = [
+      { dx: 0, dz: tileSize },
+      { dx: tileSize, dz: 0 },
+      { dx: 0, dz: -tileSize },
+      { dx: -tileSize, dz: 0 },
+    ]
+    return neighbors.some((offset) => {
+      return existingTiles.some((tile) => tile.x === x + offset.dx && tile.z === z + offset.dz)
     })
   }
 

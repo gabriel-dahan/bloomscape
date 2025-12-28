@@ -5,9 +5,11 @@ import {
   User,
   UserFlower,
   FlowerSpecies,
+  DiscoverySource,
 } from '@/shared'
 import { BackendMethod, remult } from 'remult'
 import { FlowerAvailability, FlowerRarity } from '@/shared/types'
+import { GameController } from './GameController'
 
 export class MarketController {
   @BackendMethod({ allowed: true })
@@ -46,6 +48,16 @@ export class MarketController {
       listing.flower.ownerId = buyer.id
       // Reset any specific status if needed
       await flowerRepo.save(listing.flower)
+
+      // NEW: Register Discovery for the buyer
+      if (listing.flower.speciesId) {
+        await GameController.registerDiscovery(
+          buyer.id,
+          listing.flower.speciesId,
+          listing.flower.quality,
+          DiscoverySource.MARKET,
+        )
+      }
     }
 
     // Record History

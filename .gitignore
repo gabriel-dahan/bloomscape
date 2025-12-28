@@ -43,3 +43,6 @@ __screenshots__/
 # Database & private
 *.sqlite
 src/private/**
+
+# Contextify
+./llm_contextify.md
