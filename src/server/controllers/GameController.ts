@@ -10,11 +10,13 @@ import {
   UserFlower,
   UserItem,
   FlowerDTO,
+  FlowerAttributes,
 } from '@/shared'
 import { BackendMethod, remult } from 'remult'
 import { PRICES } from '../ext'
 import { FlowerDiscovery } from '@/shared/analytics/FlowerDiscovery'
 import { getLevelFromXp } from '@/shared/leveling'
+import { AttributesLogic } from '@/shared/attributesLogic'
 
 export class GameController {
   @BackendMethod({ allowed: true })
@@ -25,9 +27,7 @@ export class GameController {
 
     const island = await islandRepo.findFirst({ ownerId })
 
-    if (!island) {
-      return null
-    }
+    if (!island) return null
 
     const tiles = await tileRepo.find({
       where: { islandId: island.id },
@@ -39,6 +39,10 @@ export class GameController {
       where: { id: { $in: flowerIds } },
       include: { species: true },
     })
+
+    for (const flower of flowers) {
+      await GameController.updateFlowerStatus(flower, flowers)
+    }
 
     const enrichedTiles = tiles.map((t) => {
       const flower = flowers.find((f) => f.id === t.flowerId)
@@ -59,14 +63,21 @@ export class GameController {
   }
 
   @BackendMethod({ allowed: true })
+  static async getMonthScore(islandId: string) {
+    const islandRepo = remult.repo(Island)
+    const island = await islandRepo.findId(islandId)
+
+    if (!island) throw new Error('Island not found')
+
+    return island.monthScore
+  }
+
+  @BackendMethod({ allowed: true })
   static async getRequiredXpForNextLevel() {
     if (!remult.user) throw new Error('Not authenticated')
-
     const XP_BASE = 500
     const XP_EXPONENT = 1.5
-
     const user = remult.user
-
     return Math.floor(XP_BASE * Math.pow(user.level, XP_EXPONENT))
   }
 
@@ -74,7 +85,6 @@ export class GameController {
   static async addXpToUser(userId: string, amount: number): Promise<any> {
     const userRepo = remult.repo(User)
     const user = await userRepo.findId(userId)
-
     if (!user) return false
 
     user.xp += amount
@@ -84,9 +94,7 @@ export class GameController {
 
     if (newLevel > oldLevel) {
       user.level = newLevel
-
       const { notifyUser } = await import('../socket')
-
       const levelsGained = newLevel - oldLevel
       const message =
         levelsGained > 1
@@ -101,7 +109,6 @@ export class GameController {
     }
 
     await userRepo.save(user)
-
     return {
       message: `Successfuly gave ${amount} XP to user ${user.tag}`,
       val: newLevel > oldLevel,
@@ -146,7 +153,6 @@ export class GameController {
 
     const floradexData = allSpecies.map((s) => {
       const discovery = myDiscoveries.find((d) => d.speciesId === s.id)
-
       return {
         ...s,
         discovered: !!discovery,
@@ -167,8 +173,6 @@ export class GameController {
     return `/api/images/flowers/${flowerSlugName}/${status.toLowerCase()}/${type.toLowerCase()}`
   }
 
-  // --- NEW MODAL ACTIONS (DTO BASED) ---
-
   @BackendMethod({ allowed: true })
   static async getTileData(x: number, z: number, islandId: string) {
     if (!remult.user) throw new Error('Not authenticated')
@@ -185,15 +189,23 @@ export class GameController {
       let flower = await flowerRepo.findId(tile.flowerId, { include: { species: true } })
 
       if (flower) {
-        flower = await GameController.updateFlowerStatus(flower)
-        flowerDTO = GameController.toFlowerDTO(flower)
+        // Fetch context for accurate stats
+        const allFlowers = await flowerRepo.find({ where: { ownerId: flower.ownerId } })
+
+        flower = await GameController.updateFlowerStatus(flower, allFlowers)
+
+        const activeStats = AttributesLogic.calculateStats(flower, allFlowers)
+        flowerDTO = GameController.toFlowerDTO(flower, activeStats)
       }
     }
 
     return { tile, flower: flowerDTO }
   }
 
-  static async updateFlowerStatus(flower: UserFlower): Promise<UserFlower> {
+  static async updateFlowerStatus(
+    flower: UserFlower,
+    contextFlowers?: UserFlower[],
+  ): Promise<UserFlower> {
     if (
       flower.status === FlowerStatus.SEED ||
       flower.status === FlowerStatus.MATURE ||
@@ -206,16 +218,32 @@ export class GameController {
       return flower
     }
 
+    // Context Loading
+    let allFlowers = contextFlowers
+    if (!allFlowers) {
+      allFlowers = await remult.repo(UserFlower).find({ where: { ownerId: flower.ownerId } })
+    }
+
+    const stats = AttributesLogic.calculateStats(flower, allFlowers)
+
+    // LOG: Growth Speed Effect
+    if (stats.growthSpeedMultiplier !== 1) {
+      console.log(
+        `[Attribute Effect] Flower ${flower.species.name} Growth Duration: Default ${flower.species.growthDuration}s -> Modified ${Math.floor(flower.species.growthDuration / stats.growthSpeedMultiplier)}s`,
+      )
+    }
+
     const now = new Date()
     const elapsedSeconds = (now.getTime() - flower.plantedAt.getTime()) / 1000
-    const duration = flower.species.growthDuration
+
+    // Apply Growth Speed Multiplier
+    const duration = flower.species.growthDuration / stats.growthSpeedMultiplier
 
     let newStatus: FlowerStatus = flower.status
 
     if (elapsedSeconds >= duration) {
       newStatus = FlowerStatus.MATURE
     } else {
-      // Intermediate stages (0-25%, 25-50%, 50-75%, 75-100%)
       const progress = elapsedSeconds / duration
 
       if (progress < 0.25) newStatus = FlowerStatus.SPROUT1
@@ -267,7 +295,7 @@ export class GameController {
     flower.status = FlowerStatus.SPROUT1
     flower.plantedAt = new Date()
     flower.waterLevel = 50
-    // Optional: set grid position if you use it for other logic
+
     flower.gridX = tile.x
     flower.gridY = tile.z
 
@@ -291,10 +319,24 @@ export class GameController {
     if (!tile || tile.island.ownerId !== remult.user.id) throw new Error('Invalid tile')
     if (!tile.flowerId) throw new Error('Nothing to water here')
 
-    const flower = await flowerRepo.findId(tile.flowerId)
+    const flower = await flowerRepo.findId(tile.flowerId, { include: { species: true } })
     if (!flower) throw new Error('Flower data missing')
 
-    const newLevel = Math.min(100, (flower.waterLevel || 0) + 25)
+    const allFlowers = await flowerRepo.find({ where: { ownerId: remult.user.id } })
+    const stats = AttributesLogic.calculateStats(flower, allFlowers)
+
+    const baseWaterAdd = 25
+    // Apply Water Retention as efficiency multiplier
+    const modifiedWaterAdd = baseWaterAdd * stats.waterRetention
+
+    // LOG: Water Effect
+    if (stats.waterRetention !== 1) {
+      console.log(
+        `[Attribute Effect] Watering ${flower.species!.name}: Default +${baseWaterAdd} -> Modified +${modifiedWaterAdd}`,
+      )
+    }
+
+    const newLevel = Math.min(100, (flower.waterLevel || 0) + modifiedWaterAdd)
 
     flower.waterLevel = newLevel
     flower.lastWateredAt = new Date()
@@ -303,7 +345,84 @@ export class GameController {
     return { level: newLevel }
   }
 
-  // --- WRITE ACTIONS ---
+  @BackendMethod({ allowed: true })
+  static async harvestFlower(tileId: string) {
+    if (!remult.user) throw new Error('Not authenticated')
+
+    const tileRepo = remult.repo(Tile)
+    const flowerRepo = remult.repo(UserFlower)
+
+    const tile = await tileRepo.findFirst({ id: tileId }, { include: { island: true } })
+    if (!tile || tile.island.ownerId !== remult.user.id) throw new Error('Invalid tile')
+    if (!tile.flowerId) throw new Error('Nothing to harvest')
+
+    const flower = await flowerRepo.findId(tile.flowerId, { include: { species: true } })
+    if (!flower) throw new Error('Flower data missing')
+    if (flower.status !== FlowerStatus.MATURE) throw new Error('Flower is not ready for harvest')
+
+    const allFlowers = await flowerRepo.find({ where: { ownerId: remult.user.id } })
+
+    const stats = AttributesLogic.calculateStats(flower, allFlowers)
+    const globalEffects = AttributesLogic.getPlayerGlobalEffects(allFlowers)
+
+    const attrs = flower.species!.attributes as FlowerAttributes
+
+    let finalXp = attrs.baseXpReward
+    finalXp *= stats.xpMultiplier
+    finalXp *= globalEffects.GLOBAL_XP_MULTIPLIER
+    finalXp = Math.floor(finalXp)
+
+    if (finalXp !== attrs.baseXpReward) {
+      console.log(
+        `[Attribute Effect] Harvest XP: Base ${attrs.baseXpReward} -> Modified ${finalXp}`,
+      )
+    }
+
+    let finalScore = attrs.baseScoreReward
+    finalScore += stats.scoreBonus
+
+    if (finalScore !== attrs.baseScoreReward) {
+      console.log(
+        `[Attribute Effect] Harvest Score: Base ${attrs.baseScoreReward} -> Modified ${finalScore}`,
+      )
+    }
+
+    let harvestedQuality = Math.floor(Math.random() * 100)
+    harvestedQuality += stats.qualityBonus
+
+    if (stats.qualityBonus !== 0) {
+      console.log(
+        `[Attribute Effect] Harvest Quality: Base Roll -> +${stats.qualityBonus} Bonus Applied`,
+      )
+    }
+
+    await GameController.addXpToUser(remult.user.id, finalXp)
+
+    const userRepo = remult.repo(User)
+    const user = await userRepo.findId(remult.user.id)
+    if (user) {
+      user.score += finalScore
+      await userRepo.save(user)
+    }
+
+    flower.status = FlowerStatus.SEED
+    flower.gridX = undefined
+    flower.gridY = undefined
+    flower.plantedAt = undefined
+    flower.waterLevel = 100
+    flower.quality = harvestedQuality
+
+    await flowerRepo.save(flower)
+
+    // Free the tile
+    tile.flowerId = ''
+    await tileRepo.save(tile)
+
+    return {
+      success: true,
+      rewards: { xp: finalXp, score: finalScore, quality: harvestedQuality },
+    }
+  }
 
   @BackendMethod({ allowed: true })
   static async startAdventure() {
@@ -333,7 +452,6 @@ export class GameController {
       }
     }
 
-    // Insert loop
     for (const t of initialTiles) {
       await tileRepo.insert(t as any)
     }
@@ -348,6 +466,7 @@ export class GameController {
 
     const tileRepo = remult.repo(Tile)
     const islandRepo = remult.repo(Island)
+    const flowerRepo = remult.repo(UserFlower)
 
     const island = await islandRepo.findFirst({ ownerId: currentUser.id })
     if (!island) throw new Error('Island not found')
@@ -367,7 +486,20 @@ export class GameController {
     })
     if (existing) throw new Error('This land is already owned.')
 
-    await GameController.removeSap(PRICES.LAND_PLOT)
+    // Logic: Price Discount
+    const userFlowers = await flowerRepo.find({ where: { ownerId: currentUser.id } })
+    const globalEffects = AttributesLogic.getPlayerGlobalEffects(userFlowers)
+
+    let finalPrice = PRICES.LAND_PLOT
+    if (globalEffects.SHOP_PRICE_DISCOUNT > 0) {
+      const discountAmount = Math.floor(PRICES.LAND_PLOT * globalEffects.SHOP_PRICE_DISCOUNT)
+      finalPrice -= discountAmount
+      console.log(
+        `[Attribute Effect] Buy Land: Price ${PRICES.LAND_PLOT} -> Discounted ${finalPrice} (-${discountAmount})`,
+      )
+    }
+
+    await GameController.removeSap(finalPrice)
 
     return await tileRepo.insert({
       islandId: island.id,
@@ -400,9 +532,7 @@ export class GameController {
     }))
   }
 
-  // --- INTERNAL HELPERS ---
-
-  private static toFlowerDTO(flower: UserFlower): FlowerDTO {
+  private static toFlowerDTO(flower: UserFlower, activeStats?: any): FlowerDTO {
     const species = flower.species!
 
     return {
@@ -412,6 +542,7 @@ export class GameController {
       quality: flower.quality,
       plantedAt: flower.plantedAt,
       isShiny: flower.isShiny,
+      activeModifiers: activeStats || null,
       species: {
         id: species.id,
         name: species.name,
@@ -422,6 +553,8 @@ export class GameController {
         waterNeeds: species.waterNeeds,
         growthDuration: species.growthDuration,
         preferredSeason: species.preferredSeason,
+
+        attributes: species.attributes as FlowerAttributes,
       },
     }
   }
@@ -450,11 +583,7 @@ export class GameController {
     source: DiscoverySource,
   ) {
     const discRepo = remult.repo(FlowerDiscovery)
-
-    const existing = await discRepo.findFirst({
-      userId,
-      speciesId,
-    })
+    const existing = await discRepo.findFirst({ userId, speciesId })
 
     if (!existing) {
       await discRepo.insert({
@@ -466,7 +595,6 @@ export class GameController {
       })
       return true
     }
-
     return false
   }
 }

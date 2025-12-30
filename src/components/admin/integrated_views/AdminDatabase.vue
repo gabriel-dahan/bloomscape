@@ -28,22 +28,17 @@ const items = ref<any[]>([])
 const loading = ref(false)
 const error = ref('')
 
-// Pagination State
 const page = ref(1)
 const pageSize = 100
 const totalCount = ref(0)
 
-// Modal State
 const showModal = ref(false)
 const isEditing = ref(false)
 const editingItem = ref<any>({})
+const jsonBuffers = ref<Record<string, string>>({})
 
-// --- 4. COMPUTED HELPERS ---
 const currentConfig = computed(() => ENTITY_MAP.find(e => e.key === activeEntityKey.value)!)
-
-// Generic Repo Access
 const currentRepo = computed((): Repository<any> => remult.repo(currentConfig.value.entity))
-
 const totalPages = computed(() => Math.ceil(totalCount.value / pageSize))
 
 const displayFields = computed(() => {
@@ -58,14 +53,11 @@ const formFields = computed(() => {
     )
 })
 
-// --- 5. ACTIONS ---
-
 async function loadData() {
     loading.value = true
     error.value = ''
     try {
         totalCount.value = await currentRepo.value.count()
-
         items.value = await currentRepo.value.find({
             limit: pageSize,
             page: page.value
@@ -85,23 +77,50 @@ function changePage(delta: number) {
     }
 }
 
-// Open Create Modal
+function initJsonBuffers(item: any) {
+    jsonBuffers.value = {}
+    formFields.value.forEach(field => {
+        if (getInputType(field) === 'json') {
+            const val = item[field.key]
+
+            if (val === undefined || val === null) {
+                jsonBuffers.value[field.key] = '{}'
+            } else if (typeof val === 'object') {
+                jsonBuffers.value[field.key] = JSON.stringify(val, null, 4)
+            } else {
+                jsonBuffers.value[field.key] = String(val)
+            }
+        }
+    })
+}
+
 function openCreate() {
     isEditing.value = false
     editingItem.value = {}
+    initJsonBuffers({})
     showModal.value = true
 }
 
-// Open Edit Modal
 function openEdit(item: any) {
     isEditing.value = true
     editingItem.value = { ...item }
+    initJsonBuffers(item)
     showModal.value = true
 }
 
-// Save (Create or Update)
 async function saveItem() {
     try {
+        for (const field of formFields.value) {
+            if (getInputType(field) === 'json') {
+                const buffer = jsonBuffers.value[field.key]
+                try {
+                    editingItem.value[field.key] = JSON.parse(buffer || '{}')
+                } catch (e) {
+                    throw new Error(`Invalid JSON in field '${field.key}'`)
+                }
+            }
+        }
+
         if (isEditing.value) {
             await currentRepo.value.save(editingItem.value)
         } else {
@@ -114,10 +133,8 @@ async function saveItem() {
     }
 }
 
-// Delete
 async function deleteItem(item: any) {
-    if (!confirm(`Are you sure you want to delete this ${currentConfig.value.label}?`)) return
-
+    if (!confirm(`Delete this ${currentConfig.value.label}?`)) return
     try {
         await currentRepo.value.delete(item)
         await loadData()
@@ -126,11 +143,11 @@ async function deleteItem(item: any) {
     }
 }
 
-// Helpers for Inputs
 function getInputType(field: FieldMetadata) {
     if (field.valueType === Boolean) return 'checkbox'
     if (field.valueType === Number) return 'number'
     if (field.key.toLowerCase().includes('date') || field.valueType === Date) return 'datetime-local'
+    if (field.valueType === Object || field.valueType === Array || field.key === 'attributes') return 'json'
     return 'text'
 }
 
@@ -142,7 +159,6 @@ function formatDateForInput(date: any) {
     return (new Date(d.getTime() - offset)).toISOString().slice(0, 16)
 }
 
-// Reset page when tab changes
 watch(activeEntityKey, () => {
     page.value = 1
     loadData()
@@ -169,7 +185,6 @@ onMounted(() => {
             class="flex justify-between items-center bg-slate-900 p-4 rounded-t-xl border border-slate-800 border-b-0 shrink-0">
             <div>
                 <h3 class="font-bold text-white text-lg">{{ currentConfig.label }} Database</h3>
-                <p class="text-xs text-slate-500">Manage raw data records directly.</p>
             </div>
             <div class="flex gap-2">
                 <button @click="loadData" class="btn btn-sm btn-ghost text-slate-400">Refresh</button>
@@ -195,11 +210,6 @@ onMounted(() => {
 
                 <div v-else-if="items.length === 0 && !loading"
                     class="h-full flex flex-col items-center justify-center text-slate-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                        stroke="currentColor" class="w-12 h-12 mb-2 opacity-20">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3.75h3M12 15.75h3M12 12h3m-3 3.75h-3m-3-3.75H9m0 3.75H9m-3-3.75H5.25m3.75 0h-3m3 3.75h-3" />
-                    </svg>
                     <p>No data currently available.</p>
                 </div>
 
@@ -229,6 +239,10 @@ onMounted(() => {
                                     class="text-slate-500 font-mono text-xs">
                                     {{ item[field.key] ? new Date(item[field.key]).toLocaleString() : '-' }}
                                 </span>
+                                <span v-else-if="getInputType(field) === 'json'"
+                                    class="text-amber-500 font-mono text-xs">
+                                    {{ item[field.key] ? '{ JSON }' : '-' }}
+                                </span>
                                 <span v-else>
                                     {{ item[field.key] }}
                                 </span>
@@ -241,17 +255,12 @@ onMounted(() => {
             <div
                 class="p-2 border-t border-slate-800 text-xs text-slate-400 bg-slate-950 flex justify-between items-center shrink-0">
                 <span>Total Records: <span class="text-white">{{ totalCount }}</span></span>
-
                 <div class="flex items-center gap-2">
                     <button @click="changePage(-1)" :disabled="page === 1"
-                        class="btn btn-xs btn-ghost disabled:bg-transparent disabled:text-slate-700">
-                        « Prev
-                    </button>
+                        class="btn btn-xs btn-ghost disabled:bg-transparent disabled:text-slate-700">« Prev</button>
                     <span class="font-mono">Page {{ page }} / {{ totalPages || 1 }}</span>
                     <button @click="changePage(1)" :disabled="page >= totalPages"
-                        class="btn btn-xs btn-ghost disabled:bg-transparent disabled:text-slate-700">
-                        Next »
-                    </button>
+                        class="btn btn-xs btn-ghost disabled:bg-transparent disabled:text-slate-700">Next »</button>
                 </div>
             </div>
         </div>
@@ -264,7 +273,8 @@ onMounted(() => {
                 </h3>
 
                 <form @submit.prevent="saveItem" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div v-for="field in formFields" :key="field.key" class="form-control">
+                    <div v-for="field in formFields" :key="field.key" class="form-control"
+                        :class="getInputType(field) === 'json' ? 'col-span-full' : ''">
                         <label class="label py-1">
                             <span class="label-text text-slate-400 text-xs uppercase font-bold">{{ field.caption ||
                                 field.key }}</span>
@@ -278,6 +288,10 @@ onMounted(() => {
                             :value="formatDateForInput(editingItem[field.key])"
                             @input="e => editingItem[field.key] = new Date((e.target as HTMLInputElement).value)"
                             class="input input-sm input-bordered bg-slate-950 border-slate-700 text-slate-200" />
+
+                        <textarea v-else-if="getInputType(field) === 'json'" v-model="jsonBuffers[field.key]"
+                            class="textarea textarea-bordered bg-slate-950 border-slate-700 font-mono text-xs text-amber-200 h-64 leading-normal w-full resize-y"
+                            placeholder="{}" spellcheck="false"></textarea>
 
                         <input v-else :type="getInputType(field)" v-model="editingItem[field.key]"
                             class="input input-sm input-bordered bg-slate-900 border-slate-700 text-slate-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"

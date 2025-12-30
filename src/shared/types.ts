@@ -5,6 +5,14 @@ export const Role = {
 
 export type Role = (typeof Role)[keyof typeof Role]
 
+export interface FlowerModifiersDTO {
+  growthSpeedMultiplier: number
+  xpMultiplier: number
+  waterRetention: number
+  qualityBonus: number
+  scoreBonus: number
+}
+
 export interface FlowerDTO {
   id: string
   status: FlowerStatus
@@ -12,6 +20,8 @@ export interface FlowerDTO {
   quality: number
   plantedAt?: Date
   isShiny: boolean
+  activeModifiers?: FlowerModifiersDTO | null
+
   species: {
     id: string
     name: string
@@ -19,9 +29,11 @@ export interface FlowerDTO {
     rarity: FlowerRarity
     description?: string
     description_lore?: string
-    waterNeeds: FlowerWaterConsumption
+    waterNeeds: string
     growthDuration: number
-    preferredSeason: PreferredSeasons
+    preferredSeason: string
+
+    attributes: FlowerAttributes
   }
 }
 
@@ -126,3 +138,63 @@ export const DiscoverySource = {
 } as const
 
 export type DiscoverySource = (typeof DiscoverySource)[keyof typeof DiscoverySource]
+
+// FLOWER ATTRIBUTES TYPES
+
+export type GridModifierType =
+  | 'XP_FLAT'
+  | 'XP_PERCENT'
+  | 'SCORE_FLAT'
+  | 'GROWTH_SPEED'
+  | 'WATER_RETENTION'
+  | 'QUALITY_CHANCE'
+  | 'MUTATION_CHANCE'
+
+export type GlobalPlayerModifierType =
+  | 'GLOBAL_XP_MULTIPLIER'
+  | 'SHOP_PRICE_DISCOUNT'
+  | 'MARKET_SELLING_BONUS'
+  | 'ENERGY_REGEN_RATE'
+  | 'RARE_FIND_LUCK'
+
+export interface FlowerSynergy {
+  targetSlug: string
+  modifiers: {
+    stat: GridModifierType
+    value: number
+  }[]
+}
+
+export interface FlowerAura {
+  range: number
+  effect: {
+    stat: GridModifierType
+    value: number
+  }
+}
+
+export interface PlayerGlobalEffect {
+  stat: GlobalPlayerModifierType
+  value: number
+  condition: 'WHILE_PLANTED' | 'WHILE_MATURE' | 'PERMANENT_UNLOCK'
+}
+
+export interface EnvironmentalTraits {
+  nightBloomer?: boolean
+  rainLover?: boolean
+}
+
+export interface FlowerAttributes {
+  baseXpReward: number
+  baseScoreReward: number
+
+  synergies?: FlowerSynergy[]
+  aura?: FlowerAura
+  playerEffects?: PlayerGlobalEffect[]
+  environment?: EnvironmentalTraits
+
+  mutationPotential?: {
+    canMutate: boolean
+    tier: number
+  }
+}

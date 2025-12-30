@@ -12,7 +12,9 @@ export class Island {
   @Fields.string()
   name: string = 'New Island'
 
-  // Relation Back-Reference
+  @Fields.number()
+  monthScore: number = 0
+
   @Relations.toMany(() => Tile, { field: 'islandId' })
   tiles?: Tile[]
 

@@ -4,6 +4,7 @@ import {
   FlowerRarity,
   FlowerWaterConsumption,
   PreferredSeasons,
+  FlowerAttributes,
 } from '../types'
 
 @Entity('flower_species', { allowApiCrud: 'admin' })
@@ -24,20 +25,23 @@ export class FlowerSpecies {
   preferredSeason: PreferredSeasons = PreferredSeasons.NO
 
   @Fields.string()
-  description_lore: string = '' // a more poetic description
+  description_lore: string = ''
 
-  @Fields.string() // Enum
+  @Fields.string()
   rarity: FlowerRarity = FlowerRarity.COMMON
 
-  @Fields.string() // Enum
+  @Fields.string()
   availability: FlowerAvailability = FlowerAvailability.WILD
 
   @Fields.json()
-  attributes = {}
+  attributes: FlowerAttributes = {
+    baseXpReward: 10,
+    baseScoreReward: 5,
+  }
 
   @Fields.integer()
-  growthDuration: number = 60 * 60 // In seconds (default 1h)
+  growthDuration: number = 3600
 
-  @Fields.string() // Enum
+  @Fields.string()
   waterNeeds: FlowerWaterConsumption = FlowerWaterConsumption.NORMAL
 }

@@ -10,6 +10,7 @@ import { UserController } from '@/server/controllers/UserController';
 import { useModalStore } from '@/stores/modal';
 import TileManagerInModal from '@/components/game/modal_features/TileManagerInModal.vue';
 import { ROUTES_ENUM as ROUTES } from '@/routes/routes_enum';
+import IslandScore from '@/components/game/IslandScore.vue';
 
 const gameStore = useGameStore();
 const auth = useAuthStore();
@@ -41,6 +42,8 @@ const activeTile = computed(() => gameStore.selectedTile || gameStore.hoveredTil
         <div class="absolute inset-0 z-10 pointer-events-none">
             <SideBar />
             <TopBar :user-tag="route.params.tag || auth.user?.tag || ''" />
+
+            <IslandScore />
 
             <transition name="slide-up">
                 <div v-if="activeTile"

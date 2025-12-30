@@ -27,12 +27,6 @@ const auth = useAuthStore();
 const isCurrentUser = computed(() => auth.user?.id === props.userId);
 const hasIsland = computed(() => !!currentIsland.value);
 
-const formattedTime = computed(() => {
-    const h = timeStore.now.hour.toString().padStart(2, '0');
-    const m = timeStore.now.minute.toString().padStart(2, '0');
-    return `${h}:${m}`;
-});
-
 const initData = async () => {
     if (!props.userId) return;
 

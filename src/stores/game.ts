@@ -84,6 +84,18 @@ export const useGameStore = defineStore('game', () => {
     }
   }
 
+  async function getMonthScore() {
+    if (!currentIsland.value) return 0
+
+    try {
+      const score = await GameController.getMonthScore(currentIsland.value.id)
+      return score
+    } catch (e) {
+      console.error(e)
+      return 0
+    }
+  }
+
   async function fetchBalance() {
     if (!remult.user) return
     try {
@@ -132,8 +144,8 @@ export const useGameStore = defineStore('game', () => {
     selectedEntity,
     playerBalance,
     isLoading,
-    xpProgress, // Exported as before, but now context-aware
-    setXPContext, // Export new action
+    xpProgress,
+    setXPContext,
     fetchIslandData,
     fetchBalance,
     startAdventure,
@@ -141,5 +153,6 @@ export const useGameStore = defineStore('game', () => {
     getTileAt,
     setHoveredTile,
     selectTile,
+    getMonthScore,
   }
 })
