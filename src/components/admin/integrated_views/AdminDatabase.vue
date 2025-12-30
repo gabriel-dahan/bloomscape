@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { remult, type Repository, type FieldMetadata, type ClassType } from 'remult'
 
 import { Achievement, ClaimLink, FlowerSpecies, Island, Item, SapPurchase, Tile, User } from '@/shared'
+import { StoreItem } from '@/shared/economy/StoreItem'
 
 type EntityConfig = {
     label: string
@@ -19,6 +20,7 @@ const ENTITY_MAP: EntityConfig[] = [
     { label: 'Tiles', key: 'tiles', entity: Tile },
     { label: 'Sap Purchases', key: 'sap', entity: SapPurchase },
     { label: 'Claim Links', key: 'claimlinks', entity: ClaimLink },
+    { label: 'Store Items', key: 'storeitems', entity: StoreItem },
 ]
 
 const activeEntityKey = ref(ENTITY_MAP[0].key)
@@ -62,10 +64,8 @@ async function loadData() {
     loading.value = true
     error.value = ''
     try {
-        // 1. Get total count for pagination UI
         totalCount.value = await currentRepo.value.count()
 
-        // 2. Get paginated data
         items.value = await currentRepo.value.find({
             limit: pageSize,
             page: page.value

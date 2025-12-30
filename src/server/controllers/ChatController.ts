@@ -16,7 +16,6 @@ export class ChatController {
 
     let chatId = payload.chatId
 
-    // 1. Find or Create Chat
     if (!chatId && payload.targetUserId) {
       const myParts = await partRepo.find({ where: { userId: remult.user.id } })
       const theirParts = await partRepo.find({ where: { userId: payload.targetUserId } })
@@ -47,11 +46,9 @@ export class ChatController {
 
     if (!chatId) throw new Error('Chat not found')
 
-    // 2. Check Access
     const myPart = await partRepo.findFirst({ chatId, userId: remult.user.id })
     if (!myPart) throw new Error('Access denied')
 
-    // 3. Save Message
     const rawMessage = await msgRepo.insert({
       chatId,
       senderId: remult.user.id,
@@ -59,7 +56,6 @@ export class ChatController {
       createdAt: new Date(),
     })
 
-    // 4. Update Chat Metadata
     const chat = await chatRepo.findId(chatId)
     if (chat) {
       chat.lastMessageAt = new Date()
@@ -67,27 +63,33 @@ export class ChatController {
       await chatRepo.save(chat)
     }
 
-    // 5. Update Read Status
     myPart.lastReadAt = new Date()
     await partRepo.save(myPart)
 
-    // 6. Real-Time: Fetch FULL message with Sender details
-    // We do this server-side so the client receives the avatar/name without querying API
     const fullMessage = await msgRepo.findFirst(
       { id: rawMessage.id },
       { include: { sender: true } },
     )
 
-    // 7. Publish to Chat Channel (for active chat windows)
     const chatChannel = new SubscriptionChannel(`chat:${chatId}`)
     await chatChannel.publish(fullMessage!)
 
-    // 8. Publish to User Channels (for inbox refresh)
     const participants = await partRepo.find({ where: { chatId } })
+
+    // DYNAMIC IMPORT to avoid loading socket.io on the client
+    const { notifyUser } = await import('../socket')
+
     for (const p of participants) {
-      // Send a signal to refresh inbox
       const userChannel = new SubscriptionChannel(`user:${p.userId}`)
       await userChannel.publish({ type: 'INBOX_UPDATE' })
+
+      if (p.userId !== remult.user.id) {
+        notifyUser(p.userId, 'notification', {
+          title: `Message from ${remult.user.tag}`,
+          message: payload.content.substring(0, 60) + (payload.content.length > 60 ? '...' : ''),
+          type: 'info',
+        })
+      }
     }
 
     return fullMessage!
@@ -97,13 +99,11 @@ export class ChatController {
   static async getMessages(chatId: string) {
     if (!remult.user) throw new Error('Not authenticated')
 
-    // Manual Security Check
     const isParticipant = await remult
       .repo(ChatParticipant)
       .count({ chatId, userId: remult.user.id })
     if (!isParticipant) throw new Error('Access denied')
 
-    // Fetch messages (allowed because we are in BackendMethod)
     return await remult.repo(ChatMessage).find({
       where: { chatId },
       include: { sender: true },
@@ -160,7 +160,6 @@ export class ChatController {
       part.lastReadAt = new Date()
       await partRepo.save(part)
 
-      // Notify myself to update badges locally
       const userChannel = new SubscriptionChannel(`user:${remult.user.id}`)
       await userChannel.publish({ type: 'INBOX_UPDATE' })
     }

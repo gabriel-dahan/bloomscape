@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { ROUTES_ENUM as routes } from '@/routes/routes_enum'
-import ThemeSwitcher from './buttons/ThemeSwitcher.vue'
 import DiscordIcon from './icons/DiscordIcon.vue'
 import InstagramIcon from './icons/InstagramIcon.vue'
 
-const appTitle = import.meta.env.VITE_APP
 const appVersion = import.meta.env.VITE_APP_VERSION
 
 const instagramAccountURL = 'https://instagram.com/comx.app/'
@@ -15,11 +13,8 @@ const discordServerURL = 'https://discord.gg/4sJyaynWdW'
     <footer class="footer sm:footer-horizontal p-10 bg-slate-950 text-slate-400 border-t border-slate-800">
         <aside>
             <div class="flex items-center gap-2 mb-1">
-                <div
-                    class="w-6 h-6 bg-emerald-500 rounded flex items-center justify-center text-slate-900 text-xs font-bold shadow-lg shadow-emerald-500/20">
-                    B
-                </div>
-                <span class="text-xl font-bold text-white tracking-tight">{{ appTitle }}</span>
+                <img src="/bloomscape_logo.png" width="30">
+                <img src="/bloomscape_text.png" width="100">
             </div>
 
             <div class="flex items-center gap-2 mt-1">

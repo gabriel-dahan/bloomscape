@@ -43,16 +43,11 @@ export const useChatStore = defineStore('chat', () => {
   async function init() {
     if (!auth.user) return
 
-    // 1. Initial Load
     await fetchInbox()
 
-    // 2. Subscribe to "User Channel" (Inbox updates)
     if (unsubscribeInbox) unsubscribeInbox()
 
-    // Note: SubscriptionChannel is instantiated, then we call subscribe
     const userChannel = new SubscriptionChannel(`user:${auth.user.id}`)
-
-    // The promise returns the unsubscribe function
     unsubscribeInbox = await userChannel.subscribe((msg: any) => {
       if (msg && msg.type === 'INBOX_UPDATE') {
         fetchInbox()
@@ -90,14 +85,11 @@ export const useChatStore = defineStore('chat', () => {
       console.error(e)
     }
 
-    // Subscribe to specific Chat Channel
     const chatChannel = new SubscriptionChannel(`chat:${chatId}`)
     unsubscribeChatChannel = await chatChannel.subscribe((newMessage: ChatMessage) => {
-      // Add message if not present
       if (!currentMessages.value.some((m) => m.id === newMessage.id)) {
         currentMessages.value.push(newMessage)
-        // Mark read if window is focused/open
-        if (activeChatId.value === chatId) {
+        if (activeChatId.value === chatId && isOpen.value) {
           ChatController.markAsRead(chatId)
         }
       }
@@ -134,7 +126,6 @@ export const useChatStore = defineStore('chat', () => {
         chatId: activeChatId.value,
         content: text,
       })
-      // Optimistic update
       currentMessages.value.push(msg)
     } catch (e) {
       console.error('Failed to send', e)

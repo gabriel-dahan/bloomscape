@@ -39,6 +39,8 @@ import { ChatController } from './controllers/ChatController'
 import { Chat } from '@/shared/chat/Chat'
 import { ChatMessage } from '@/shared/chat/ChatMessage'
 import { ChatParticipant } from '@/shared/chat/ChatParticipant'
+import { PaymentController } from './controllers/PaymentController'
+import { StoreItem } from '@/shared/economy/StoreItem'
 
 dotenv.config({
   path: './src/server/.env',
@@ -71,6 +73,7 @@ export const api = remultApi({
     SapPurchase,
     MarketStats,
     Item,
+    StoreItem,
 
     Friendship,
     ClaimLink,
@@ -91,6 +94,7 @@ export const api = remultApi({
     MarketController,
     ReportController,
     ChatController,
+    PaymentController,
   ],
   getUser: (req) => req.session!.user,
   admin: true, // UI Interface for admins

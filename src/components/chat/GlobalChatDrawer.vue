@@ -1,40 +1,46 @@
 <script setup lang="ts">
-import { ref, nextTick, watch, onMounted } from 'vue';
-import { useChatStore } from '@/stores/chat';
-import { useAuthStore } from '@/stores/auth';
+import { ref, nextTick, watch, onMounted } from 'vue'
+import { useChatStore } from '@/stores/chat'
+import { useAuthStore } from '@/stores/auth'
 
-const store = useChatStore();
-const auth = useAuthStore();
-const messageInput = ref('');
-const scrollContainer = ref<HTMLElement | null>(null);
+const store = useChatStore()
+const auth = useAuthStore()
+const messageInput = ref('')
+const scrollContainer = ref<HTMLElement | null>(null)
 
 onMounted(() => {
-    if (auth.user) store.init();
-});
+    if (auth.user) store.init()
+})
 
-watch(() => store.currentMessages.length, async () => {
-    await nextTick();
-    if (scrollContainer.value) {
-        scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight;
-    }
-});
+watch(
+    () => store.currentMessages.length,
+    async () => {
+        await nextTick()
+        if (scrollContainer.value) {
+            scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight
+        }
+    },
+)
 
-watch(() => store.searchQuery, () => {
-    store.performSearch();
-});
+watch(
+    () => store.searchQuery,
+    () => {
+        store.performSearch()
+    },
+)
 
 const handleSend = () => {
-    if (!messageInput.value.trim()) return;
-    store.sendMessage(messageInput.value);
-    messageInput.value = '';
-};
+    if (!messageInput.value.trim()) return
+    store.sendMessage(messageInput.value)
+    messageInput.value = ''
+}
 
-const isMine = (senderId: string) => senderId === auth.user?.id;
+const isMine = (senderId: string) => senderId === auth.user?.id
 
 const formatTime = (date?: Date | string) => {
-    if (!date) return '';
-    return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-};
+    if (!date) return ''
+    return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
 </script>
 
 <template>
@@ -42,14 +48,12 @@ const formatTime = (date?: Date | string) => {
         <Transition name="fade">
             <div v-if="store.isOpen"
                 class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[200] md:bg-transparent md:backdrop-blur-none md:pointer-events-none"
-                @click="store.toggle">
-            </div>
+                @click="store.toggle"></div>
         </Transition>
 
         <div v-ui-block
             class="fixed top-0 right-0 h-full w-full md:w-96 bg-slate-900 border-l border-slate-700 shadow-2xl z-[201] transition-transform duration-300 ease-in-out flex flex-col pointer-events-auto"
             :class="store.isOpen ? 'translate-x-0' : 'translate-x-full'">
-
             <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
                 <h2 v-if="!store.activeChatId" class="font-bold text-white flex items-center gap-2">
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -88,7 +92,7 @@ const formatTime = (date?: Date | string) => {
                 <div class="p-4">
                     <div class="relative">
                         <input type="text" v-model="store.searchQuery" placeholder="Search friends or users..."
-                            class="input input-sm w-full bg-slate-800 border-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-200 pl-9">
+                            class="input input-sm w-full bg-slate-800 border-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-200 pl-9" />
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                             stroke="currentColor" class="w-4 h-4 absolute left-3 top-2.5 text-slate-500">
                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -122,7 +126,7 @@ const formatTime = (date?: Date | string) => {
                                 </div>
                                 <p class="text-xs text-slate-400 truncate"
                                     :class="{ 'font-bold text-white': chat.hasUnread }">
-                                    {{ chat.lastMessagePreview || "Start a conversation" }}
+                                    {{ chat.lastMessagePreview || 'Start a conversation' }}
                                 </p>
                             </div>
                         </div>
@@ -130,7 +134,9 @@ const formatTime = (date?: Date | string) => {
 
                     <div v-if="store.searchQuery && store.globalSearchResults.length > 0"
                         class="mt-4 pt-4 border-t border-slate-800">
-                        <div class="text-[10px] uppercase font-bold text-slate-500 px-2 mb-2">New Connections</div>
+                        <div class="text-[10px] uppercase font-bold text-slate-500 px-2 mb-2">
+                            New Connections
+                        </div>
                         <div v-for="user in store.globalSearchResults" :key="user.id"
                             @click="store.startChatWithUser(user.id)"
                             class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800 cursor-pointer transition-colors opacity-75 hover:opacity-100">
@@ -145,8 +151,10 @@ const formatTime = (date?: Date | string) => {
                         </div>
                     </div>
 
-                    <div v-if="(!store.filteredChats || store.filteredChats.length === 0) && store.globalSearchResults.length === 0"
-                        class="text-center py-10 opacity-50">
+                    <div v-if="
+                        (!store.filteredChats || store.filteredChats.length === 0) &&
+                        store.globalSearchResults.length === 0
+                    " class="text-center py-10 opacity-50">
                         <div class="text-4xl mb-2">📡</div>
                         <p class="text-sm text-slate-500">No signals found.</p>
                         <p class="text-xs text-slate-600 mt-2">Search for a username to start.</p>
@@ -163,8 +171,9 @@ const formatTime = (date?: Date | string) => {
                     <div v-for="msg in store.currentMessages" :key="msg.id" class="flex flex-col"
                         :class="isMine(msg.senderId) ? 'items-end' : 'items-start'">
                         <div class="max-w-[85%] rounded-2xl px-4 py-2 text-sm shadow-sm break-words" :class="isMine(msg.senderId)
-                            ? 'bg-emerald-600 text-white rounded-br-none'
-                            : 'bg-slate-800 text-slate-200 rounded-bl-none'">
+                                ? 'bg-emerald-600 text-white rounded-br-none'
+                                : 'bg-slate-800 text-slate-200 rounded-bl-none'
+                            ">
                             {{ msg.content }}
                         </div>
                         <span class="text-[10px] text-slate-600 mt-1 px-1">
@@ -175,7 +184,7 @@ const formatTime = (date?: Date | string) => {
                 <div class="p-3 border-t border-slate-800 bg-slate-900">
                     <form @submit.prevent="handleSend" class="flex gap-2">
                         <input v-model="messageInput" type="text" placeholder="Type a message..."
-                            class="input input-sm flex-1 bg-slate-950 border-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-200">
+                            class="input input-sm flex-1 bg-slate-950 border-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-200" />
                         <button type="submit" class="btn btn-sm btn-primary btn-square"
                             :disabled="!messageInput.trim()">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"

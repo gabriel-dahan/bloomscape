@@ -58,21 +58,10 @@ watch(() => props.userTag, () => {
 
 <template>
     <div v-ui-block
-        class="absolute top-0 left-0 w-full phone:h-fit p-4 pointer-events-none flex justify-start sm:justify-center md:justify-end md:pr-8">
+        class="fixed top-0 left-0 w-full phone:h-fit p-4 pointer-events-none flex justify-start sm:justify-center md:justify-end md:pr-8">
 
         <div
             class="pointer-events-auto glass-panel rounded-full px-6 py-2 flex items-center gap-6 shadow-2xl shadow-black/40 transition-all duration-300">
-
-            <div class="flex flex-col text-right min-w-[80px]">
-                <span class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Sector</span>
-
-                <span v-if="!isLoading" class="text-xs font-bold text-gray-200 animate-pulse-once">
-                    {{ sectorName }}
-                </span>
-                <div v-else class="h-4 w-16 bg-white/10 rounded animate-pulse mt-1 ml-auto"></div>
-            </div>
-
-            <div class="h-8 w-px bg-white/10 block"></div>
 
             <div class="flex items-center gap-2">
                 <div class="tooltip tooltip-bottom" data-tip="Messages">

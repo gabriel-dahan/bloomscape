@@ -191,6 +191,13 @@ export const ROUTES_ENUM = {
     viewPath: 'game/FloraDexView.vue',
   },
 
+  REWARDS_ROAD: {
+    name: 'rewardsRoad',
+    path: '/levels-road',
+    windowTitle: 'Rewards Road',
+    viewPath: 'game/LevelRoadView.vue',
+  },
+
   SUPPORT: {
     name: 'support',
     path: '/support',
@@ -198,11 +205,11 @@ export const ROUTES_ENUM = {
     viewPath: 'user/SupportView.vue',
   },
 
-  ADMIN_DB_MANAGER: {
-    name: 'adminDBFuncs',
-    path: '/admin/db',
-    windowTitle: 'Admin DB Manager',
-    viewPath: 'admin/DBManagerView.vue',
+  STORE: {
+    name: 'store',
+    path: '/store',
+    windowTitle: 'Store',
+    viewPath: 'StoreView.vue',
   },
 
   ADMIN_MANAGER: {

@@ -5,6 +5,7 @@ import { User } from '@/shared/user/User'
 import { Item, FlowerSpecies, Achievement } from '@/shared'
 import { AdminController } from '@/server/controllers/AdminController'
 import { Role } from '@/shared/types'
+import { GameController } from '@/server/controllers/GameController'
 
 // --- REPOSITORIES ---
 const userRepo = remult.repo(User)
@@ -35,6 +36,7 @@ const catalogAchievements = ref<Achievement[]>([])
 const giveItemForm = ref({ slug: '', quantity: 1 })
 const giveFlowerForm = ref({ slug: '', quality: 0.5 })
 const giveAchieveForm = ref({ slug: '' })
+const giveXPForm = ref({ quantity: 100 })
 
 // --- FETCHING ---
 
@@ -126,6 +128,19 @@ async function performGiveItem() {
             giveItemForm.value.slug,
             giveItemForm.value.quantity
         )
+        alert(res.message)
+    } catch (e: any) {
+        alert(e.message)
+    } finally {
+        isActionLoading.value = false
+    }
+}
+
+async function performGiveXP() {
+    if (!selectedUser.value) return
+    isActionLoading.value = true
+    try {
+        const res = await GameController.addXpToUser(selectedUser.value.id, giveXPForm.value.quantity)
         alert(res.message)
     } catch (e: any) {
         alert(e.message)
@@ -360,6 +375,24 @@ const totalPages = computed(() => Math.ceil(totalCount.value / pageSize) || 1)
                             <button @click="performGiveFlower" :disabled="isActionLoading"
                                 class="btn btn-sm btn-accent w-full">
                                 Generate Seed
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <h3
+                            class="text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-800 pb-2">
+                            Give XP
+                        </h3>
+                        <div class="bg-slate-800/30 p-4 rounded-lg border border-slate-800 space-y-3">
+                            <div>
+                                <label class="label text-xs">Quantity: </label>
+                                <input type="number" v-model.number="giveXPForm.quantity"
+                                    class="range range-xs range-accent" />
+                            </div>
+                            <button @click="performGiveXP" :disabled="isActionLoading"
+                                class="btn btn-sm btn-accent w-full">
+                                Give
                             </button>
                         </div>
                     </div>

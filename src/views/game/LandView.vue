@@ -33,8 +33,8 @@ const activeTile = computed(() => gameStore.selectedTile || gameStore.hoveredTil
 
         <LandScene v-if="userId" quality="high" :user-id="userId" />
 
-        <div v-else class="absolute inset-0 flex items-center justify-center text-slate-500 z-0">
-            <p>Rendering engine is out of fertilizer. If you just logged in, <b><button
+        <div v-else class="absolute inset-0 flex items-center justify-center text-slate-500 z-0 p-10">
+            <p class="text-center">Rendering engine is out of fertilizer. If you just logged in, <b><button
                         onclick="window.location.reload()">reload</button></b> the page :)</p>
         </div>
 

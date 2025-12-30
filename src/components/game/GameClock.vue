@@ -24,7 +24,7 @@ function getSeasonColor(season: Season): string {
 </script>
 
 <template>
-    <div class="absolute top-20 left-5 sm:top-auto sm:bottom-6 sm:left-10 md:left-40 z-20">
+    <div class="fixed top-20 left-5 sm:top-auto sm:bottom-6 sm:left-10 md:left-40 z-20">
 
         <div @click="showTooltip = !showTooltip" @mouseenter="showTooltip = true" @mouseleave="showTooltip = false"
             class="relative bg-slate-900/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 shadow-xl flex flex-col items-end cursor-pointer pointer-events-auto transition-colors hover:bg-slate-900/80">

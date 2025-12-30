@@ -1,7 +1,6 @@
 import {
   Achievement,
   DiscoverySource,
-  FlowerAvailability,
   FlowerSpecies,
   FlowerStatus,
   Island,
@@ -15,10 +14,9 @@ import {
 import { BackendMethod, remult } from 'remult'
 import { PRICES } from '../ext'
 import { FlowerDiscovery } from '@/shared/analytics/FlowerDiscovery'
+import { getLevelFromXp } from '@/shared/leveling'
 
 export class GameController {
-  // --- READ ACTIONS ---
-
   @BackendMethod({ allowed: true })
   static async getIslandDetails(ownerId: string) {
     const islandRepo = remult.repo(Island)
@@ -58,6 +56,56 @@ export class GameController {
     if (!user) throw new Error('User could not be found.')
 
     return user.sap
+  }
+
+  @BackendMethod({ allowed: true })
+  static async getRequiredXpForNextLevel() {
+    if (!remult.user) throw new Error('Not authenticated')
+
+    const XP_BASE = 500
+    const XP_EXPONENT = 1.5
+
+    const user = remult.user
+
+    return Math.floor(XP_BASE * Math.pow(user.level, XP_EXPONENT))
+  }
+
+  @BackendMethod({ allowed: 'admin' })
+  static async addXpToUser(userId: string, amount: number): Promise<any> {
+    const userRepo = remult.repo(User)
+    const user = await userRepo.findId(userId)
+
+    if (!user) return false
+
+    user.xp += amount
+
+    const oldLevel = user.level
+    const newLevel = getLevelFromXp(user.xp)
+
+    if (newLevel > oldLevel) {
+      user.level = newLevel
+
+      const { notifyUser } = await import('../socket')
+
+      const levelsGained = newLevel - oldLevel
+      const message =
+        levelsGained > 1
+          ? `Incredible! You jumped ${levelsGained} levels to Level ${newLevel}!`
+          : `Level Up! You are now Level ${newLevel}!`
+
+      notifyUser(userId, 'notification', {
+        title: 'Level Up!',
+        message: message,
+        type: 'success',
+      })
+    }
+
+    await userRepo.save(user)
+
+    return {
+      message: `Successfuly gave ${amount} XP to user ${user.tag}`,
+      val: newLevel > oldLevel,
+    }
   }
 
   @BackendMethod({ allowed: true })
@@ -162,7 +210,7 @@ export class GameController {
     const elapsedSeconds = (now.getTime() - flower.plantedAt.getTime()) / 1000
     const duration = flower.species.growthDuration
 
-    let newStatus = flower.status
+    let newStatus: FlowerStatus = flower.status
 
     if (elapsedSeconds >= duration) {
       newStatus = FlowerStatus.MATURE
@@ -176,7 +224,6 @@ export class GameController {
       else newStatus = FlowerStatus.GROWING2
     }
 
-    // Only save if the status actually changed
     if (newStatus !== flower.status) {
       flower.status = newStatus
       await remult.repo(UserFlower).save(flower)

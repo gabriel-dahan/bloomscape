@@ -6,6 +6,8 @@ import { remult } from 'remult'
 import { api, db } from './api'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
+import { createServer } from 'http'
+import { initSocket } from './socket'
 
 import dotenv from 'dotenv'
 import { UserFlower, FlowerSpecies } from '@/shared'
@@ -18,6 +20,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 const app = express()
+const httpServer = createServer(app)
 
 app.use(
   session({
@@ -27,7 +30,7 @@ app.use(
 )
 app.use(express.json())
 
-// Route updated to use :slugName instead of :speciesId
+// API endpoint to serve flower images
 app.get('/api/images/flowers/:slugName/:status/:type', async (req, res) => {
   await api.withRemult(req, res, async () => {
     const { slugName, status, type } = req.params
@@ -76,13 +79,31 @@ app.get('/api/images/flowers/:slugName/:status/:type', async (req, res) => {
   })
 })
 
+// API endpoint to serve badge images
+app.get('/api/images/badges/:badgeName', (req, res) => {
+  const { badgeName } = req.params
+
+  const secureDir = path.join(__dirname, '../private/icons/badges')
+  const fileName = `${badgeName}.png`
+  const realPath = path.join(secureDir, fileName)
+  const unknownPath = path.join(secureDir, 'unknown.png')
+
+  if (fs.existsSync(realPath)) {
+    return res.sendFile(realPath)
+  }
+
+  return res.sendFile(unknownPath)
+})
+
 app.use(api)
 
 app.get('/api', (_, res) => {
   res.json({ message: 'Hello from the server!' })
 })
 
-app.listen(3002, () => {
+initSocket(httpServer)
+
+httpServer.listen(3002, () => {
   console.log('Server is running on port 3002')
 
   if (db) {

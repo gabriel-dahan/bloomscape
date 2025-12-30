@@ -1,6 +1,7 @@
-import { BackendMethod, Controller, remult, Allow } from 'remult' // Import Allow
+import { BackendMethod, Controller, remult, Allow, repo } from 'remult' // Import Allow
 import express from 'express'
 import { User } from '@/shared/user/User'
+import { FlowerDiscovery } from '@/shared/analytics/FlowerDiscovery'
 
 // Define the threshold for being "online" (e.g., seen in the last 2 minutes)
 const ONLINE_THRESHOLD_MS = 2 * 60 * 1000
@@ -42,5 +43,15 @@ export class UserController {
       user: user,
       isOnline: isOnline,
     }
+  }
+
+  @BackendMethod({ allowed: true })
+  static async getLatestDiscoveries(userId: string) {
+    return await repo(FlowerDiscovery).find({
+      where: { userId },
+      orderBy: { discoveredAt: 'desc' },
+      limit: 3,
+      include: { species: true },
+    })
   }
 }

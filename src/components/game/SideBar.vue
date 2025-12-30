@@ -13,10 +13,15 @@ import { router } from '@/routes';
 import MarketInModal from './modal_features/MarketInModal.vue';
 import InventoryInModal from './modal_features/InventoryInModal.vue';
 import { useBreakpoints } from '@/stores/breakpoints';
+import { useWindowSize } from '@vueuse/core'
+import { useGameStore } from '@/stores/game';
+
 
 const uiStore = useUIStore();
 
 const auth = useAuthStore();
+const game = useGameStore();
+
 const userBalance = computed(() => auth.user?.sap ?? 0);
 
 const navigationArray = [
@@ -50,12 +55,11 @@ const navigationArray = [
     { name: 'Settings', icon: SettingsIcon, link: ROUTES.SETTINGS.pathDyn(auth.user?.tag) },
 ];
 
-import { useWindowSize } from '@vueuse/core'
-
-const { winWidth, _ } = useWindowSize()
+const { width: winWidth, height: _ } = useWindowSize()
 
 onMounted(async () => {
     await auth.fetchSessionUser();
+
 })
 </script>
 
@@ -121,8 +125,17 @@ onMounted(async () => {
             </nav>
 
             <div class="p-4 mt-auto border-t border-white/5 overflow-hidden transition-all duration-300"
-                :class="uiStore.isSidebarOpen ? 'opacity-100 max-h-32' : 'opacity-0 max-h-0 py-0'">
-                <div class="bg-slate-800/50 rounded-lg p-3 overflow-hidden">
+                :class="uiStore.isSidebarOpen ? 'opacity-100' : 'opacity-0 max-h-0 py-0'" v-if="auth.user">
+                <div class="rounded-lg p-3 overflow-hidden">
+                    <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">LEVEL <span
+                            class="text-amber-500/70">{{
+                                auth.user?.level }}</span>
+                    </p>
+                    <div class="flex items-center gap-2 text-emerald-400 font-mono text-sm md:text-lg">
+                        <span>{{ game.xpProgress.current }} XP <span>/ {{ game.xpProgress.max }}</span></span>
+                    </div>
+                </div>
+                <div class="rounded-lg p-3 overflow-hidden">
                     <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Balance</p>
                     <div class="flex items-center gap-2 text-emerald-400 font-mono text-sm md:text-lg">
                         <span>⟠</span>

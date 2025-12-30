@@ -1,11 +1,11 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { remult } from 'remult'
-import { GameController } from '@/server/controllers/GameController'
+import { useAuthStore } from './auth'
+import { getLevelProgress } from '@/shared/leveling'
 import { Island, Tile } from '@/shared'
-import { useModalStore } from './modal'
+import { GameController } from '@/server/controllers/GameController'
 
-// UI Helper Type
 export interface TileInteraction {
   x: number
   z: number
@@ -15,14 +15,26 @@ export interface TileInteraction {
 }
 
 export const useGameStore = defineStore('game', () => {
+  const authStore = useAuthStore()
+
   const currentIsland = ref<Island | null>(null)
   const tiles = ref<Tile[]>([])
-
   const hoveredTile = ref<TileInteraction | null>(null)
   const selectedTile = ref<TileInteraction | null>(null)
-
   const isLoading = ref(false)
   const playerBalance = ref(0)
+
+  const viewedUserTotalXp = ref<number | null>(null)
+
+  const xpProgress = computed(() => {
+    if (viewedUserTotalXp.value !== null) {
+      return getLevelProgress(viewedUserTotalXp.value)
+    }
+
+    // Fallback to logged-in user
+    const xp = authStore.user?.xp || 0
+    return getLevelProgress(xp)
+  })
 
   const selectedEntity = computed(() => {
     if (!selectedTile.value) return null
@@ -32,7 +44,10 @@ export const useGameStore = defineStore('game', () => {
     )
   })
 
-  // --- ACTIONS ---
+  // NEW: Action to set the context (Call this when loading a User Profile)
+  function setXPContext(xp: number | null) {
+    viewedUserTotalXp.value = xp
+  }
 
   async function fetchIslandData(userId: string) {
     isLoading.value = true
@@ -41,7 +56,6 @@ export const useGameStore = defineStore('game', () => {
 
     try {
       const result = await GameController.getIslandDetails(userId)
-
       if (result) {
         currentIsland.value = result.island
         tiles.value = result.tiles
@@ -60,6 +74,8 @@ export const useGameStore = defineStore('game', () => {
       if (remult.user) {
         await fetchIslandData(remult.user.id)
         await fetchBalance()
+        // Reset view context to self when starting own adventure
+        setXPContext(null)
       }
     } catch (e: any) {
       alert(e.message)
@@ -79,9 +95,7 @@ export const useGameStore = defineStore('game', () => {
 
   async function buyTile(x: number, z: number) {
     if (!currentIsland.value) return
-
     isLoading.value = true
-
     try {
       const newTile = await GameController.buyLand(x, z)
       tiles.value.push(newTile)
@@ -90,15 +104,9 @@ export const useGameStore = defineStore('game', () => {
         selectedTile.value.isOwned = true
         selectedTile.value.id = newTile.id
       }
-
       await fetchBalance()
     } catch (e: any) {
-      const modal = useModalStore()
-      modal.open({
-        title: 'Purchase Failed',
-        message: e.message,
-        type: 'error',
-      })
+      console.error(e)
     } finally {
       isLoading.value = false
     }
@@ -124,6 +132,8 @@ export const useGameStore = defineStore('game', () => {
     selectedEntity,
     playerBalance,
     isLoading,
+    xpProgress, // Exported as before, but now context-aware
+    setXPContext, // Export new action
     fetchIslandData,
     fetchBalance,
     startAdventure,
