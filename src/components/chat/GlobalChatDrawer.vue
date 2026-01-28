@@ -2,6 +2,7 @@
 import { ref, nextTick, watch, onMounted } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import { useAuthStore } from '@/stores/auth'
+import { ROUTES_ENUM as ROUTES } from '@/routes/routes_enum'
 
 const store = useChatStore()
 const auth = useAuthStore()
@@ -67,18 +68,21 @@ const formatTime = (date?: Date | string) => {
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                         </svg>
                     </button>
-                    <div class="flex items-center gap-2" v-if="store.activeChat?.otherUser">
-                        <div
-                            class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-white shadow-inner border border-slate-700">
-                            {{ store.activeChat.otherUser.tag.substring(0, 2).toUpperCase() }}
-                        </div>
-                        <div>
-                            <div class="text-sm font-bold text-white leading-none">
-                                {{ store.activeChat.otherUser.tag }}
+                    <RouterLink :to="ROUTES.USER_PROFILE.pathDyn(store.activeChat.otherUser.tag)">
+                        <div class="flex items-center gap-2" v-if="store.activeChat?.otherUser">
+                            <div
+                                class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-white shadow-inner border border-slate-700">
+                                {{ store.activeChat.otherUser.tag.substring(0, 2).toUpperCase() }}
                             </div>
-                            <div class="text-[10px] text-slate-500">Connected</div>
+                            <div>
+                                <div class="text-sm font-bold text-white leading-none">
+
+                                    {{ store.activeChat.otherUser.tag }}
+                                </div>
+                                <div class="text-[10px] text-slate-500">Connected</div>
+                            </div>
                         </div>
-                    </div>
+                    </RouterLink>
                 </div>
                 <button @click="store.toggle" class="btn btn-square btn-ghost btn-sm text-slate-400 hover:text-red-400">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
@@ -171,8 +175,8 @@ const formatTime = (date?: Date | string) => {
                     <div v-for="msg in store.currentMessages" :key="msg.id" class="flex flex-col"
                         :class="isMine(msg.senderId) ? 'items-end' : 'items-start'">
                         <div class="max-w-[85%] rounded-2xl px-4 py-2 text-sm shadow-sm break-words" :class="isMine(msg.senderId)
-                                ? 'bg-emerald-600 text-white rounded-br-none'
-                                : 'bg-slate-800 text-slate-200 rounded-bl-none'
+                            ? 'bg-emerald-600 text-white rounded-br-none'
+                            : 'bg-slate-800 text-slate-200 rounded-bl-none'
                             ">
                             {{ msg.content }}
                         </div>

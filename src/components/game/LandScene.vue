@@ -18,22 +18,40 @@ const props = withDefaults(defineProps<{
 
 const gameStore = useGameStore();
 const timeStore = useTimeStore();
-const { tiles, currentIsland, isLoading, selectedTile } = storeToRefs(gameStore);
+const { tiles, currentIsland, selectedTile } = storeToRefs(gameStore);
 
 const canvasContainerRef = ref<HTMLDivElement | null>(null);
 let sceneManager: LandSceneManager | null = null;
 const auth = useAuthStore();
 
+const isFetchingData = ref(true);
+const isSceneReady = ref(false);
+
 const isCurrentUser = computed(() => auth.user?.id === props.userId);
 const hasIsland = computed(() => !!currentIsland.value);
+
+const showLoadingScreen = computed(() => {
+    if (isFetchingData.value) return true;
+    if (hasIsland.value && !isSceneReady.value) return true;
+    return false;
+});
 
 const initData = async () => {
     if (!props.userId) return;
 
-    await gameStore.fetchIslandData(props.userId);
+    isFetchingData.value = true;
+    try {
+        await gameStore.fetchIslandData(props.userId);
+    } finally {
+        isFetchingData.value = false;
 
-    if (sceneManager) {
-        sceneManager.updateTiles(tiles.value);
+        if (!currentIsland.value && sceneManager) {
+            isSceneReady.value = true;
+        }
+
+        if (sceneManager && tiles.value) {
+            sceneManager.updateTiles(tiles.value);
+        }
     }
 };
 
@@ -88,6 +106,8 @@ const handleClick = (x: number, z: number) => {
 
 const handleStartAdventure = async () => {
     await gameStore.startAdventure();
+    isSceneReady.value = false;
+    await initData();
 };
 
 onMounted(async () => {
@@ -100,7 +120,12 @@ onMounted(async () => {
         quality: props.quality,
         tileSize: props.tileSize,
         onHover: handleHover,
-        onClick: handleClick
+        onClick: handleClick,
+        onAssetsLoaded: () => {
+            setTimeout(() => {
+                isSceneReady.value = true;
+            }, 100);
+        }
     });
 
     sceneManager.init(canvasContainerRef.value);
@@ -139,7 +164,7 @@ watch(selectedTile, (newVal) => {
         <GameClock v-ui-block></GameClock>
 
         <transition name="fade">
-            <div v-if="!isLoading && !hasIsland"
+            <div v-if="!showLoadingScreen && !hasIsland"
                 class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-sm z-40">
 
                 <div class="card w-96 glass shadow-2xl border border-slate-700">
@@ -164,9 +189,12 @@ watch(selectedTile, (newVal) => {
             </div>
         </transition>
 
-        <div v-if="isLoading"
-            class="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur">
+        <div v-if="showLoadingScreen"
+            class="absolute inset-0 z-50 flex items-center justify-center bg-slate-900 z-[100]">
             <span class="loading loading-ring loading-lg text-emerald-500"></span>
+            <span class="ml-4 text-emerald-500/80 font-mono text-sm animate-pulse">
+                {{ isFetchingData ? 'Fetching Data...' : 'Rendering Island...' }}
+            </span>
         </div>
     </div>
 </template>

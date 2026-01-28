@@ -1,18 +1,86 @@
-import { BackendMethod, remult } from 'remult'
+import { BackendMethod, remult, SqlDatabase } from 'remult'
 import { seedMarketData } from '../_seedMarket'
 import {
   Achievement,
   FlowerSpecies,
   FlowerStatus,
   Item,
+  MarketHistory,
   User,
   UserAchievement,
   UserFlower,
   UserItem,
 } from '@/shared'
 import { ModerationLog } from '@/shared/analytics/ModerationLog'
+import { DailySnapshot } from '@/shared/analytics/DailySnapshot'
+
+export interface DashboardData {
+  stats: {
+    totalUsers: number
+    activeUsers: number
+    totalSap: number
+    marketVolume24h: number
+  }
+  charts: {
+    registrations: { date: string; value: number }[]
+    economy: { date: string; value: number }[]
+  }
+}
 
 export class AdminController {
+  @BackendMethod({ allowed: 'admin' })
+  static async getDashboardData(): Promise<DashboardData> {
+    const userRepo = remult.repo(User)
+    const historyRepo = remult.repo(MarketHistory)
+    const snapshotRepo = remult.repo(DailySnapshot)
+
+    const now = new Date()
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+
+    const totalUsers = await userRepo.count()
+
+    const activeUsers = await userRepo.count({
+      lastOnline: { $gte: yesterday },
+    })
+
+    const db = remult.dataProvider as SqlDatabase
+    const sapResult = await db.execute('SELECT SUM(sap) as total FROM users')
+    const totalSap = sapResult.rows[0]?.total || 0
+
+    const volResult = await db.execute(
+      `SELECT SUM(price) as total FROM market_history WHERE soldAt > ${yesterday.getTime()}`,
+    )
+    const marketVolume24h = volResult.rows[0]?.total || 0
+
+    const snapshots = await snapshotRepo.find({
+      limit: 30,
+      orderBy: { date: 'asc' },
+    })
+
+    const registrationsChart = snapshots.map((s) => ({
+      date: s.date.toLocaleDateString(),
+      value: s.newRegistrations,
+    }))
+
+    const economyChart = snapshots.map((s) => ({
+      date: s.date.toLocaleDateString(),
+      value: s.marketVolume,
+    }))
+
+    return {
+      stats: {
+        totalUsers,
+        activeUsers,
+        totalSap,
+        marketVolume24h,
+      },
+      charts: {
+        registrations: registrationsChart,
+        economy: economyChart,
+      },
+    }
+  }
+
   @BackendMethod({ allowed: ['admin'] })
   static async banUser(userId: string, reason: string) {
     const userRepo = remult.repo(User)
@@ -24,7 +92,6 @@ export class AdminController {
     user.banned = true
     await userRepo.save(user)
 
-    // 2. Log Action
     await logRepo.insert({
       targetUserId: userId,
       moderatorId: remult.user!.id,
@@ -73,6 +140,13 @@ export class AdminController {
       quality: quality, // 0.0 to 1.0
       waterLevel: 100,
       plantedAt: new Date(),
+    })
+
+    const { notifyUser } = await import('../socket')
+
+    notifyUser(userId, 'notification', {
+      title: 'You were given a flower.',
+      message: `An admin gave you a <b>${species.name}</b>.`,
     })
 
     return { success: true, message: `Created ${species.name} Seed (Q${quality * 100})` }

@@ -45,6 +45,7 @@ export class MarketController {
 
     if (listing.flower) {
       listing.flower.ownerId = buyer.id
+      listing.flower.isListed = false // Unlock item
       await flowerRepo.save(listing.flower)
 
       if (listing.flower.speciesId) {
@@ -88,11 +89,14 @@ export class MarketController {
       where: {
         id: { $in: flowerIds },
         ownerId: user.id,
+        isListed: false,
       },
     })
 
     if (flowers.length !== flowerIds.length) {
-      throw new Error('Some flowers could not be found or do not belong to you.')
+      throw new Error(
+        'Some flowers could not be found, do not belong to you, or are already listed.',
+      )
     }
 
     const alreadyListed = await listingRepo.find({
@@ -107,6 +111,8 @@ export class MarketController {
       if (flower.status !== FlowerStatus.SEED) {
         throw new Error(`Item ${flower.id} is not a seed.`)
       }
+      flower.isListed = true
+      await flowerRepo.save(flower)
     }
 
     const listings = flowers.map((f) => {

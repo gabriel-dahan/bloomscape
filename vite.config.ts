@@ -23,5 +23,8 @@ export default defineConfig({
         secure: false,
       },
     },
+
+    // Auto reload on file save (deactivated because some routes need extensive loading, e.g. /land)
+    hmr: false,
   },
 })

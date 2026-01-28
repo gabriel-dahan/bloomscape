@@ -41,6 +41,9 @@ export class UserFlower {
   @Fields.date()
   lastWateredAt?: Date
 
+  @Fields.boolean()
+  isListed = false
+
   // Isometric Grid Position (Null if SEED)
   @Fields.integer()
   gridX?: number

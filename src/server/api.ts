@@ -41,6 +41,8 @@ import { ChatMessage } from '@/shared/chat/ChatMessage'
 import { ChatParticipant } from '@/shared/chat/ChatParticipant'
 import { PaymentController } from './controllers/PaymentController'
 import { StoreItem } from '@/shared/economy/StoreItem'
+import { UserNotification } from '@/shared/user/UserNotification'
+import { DailySnapshot } from '@/shared/analytics/DailySnapshot'
 
 dotenv.config({
   path: './src/server/.env',
@@ -59,10 +61,12 @@ export const api = remultApi({
     UserReport,
     ModerationLog,
     FlowerDiscovery,
+    DailySnapshot,
 
     User,
     Achievement,
     UserAchievement,
+    UserNotification,
 
     FlowerSpecies,
     UserFlower,

@@ -12,12 +12,8 @@ declare module 'remult' {
 
 @Controller('auth')
 export class AuthController {
-  // ... (login, signup, googleLogin restent identiques à ton code, je ne les répète pas pour être concis) ...
   @BackendMethod({ allowed: true })
   static async login(tagOrEmail: string, passwd: string, rememberMe: boolean = false) {
-    // ... Ton code existant ...
-    // Juste un rappel : assure-toi que sanitizeUser renvoie bien tout l'objet User sans le mot de passe
-    // pour que le frontend ait accès aux 'sap'.
     const users = remult.repo(User)
     const user = await users.findFirst({
       $or: [{ tag: tagOrEmail }, { email: tagOrEmail }],
@@ -27,15 +23,13 @@ export class AuthController {
     const match = await bcrypt.compare(passwd, user.passwordHash!)
     if (!match) throw 'Invalid password'
 
-    // Mise à jour date login
     user.lastLogin = new Date()
-    await users.save(user) // Save déclenchera les triggers s'il y en a
+    await users.save(user)
 
     remult.user = sanitizeUser(user)
     const req = remult.context.request!
     req.session!['user'] = remult.user
 
-    // Gestion cookie...
     if (rememberMe) {
       req.session!.maxAge = 1000 * 60 * 60 * 24 * 30
     } else {
@@ -45,11 +39,8 @@ export class AuthController {
     return { success: true, user: req?.session!.user }
   }
 
-  // ... (signup, googleLogin, logout ... restent identiques) ...
   @BackendMethod({ allowed: true })
   static async signup(tag: string, email: string, passwd: string, passwdConfirm: string) {
-    // ... Ton code existant ...
-    // Je le remets pour le contexte si besoin, mais pas de changement de logique
     const users = remult.repo(User)
     if (await users.findFirst({ tag: tag })) throw 'A user with this tag already exists.'
     if (await users.findFirst({ email: email })) throw 'A user with this email already exists.'
@@ -67,7 +58,6 @@ export class AuthController {
 
   @BackendMethod({ allowed: true })
   static async googleLogin(idToken: string) {
-    // ... Ton code existant ...
     const { OAuth2Client } = await import('google-auth-library')
     const client = new OAuth2Client(process.env.VITE_GOOGLE_CLIENT_ID)
     const userRepo = remult.repo(User)
@@ -105,12 +95,10 @@ export class AuthController {
 
   @BackendMethod({ allowed: true })
   static async logout() {
-    // ... Ton code existant ...
     const req = remult.context!.request
     if (req?.session) req.session = null
   }
 
-  // --- LE CHANGEMENT IMPORTANT EST ICI ---
   @BackendMethod({ allowed: true })
   static async getSessionUser() {
     if (!remult.user) return null

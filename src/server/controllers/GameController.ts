@@ -123,7 +123,11 @@ export class GameController {
     const itemRepo = remult.repo(UserItem)
 
     const flowers = await flowerRepo.find({
-      where: { ownerId: remult.user.id, status: FlowerStatus.SEED },
+      where: {
+        ownerId: remult.user.id,
+        status: FlowerStatus.SEED,
+        isListed: false,
+      },
       include: { species: true },
     })
 
@@ -218,7 +222,6 @@ export class GameController {
       return flower
     }
 
-    // Context Loading
     let allFlowers = contextFlowers
     if (!allFlowers) {
       allFlowers = await remult.repo(UserFlower).find({ where: { ownerId: flower.ownerId } })
@@ -226,7 +229,6 @@ export class GameController {
 
     const stats = AttributesLogic.calculateStats(flower, allFlowers)
 
-    // LOG: Growth Speed Effect
     if (stats.growthSpeedMultiplier !== 1) {
       console.log(
         `[Attribute Effect] Flower ${flower.species.name} Growth Duration: Default ${flower.species.growthDuration}s -> Modified ${Math.floor(flower.species.growthDuration / stats.growthSpeedMultiplier)}s`,
@@ -236,7 +238,6 @@ export class GameController {
     const now = new Date()
     const elapsedSeconds = (now.getTime() - flower.plantedAt.getTime()) / 1000
 
-    // Apply Growth Speed Multiplier
     const duration = flower.species.growthDuration / stats.growthSpeedMultiplier
 
     let newStatus: FlowerStatus = flower.status
@@ -268,6 +269,7 @@ export class GameController {
       where: {
         ownerId: remult.user.id,
         status: FlowerStatus.SEED,
+        isListed: false,
       },
       include: { species: true },
     })
@@ -287,7 +289,7 @@ export class GameController {
     if (tile.island.ownerId !== remult.user.id) throw new Error('Not your land')
     if (tile.flowerId) throw new Error('Tile is already occupied')
 
-    const flower = await flowerRepo.findId(flowerId)
+    const flower = await flowerRepo.findId(flowerId, { include: { species: true } })
     if (!flower) throw new Error('Seed not found')
     if (flower.ownerId !== remult.user.id) throw new Error('Not your seed')
     if (flower.status !== FlowerStatus.SEED) throw new Error('Item is not a seed')
@@ -303,6 +305,14 @@ export class GameController {
 
     tile.flowerId = flower.id
     await tileRepo.save(tile)
+
+    const { notifyUser } = await import('../socket')
+
+    notifyUser(remult.user.id, 'notification', {
+      title: 'Successfuly planted a new seed !',
+      message: `Congratulation on your new seed of <b>${flower.species.name}</b>.`,
+      type: 'success',
+    })
 
     return { success: true }
   }
@@ -372,6 +382,9 @@ export class GameController {
     finalXp *= globalEffects.GLOBAL_XP_MULTIPLIER
     finalXp = Math.floor(finalXp)
 
+    console.log(globalEffects)
+    console.log(stats)
+
     if (finalXp !== attrs.baseXpReward) {
       console.log(
         `[Attribute Effect] Harvest XP: Base ${attrs.baseXpReward} -> Modified ${finalXp}`,
@@ -387,7 +400,7 @@ export class GameController {
       )
     }
 
-    let harvestedQuality = Math.floor(Math.random() * 100)
+    let harvestedQuality = Math.floor(Math.random() * 100) / 100
     harvestedQuality += stats.qualityBonus
 
     if (stats.qualityBonus !== 0) {
@@ -398,11 +411,10 @@ export class GameController {
 
     await GameController.addXpToUser(remult.user.id, finalXp)
 
-    const userRepo = remult.repo(User)
-    const user = await userRepo.findId(remult.user.id)
-    if (user) {
-      user.score += finalScore
-      await userRepo.save(user)
+    const islandRepo = remult.repo(Island)
+    if (tile.island) {
+      tile.island.monthScore += finalScore
+      await islandRepo.save(tile.island)
     }
 
     flower.status = FlowerStatus.SEED
@@ -414,7 +426,6 @@ export class GameController {
 
     await flowerRepo.save(flower)
 
-    // Free the tile
     tile.flowerId = ''
     await tileRepo.save(tile)
 
@@ -431,9 +442,16 @@ export class GameController {
 
     const islandRepo = remult.repo(Island)
     const tileRepo = remult.repo(Tile)
+    const userRepo = remult.repo(User)
 
     const existing = await islandRepo.findFirst({ ownerId: user.id })
     if (existing) throw new Error('Adventure has already started !')
+
+    const dbUser = await userRepo.findId(user.id)
+    if (dbUser) {
+      dbUser.sap += 100
+      await userRepo.save(dbUser)
+    }
 
     const island = await islandRepo.insert({
       ownerId: user.id,
@@ -549,7 +567,7 @@ export class GameController {
         slugName: species.slugName,
         rarity: species.rarity,
         description: species.description,
-        description_lore: species.description_lore,
+        descriptionLore: species.descriptionLore,
         waterNeeds: species.waterNeeds,
         growthDuration: species.growthDuration,
         preferredSeason: species.preferredSeason,
@@ -562,6 +580,7 @@ export class GameController {
   static async removeSap(amount: number) {
     const user = remult.user
     if (!user) throw new Error('Not Authenticated')
+    if (amount < 0) throw new Error('You cannot remove a negative quantity of Sap')
 
     const userRepo = remult.repo(User)
     const dbUser = await userRepo.findId(user.id)

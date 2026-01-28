@@ -1,4 +1,5 @@
-import { FlowerStatus, UserFlower } from '@/shared'
+import { FlowerStatus, User, UserFlower } from '@/shared'
+import { DailySnapshot } from '@/shared/analytics/DailySnapshot'
 import { Remult } from 'remult'
 
 export class GameService {
@@ -59,5 +60,40 @@ export class GameService {
         await flowerRepo.save(flower)
       }
     }
+  }
+
+  static async createDailySnapshot(remult: Remult) {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const snapshotRepo = remult.repo(DailySnapshot)
+
+    const existing = await snapshotRepo.findFirst({ date: today })
+    if (existing) return
+
+    const userRepo = remult.repo(User)
+
+    const totalUsers = await userRepo.count()
+    const activeUsers = await userRepo.count({
+      lastOnline: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+    })
+
+    const startOfDay = new Date()
+    startOfDay.setHours(0, 0, 0, 0)
+    const newRegistrations = await userRepo.count({
+      createdAt: { $gte: startOfDay },
+    })
+
+    let totalSap = 0
+    let marketVol = 0
+
+    await snapshotRepo.insert({
+      date: today,
+      totalUsers,
+      activeUsers,
+      newRegistrations,
+      totalSapCirculation: totalSap,
+      marketVolume: marketVol,
+    })
   }
 }

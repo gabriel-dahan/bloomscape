@@ -76,7 +76,6 @@ export class ChatController {
 
     const participants = await partRepo.find({ where: { chatId } })
 
-    // DYNAMIC IMPORT to avoid loading socket.io on the client
     const { notifyUser } = await import('../socket')
 
     for (const p of participants) {

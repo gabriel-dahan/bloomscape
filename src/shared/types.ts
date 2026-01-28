@@ -28,7 +28,7 @@ export interface FlowerDTO {
     slugName: string
     rarity: FlowerRarity
     description?: string
-    description_lore?: string
+    descriptionLore?: string
     waterNeeds: string
     growthDuration: number
     preferredSeason: string
@@ -154,7 +154,6 @@ export type GlobalPlayerModifierType =
   | 'GLOBAL_XP_MULTIPLIER'
   | 'SHOP_PRICE_DISCOUNT'
   | 'MARKET_SELLING_BONUS'
-  | 'ENERGY_REGEN_RATE'
   | 'RARE_FIND_LUCK'
 
 export interface FlowerSynergy {

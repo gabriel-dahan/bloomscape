@@ -126,7 +126,6 @@ export const useChatStore = defineStore('chat', () => {
         chatId: activeChatId.value,
         content: text,
       })
-      currentMessages.value.push(msg)
     } catch (e) {
       console.error('Failed to send', e)
     }

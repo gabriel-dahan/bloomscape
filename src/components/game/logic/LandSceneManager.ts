@@ -66,6 +66,7 @@ export interface SceneConfig {
   tileSize: number
   onHover: (x: number, z: number) => void
   onClick?: (x: number, z: number) => void
+  onAssetsLoaded?: () => void
 }
 
 export interface TileData {
@@ -156,6 +157,8 @@ export class LandSceneManager {
     uSize: { value: number }
   }
 
+  private loadingManager: THREE.LoadingManager
+
   private elementManager: WorldElementManager
 
   private cursorMesh!: THREE.Mesh
@@ -196,17 +199,29 @@ export class LandSceneManager {
     this.config = config
     this.raycaster = new THREE.Raycaster()
     this.mouse = new THREE.Vector2()
-    this.loader = new THREE.TextureLoader()
     this.interfaceStore = useUIStore()
 
     this.onMouseMove = this.onMouseMove.bind(this)
     this.onMouseClick = this.onMouseClick.bind(this)
     this.onWindowResize = this.onWindowResize.bind(this)
     this.onMouseDown = this.onMouseDown.bind(this)
+
+    this.loadingManager = new THREE.LoadingManager()
+    this.loadingManager.onLoad = () => {
+      console.log('All textures and models loaded')
+      if (this.config.onAssetsLoaded) {
+        this.config.onAssetsLoaded()
+      }
+    }
+
+    this.loader = new THREE.TextureLoader(this.loadingManager)
   }
 
   public init(container: HTMLElement) {
     this.container = container
+    const textureLoader = new THREE.TextureLoader(this.loadingManager)
+
+    this.loader = textureLoader
 
     while (this.container.firstChild) {
       this.container.removeChild(this.container.firstChild)
@@ -284,22 +299,22 @@ export class LandSceneManager {
       TWO: THREE.TOUCH.DOLLY_PAN,
     }
 
-    this.createWorld()
+    this.createWorld(textureLoader)
     this.createFireflies()
 
-    this.elementManager = new WorldElementManager(this.scene)
+    this.elementManager = new WorldElementManager(this.scene, textureLoader)
 
     this.addEventListeners()
     this.animate(0)
   }
 
-  private createWorld() {
+  private createWorld(loader: THREE.TextureLoader) {
     const { tileSize } = this.config
 
     const loadFrames = (folder: string): THREE.Texture[] => {
       const frames: THREE.Texture[] = []
       for (let i = 1; i <= 16; i++) {
-        const tex = this.loader.load(`/textures/water/${folder}/frame${i}.png`)
+        const tex = loader.load(`/textures/water/${folder}/frame${i}.png`)
         tex.magFilter = THREE.NearestFilter
         tex.minFilter = THREE.NearestFilter
         tex.colorSpace = THREE.SRGBColorSpace
@@ -373,7 +388,7 @@ export class LandSceneManager {
     this.scene.add(this.selectionMesh)
 
     const loadTex = (p: string) => {
-      const t = this.loader.load(p)
+      const t = loader.load(p)
       t.magFilter = THREE.NearestFilter
       t.minFilter = THREE.NearestFilter
       t.colorSpace = THREE.SRGBColorSpace

@@ -197,7 +197,11 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                                 <div class="overflow-hidden">
                                     <div class="font-bold text-xs text-slate-200 truncate">{{ seed.species?.name }}
                                     </div>
-                                    <div class="text-[10px] text-slate-400 truncate">{{ seed.species?.rarity }}</div>
+                                    <div class="text-[10px] text-slate-400 truncate flex gap-2"><span>{{
+                                        seed.species?.rarity
+                                            }}</span><span class="text-bloom-secondary">{{ Math.round(seed.quality *
+                                            100) }}%</span>
+                                    </div>
                                 </div>
                             </div>
                         </button>

@@ -25,7 +25,7 @@ export class FlowerSpecies {
   preferredSeason: PreferredSeasons = PreferredSeasons.NO
 
   @Fields.string()
-  description_lore: string = ''
+  descriptionLore: string = ''
 
   @Fields.string()
   rarity: FlowerRarity = FlowerRarity.COMMON

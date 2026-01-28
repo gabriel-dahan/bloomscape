@@ -7,7 +7,7 @@ export const sanitizeUser = (user: User) => {
 }
 
 @Entity('users', {
-  allowApiCrud: 'admin', // TODO : restrict this later to
+  allowApiCrud: 'admin',
 })
 export class User {
   @Fields.uuid()
@@ -33,9 +33,6 @@ export class User {
 
   @Fields.integer()
   xp: number = 0
-
-  @Fields.integer()
-  score: number = 0
 
   @Fields.integer()
   maxPlots: number = 9

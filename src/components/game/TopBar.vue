@@ -6,6 +6,7 @@ import { User } from '@/shared';
 import { UserController } from '@/server/controllers/UserController';
 import { ROUTES_ENUM as ROUTES } from '@/routes/routes_enum';
 import { useChatStore } from '@/stores/chat';
+import { useGameStore } from '@/stores/game';
 
 // --- PROPS ---
 const props = defineProps<{
@@ -13,23 +14,19 @@ const props = defineProps<{
 }>();
 
 const chat = useChatStore()
+const game = useGameStore()
 
 // --- STATE ---
 const displayedUser = ref<User | null>(null);
 const isLoading = ref(true);
 
+const islandMonthScore = ref(0)
+
 // --- COMPUTED ---
-// Génère un avatar cohérent basé sur le Tag de l'utilisateur
+// TODO: replace this fake avatar with the real user's avatar
 const avatarUrl = computed(() => {
     const seed = displayedUser.value?.tag || 'default';
     return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&backgroundColor=b6e3f4`;
-});
-
-// Simule un nom de secteur basé sur l'ID (Juste pour le lore, ou à remplacer par une vraie data plus tard)
-const sectorName = computed(() => {
-    if (!displayedUser.value) return 'Unknown';
-    const idSlice = displayedUser.value.id.slice(0, 4).toUpperCase();
-    return `SEC-${idSlice}`;
 });
 
 // --- METHODS ---
@@ -46,11 +43,12 @@ const fetchUserData = async () => {
 };
 
 // --- LIFECYCLE ---
-onMounted(() => {
+onMounted(async () => {
     fetchUserData();
+
+    islandMonthScore.value = await game.getMonthScore()
 });
 
-// Recharge si l'ID change (navigation entre profils)
 watch(() => props.userTag, () => {
     fetchUserData();
 });
@@ -78,29 +76,49 @@ watch(() => props.userTag, () => {
 
             <div class="h-8 w-px bg-white/10"></div>
 
-            <div class="flex items-center gap-3 cursor-pointer group">
-                <div class="text-right hidden md:block min-w-[80px]">
-                    <div v-if="!isLoading"
-                        class="text-xs font-bold text-gray-200 group-hover:text-emerald-400 transition-colors">
-                        <RouterLink :to="ROUTES.USER_PROFILE.pathDyn(displayedUser?.tag)">
+            <RouterLink :to="ROUTES.USER_PROFILE.pathDyn(displayedUser?.tag)">
+                <div class="flex items-center gap-3 cursor-pointer group">
+
+                    <div class="text-right hidden md:block">
+                        <div v-if="!isLoading"
+                            class="text-xs font-bold text-gray-200 group-hover:text-emerald-400 transition-colors">
                             {{ displayedUser?.tag || 'Unknown' }}
-                        </RouterLink>
-                    </div>
-                    <div v-else class="h-3 w-20 bg-white/10 rounded animate-pulse mb-1 ml-auto"></div>
+                        </div>
+                        <div v-else class="h-3 w-20 bg-white/10 rounded animate-pulse mb-1 ml-auto"></div>
 
-                    <div v-if="!isLoading" class="text-[10px] text-gray-500">
-                        Level {{ displayedUser?.level || 1 }}
+                        <div v-if="!isLoading" class="text-[10px] text-gray-500">
+                            Level {{ displayedUser?.level || 1 }}
+                        </div>
+                        <div v-else class="h-2 w-10 bg-white/10 rounded animate-pulse ml-auto"></div>
                     </div>
-                    <div v-else class="h-2 w-10 bg-white/10 rounded animate-pulse ml-auto"></div>
+
+
+                    <div class="avatar" :class="{ 'online': !isLoading }">
+                        <div
+                            class="w-5 rounded-full ring ring-emerald-500 ring-offset-slate-900 ring-offset-2 bg-slate-800">
+                            <img v-if="!isLoading" :src="avatarUrl" alt="Avatar"
+                                class="transition-opacity duration-500" />
+                            <div v-else class="w-full h-full bg-slate-700 animate-pulse"></div>
+                        </div>
+                    </div>
+                </div>
+            </RouterLink>
+
+            <div class="h-8 w-px bg-white/10"></div>
+
+            <div class="flex flex-col items-center tooltip tooltip-warning tooltip-bottom sm:tooltip-left">
+                <div class="tooltip-content">
+                    <small class="m-2">The Island Month score is a score that determines your position in the overall
+                        Islands
+                        ranking. It resets every in-game year (1 month).</small>
                 </div>
 
-                <div class="avatar" :class="{ 'online': !isLoading }">
-                    <div
-                        class="w-5 rounded-full ring ring-emerald-500 ring-offset-slate-900 ring-offset-2 bg-slate-800">
-                        <img v-if="!isLoading" :src="avatarUrl" alt="Avatar" class="transition-opacity duration-500" />
-                        <div v-else class="w-full h-full bg-slate-700 animate-pulse"></div>
-                    </div>
-                </div>
+                <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-1">
+                    Island Score
+                </span>
+                <p class="text-sm font-mono font-bold text-amber-400 drop-shadow-sm leading-none">
+                    {{ islandMonthScore }}
+                </p>
             </div>
         </div>
     </div>

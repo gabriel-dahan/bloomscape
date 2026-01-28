@@ -4,7 +4,7 @@ import { useTimeStore } from '@/stores/time'
 import { type Season } from '@/shared/gameTime'
 
 const timeStore = useTimeStore()
-const showTooltip = ref(false) // State to control tooltip visibility
+const showTooltip = ref(false)
 
 const formattedTime = computed(() => {
     const h = timeStore.now.hour.toString().padStart(2, '0')

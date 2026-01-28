@@ -47,7 +47,7 @@ const getBtnClass = (variant?: string) => {
 
             <transition name="scale">
                 <div v-if="isOpen"
-                    class="glass-panel flex flex-col p-6 rounded-2xl border shadow-2xl relative overflow-hidden transition-all duration-300"
+                    class="glass-panel flex flex-col px-4 py-6 md:p-6 rounded-2xl border shadow-2xl relative overflow-hidden transition-all duration-300"
                     :class="[config.border, sizeClasses]">
 
                     <div
