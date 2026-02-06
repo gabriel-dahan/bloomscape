@@ -16,7 +16,7 @@ function getBgColor(type: string) {
 </script>
 
 <template>
-    <div class="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
+    <div class="fixed bottom-4 right-4 z-9999 flex flex-col gap-2 pointer-events-none">
         <TransitionGroup name="toast">
             <div v-for="note in notifications" :key="note.id"
                 class="pointer-events-auto w-80 p-4 rounded-xl border shadow-lg backdrop-blur-sm text-white transform transition-all duration-300"

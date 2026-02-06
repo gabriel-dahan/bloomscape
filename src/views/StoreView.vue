@@ -2,35 +2,23 @@
 import { ref, onMounted, computed } from 'vue';
 import { PaymentController } from '@/server/controllers/PaymentController';
 import { useAuthStore } from '@/stores/auth';
-import { useRouter } from 'vue-router';
-import { ROUTES_ENUM } from '@/routes/routes_enum';
-import { StoreCategory, StoreItem } from '@/shared/economy/StoreItem';
+import { StoreCategory, StoreItem } from '@/shared/economy/StoreItem'; // Import Entity
 import PixelImageViewer from '@/components/icons/PixelImageViewer.vue';
 
 const auth = useAuthStore();
-const router = useRouter();
 
 // --- STATE ---
 const items = ref<StoreItem[]>([]);
 const isLoading = ref(true);
 const activeCategory = ref<string>('All');
-const processingId = ref<string | null>(null); // Track which item is being bought
-
-// Mock Data (Fallback if backend is empty)
-const mockItems: Partial<StoreItem>[] = [
-    { id: '1', name: 'Handful of Gems', description: '500 Shiny Gems to spend.', price: 4.99, category: StoreCategory.CURRENCY, imageUrl: '/assets/store/gems_small.png', isPopular: false },
-    { id: '2', name: 'Sack of Gems', description: '1200 Gems. Good value!', price: 9.99, category: StoreCategory.CURRENCY, imageUrl: '/assets/store/gems_medium.png', isPopular: true },
-    { id: '3', name: 'Chest of Gems', description: '3000 Gems. Best value!', price: 24.99, category: StoreCategory.CURRENCY, imageUrl: '/assets/store/gems_large.png', isPopular: false },
-    { id: '4', name: 'Starter Bundle', description: 'Exclusive Planter + 500 Gems', price: 14.99, category: StoreCategory.BUNDLE, imageUrl: '/assets/store/bundle_starter.png', isNew: true },
-    { id: '5', name: 'Golden Watering Can', description: 'Water crops instantly.', price: 7.99, category: StoreCategory.COSMETIC, imageUrl: '/assets/store/tool_gold.png', isPopular: false },
-];
+const processingId = ref<string | null>(null);
 
 // --- COMPUTED ---
 const categories = computed(() => ['All', ...Object.values(StoreCategory)]);
 
 const filteredItems = computed(() => {
     if (activeCategory.value === 'All') return items.value;
-    return items.value.filter(i => i.category === activeCategory.value);
+    return items.value.filter(i => i.category === activeCategory.value.toLowerCase());
 });
 
 // --- ACTIONS ---
@@ -38,12 +26,7 @@ async function loadStore() {
     isLoading.value = true;
     try {
         const res = await PaymentController.getStoreItems();
-        if (res.length > 0) {
-            items.value = res;
-        } else {
-            // Use mock data for display purposes if DB is empty
-            items.value = mockItems as StoreItem[];
-        }
+        items.value = res;
     } catch (e) {
         console.error("Failed to load store", e);
     } finally {
@@ -53,8 +36,6 @@ async function loadStore() {
 
 async function buyItem(item: StoreItem) {
     if (!auth.user) {
-        // Redirect to login if not authenticated
-        // assuming you have a login route or modal logic
         alert("Please login to purchase items.");
         return;
     }
@@ -66,7 +47,7 @@ async function buyItem(item: StoreItem) {
         const res = await PaymentController.initiatePurchase(item.id);
         if (res.success) {
             alert(res.message);
-            // Optional: Refresh user balance/inventory here
+            await auth.fetchSessionUser();
         }
     } catch (e: any) {
         alert("Purchase failed: " + e.message);
@@ -94,11 +75,16 @@ onMounted(() => {
             <div class="text-center mb-12">
                 <h1
                     class="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-600 mb-4 drop-shadow-sm">
-                    Premium Store
+                    Store
                 </h1>
                 <p class="text-slate-400 max-w-2xl mx-auto">
                     Support BloomScape and unlock exclusive cosmetics, bundles, and currency.
                 </p>
+                <div v-if="auth.user"
+                    class="mt-4 inline-flex items-center gap-2 bg-slate-900 px-4 py-2 rounded-full border border-slate-800">
+                    <span class="text-slate-400 text-xs uppercase font-bold">Your Balance :</span>
+                    <span class="text-emerald-600 font-mono font-bold">{{ auth.user.sap }} SAP</span>
+                </div>
             </div>
 
             <div class="flex flex-wrap justify-center gap-2 mb-10">
@@ -155,7 +141,7 @@ onMounted(() => {
                             <div class="flex flex-col">
                                 <span class="text-xs text-slate-500 font-bold uppercase">Price</span>
                                 <span class="text-xl font-mono text-amber-400 font-bold">${{ item.price.toFixed(2)
-                                    }}</span>
+                                }}</span>
                             </div>
 
                             <button @click="buyItem(item)" :disabled="!!processingId"

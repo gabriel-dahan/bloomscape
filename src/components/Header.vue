@@ -46,7 +46,7 @@ const menuLinks: MenuLink[] = [
     {
         name: 'Community',
         children: [
-            { name: 'Leaderboard', path: '#' },
+            { name: 'Leaderboard', path: ROUTES.LEADERBOARD.path },
             { name: 'Wiki', path: ROUTES.WIKI.path },
         ]
     },
@@ -55,7 +55,8 @@ const menuLinks: MenuLink[] = [
         children: [
             { name: 'Marketplace', path: ROUTES.MARKET.path },
             { name: 'Inventory', path: ROUTES.INVENTORY.path },
-            { name: 'FloraDex', path: ROUTES.FLORADEX.path }
+            { name: 'FloraDex', path: ROUTES.FLORADEX.path },
+            { name: 'Rewards Road', path: ROUTES.REWARDS_ROAD.path }
         ]
     },
     {

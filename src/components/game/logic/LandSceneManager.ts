@@ -591,7 +591,7 @@ export class LandSceneManager {
     this.updateFlowers(landTiles)
   }
 
-  private updateFlowers(tiles: TileData[]) {
+  public updateFlowers(tiles: TileData[]) {
     const visitedKeys = new Set<string>()
 
     tiles.forEach((tile) => {

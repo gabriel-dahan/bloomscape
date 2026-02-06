@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
-import { remult } from 'remult';
 import { useUIStore } from '@/stores/ui';
 import { User } from '@/shared';
 import { UserController } from '@/server/controllers/UserController';
@@ -8,7 +7,6 @@ import { ROUTES_ENUM as ROUTES } from '@/routes/routes_enum';
 import { useChatStore } from '@/stores/chat';
 import { useGameStore } from '@/stores/game';
 
-// --- PROPS ---
 const props = defineProps<{
     userTag: string
 }>();
@@ -16,20 +14,18 @@ const props = defineProps<{
 const chat = useChatStore()
 const game = useGameStore()
 
-// --- STATE ---
 const displayedUser = ref<User | null>(null);
 const isLoading = ref(true);
 
-const islandMonthScore = ref(0)
-
-// --- COMPUTED ---
-// TODO: replace this fake avatar with the real user's avatar
 const avatarUrl = computed(() => {
     const seed = displayedUser.value?.tag || 'default';
     return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&backgroundColor=b6e3f4`;
 });
 
-// --- METHODS ---
+const islandMonthScore = computed(() => {
+    return game.currentIsland?.monthScore || 0;
+});
+
 const fetchUserData = async () => {
     if (!props.userTag) return;
 
@@ -42,11 +38,8 @@ const fetchUserData = async () => {
     }
 };
 
-// --- LIFECYCLE ---
 onMounted(async () => {
     fetchUserData();
-
-    islandMonthScore.value = await game.getMonthScore()
 });
 
 watch(() => props.userTag, () => {
@@ -56,7 +49,7 @@ watch(() => props.userTag, () => {
 
 <template>
     <div v-ui-block
-        class="fixed top-0 left-0 w-full phone:h-fit p-4 pointer-events-none flex justify-start sm:justify-center md:justify-end md:pr-8">
+        class="fixed top-0 left-0 w-full phone:h-fit p-4 pointer-events-none flex justify-start sm:justify-center md:justify-end md:pr-8 z-[60]">
 
         <div
             class="pointer-events-auto glass-panel rounded-full px-6 py-2 flex items-center gap-6 shadow-2xl shadow-black/40 transition-all duration-300">
@@ -106,19 +99,36 @@ watch(() => props.userTag, () => {
 
             <div class="h-8 w-px bg-white/10"></div>
 
-            <div class="flex flex-col items-center tooltip tooltip-warning tooltip-bottom sm:tooltip-left">
-                <div class="tooltip-content">
-                    <small class="m-2">The Island Month score is a score that determines your position in the overall
-                        Islands
-                        ranking. It resets every in-game year (1 month).</small>
-                </div>
+            <div class="group relative flex flex-col items-center cursor-help">
 
-                <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-1">
+                <span
+                    class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-1 group-hover:text-slate-300 transition-colors">
                     Island Score
                 </span>
                 <p class="text-sm font-mono font-bold text-amber-400 drop-shadow-sm leading-none">
                     {{ islandMonthScore }}
                 </p>
+
+                <div
+                    class="absolute top-full -right-25 sm:right-0 mt-4 w-64 p-4 rounded-xl bg-slate-900/95 border border-slate-700/50 shadow-2xl backdrop-blur-md opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 pointer-events-none z-[100]">
+                    <div class="flex items-center gap-2 mb-2 pb-2 border-b border-slate-700/50">
+                        <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Seasonal Ranking</span>
+                    </div>
+
+                    <p class="text-xs text-slate-300 font-sans leading-relaxed mb-3">
+                        Determines your island's position on the global leaderboard based on your farming activity.
+                    </p>
+
+                    <div class="flex items-center gap-2 text-[10px] text-slate-500 font-mono">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Resets every month (In-game year)</span>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>

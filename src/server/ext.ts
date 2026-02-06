@@ -20,7 +20,7 @@ export const LEVEL_REWARDS: LevelReward[] = [
     description: 'A small boost to get your garden growing.',
     type: 'sap',
     amount: 500,
-    icon: '🪙',
+    icon: '/game/sap_drop.png',
     color: 'emerald',
   },
   {
@@ -29,7 +29,7 @@ export const LEVEL_REWARDS: LevelReward[] = [
     description: 'Unlock 5 free Sunflower Seeds.',
     type: 'item',
     amount: 5,
-    icon: '🌻',
+    icon: '/api/images/badges/unknown_white',
     color: 'amber',
   },
   {

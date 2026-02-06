@@ -16,6 +16,9 @@ export class StoreItem {
   name!: string
 
   @Fields.string()
+  idName!: string
+
+  @Fields.string()
   description: string = ''
 
   @Fields.number()

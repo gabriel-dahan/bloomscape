@@ -198,6 +198,13 @@ export const ROUTES_ENUM = {
     viewPath: 'game/LevelRoadView.vue',
   },
 
+  LEADERBOARD: {
+    name: 'leaderboard',
+    path: '/leaderboard',
+    windowTitle: 'Leaderboard',
+    viewPath: 'game/LeaderboardView.vue',
+  },
+
   SUPPORT: {
     name: 'support',
     path: '/support',

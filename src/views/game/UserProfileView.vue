@@ -152,8 +152,16 @@ onMounted(async () => {
                             <span v-if="user.roles.includes(Role.ADMIN)" class="tooltip tooltip-right"
                                 data-tip="Administrator">
                                 <div class="inline-block mt-1">
-                                    <PixelImageViewer src="/src/private/icons/badges/admin.png" alt="Admin"
-                                        height="24px" width="24px" />
+                                    <PixelImageViewer src="/api/images/badges/admin" alt="Admin" height="24px"
+                                        width="24px" />
+                                </div>
+                            </span>
+
+                            <span v-if="user.roles.includes(Role.DEVELOPER)" class="tooltip tooltip-right"
+                                data-tip="Developer">
+                                <div class="inline-block mt-1">
+                                    <PixelImageViewer src="/api/images/badges/developer" alt="Dev" height="24px"
+                                        width="24px" />
                                 </div>
                             </span>
                         </h1>
@@ -210,7 +218,7 @@ onMounted(async () => {
                         <div
                             class="bg-slate-900 p-4 rounded-xl border border-slate-800 flex flex-col items-center text-center">
                             <div class="text-lg font-bold text-white font-mono text-sm leading-6 mt-1">{{ stats.joinedAt
-                                }}</div>
+                            }}</div>
                             <div class="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Joined</div>
                         </div>
                     </div>

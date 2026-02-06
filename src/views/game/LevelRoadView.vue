@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useGameStore } from '@/stores/game'
 import { router } from '@/routes'
 import { LEVEL_REWARDS, type LevelReward } from '@/server/ext'
+import PixelImageViewer from '@/components/icons/PixelImageViewer.vue'
 
 const auth = useAuthStore()
 const game = useGameStore()
@@ -110,7 +111,9 @@ const getColorClasses = (reward: LevelReward, status: string) => {
 
                                 <div
                                     class="w-12 h-12 rounded-xl bg-black/20 flex items-center justify-center text-2xl shrink-0 shadow-inner">
-                                    {{ reward.icon }}
+                                    <PixelImageViewer :src="reward.icon" :class="{
+                                        'grayscale opacity-50': getStatus(reward.level) === 'locked'
+                                    }" />
                                 </div>
 
                                 <div class="min-w-0">

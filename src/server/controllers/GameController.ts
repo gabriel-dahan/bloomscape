@@ -66,6 +66,7 @@ export class GameController {
   static async getMonthScore(islandId: string) {
     const islandRepo = remult.repo(Island)
     const island = await islandRepo.findId(islandId)
+    console.log('Bla blah blah', island)
 
     if (!island) throw new Error('Island not found')
 
@@ -314,7 +315,10 @@ export class GameController {
       type: 'success',
     })
 
-    return { success: true }
+    return {
+      success: true,
+      flower: GameController.toFlowerDTO(flower),
+    }
   }
 
   @BackendMethod({ allowed: true })

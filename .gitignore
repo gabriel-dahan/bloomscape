@@ -42,7 +42,8 @@ __screenshots__/
 
 # Database & private
 *.sqlite
-src/private/**
+src/private/*
+!src/private/icons/
 
 # Contextify
-./llm_contextify.md
+llm_contextify.md

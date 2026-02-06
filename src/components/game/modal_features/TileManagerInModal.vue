@@ -4,8 +4,6 @@ import { GameController } from '@/server/controllers/GameController'
 import { FlowerRarity, Tile, PreferredSeasons, FlowerDTO } from '@/shared';
 import FlowerImage from '@/components/FlowerImage.vue';
 
-// ... (Props and State remain the same as previous version) ...
-
 const props = defineProps<{
     x: number,
     z: number,
@@ -82,7 +80,6 @@ const activeBuffs = computed(() => {
 })
 
 // --- ACTIONS ---
-// (Same actions as before: loadData, handlePlant, handleWater, handleHarvest...)
 const loadData = async () => {
     isLoading.value = true
     errorMsg.value = ''
@@ -200,7 +197,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                                     <div class="text-[10px] text-slate-400 truncate flex gap-2"><span>{{
                                         seed.species?.rarity
                                             }}</span><span class="text-bloom-secondary">{{ Math.round(seed.quality *
-                                            100) }}%</span>
+                                                100) }}%</span>
                                     </div>
                                 </div>
                             </div>
@@ -292,7 +289,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                                 <div
                                     class="bg-slate-800/50 p-3 rounded-lg border border-slate-700/50 min-h-[50px] flex items-center">
                                     <p class="italic text-xs leading-relaxed">
-                                        "{{ flower.species.description_lore || "A mysterious plant..." }}"
+                                        "{{ flower.species.descriptionLore || "A mysterious plant..." }}"
                                     </p>
                                 </div>
 
