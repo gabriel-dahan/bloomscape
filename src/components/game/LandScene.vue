@@ -6,6 +6,7 @@ import { storeToRefs } from 'pinia';
 import { LandSceneManager } from './logic/LandSceneManager';
 import { useAuthStore } from '@/stores/auth';
 import GameClock from './GameClock.vue';
+import SoundToggle from './sound/SoundToggle.vue';
 
 const props = withDefaults(defineProps<{
     userId: string,
@@ -161,6 +162,7 @@ watch(selectedTile, (newVal) => {
 
         <div ref="canvasContainerRef" class="absolute inset-0 z-0 block"></div>
 
+        <SoundToggle v-ui-block />
         <GameClock v-ui-block></GameClock>
 
         <transition name="fade">

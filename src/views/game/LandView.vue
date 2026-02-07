@@ -10,6 +10,7 @@ import { UserController } from '@/server/controllers/UserController';
 import { useModalStore } from '@/stores/modal';
 import TileManagerInModal from '@/components/game/modal_features/TileManagerInModal.vue';
 import { ROUTES_ENUM as ROUTES } from '@/routes/routes_enum';
+import GameSoundtrack from '@/components/game/sound/GameSoundtrack.vue';
 
 const gameStore = useGameStore();
 const auth = useAuthStore();
@@ -26,9 +27,16 @@ onMounted(async () => {
 const formatCoord = (n: number) => n.toString().padStart(2, '0');
 const activeTile = computed(() => gameStore.selectedTile || gameStore.hoveredTile);
 
+const playlist = [
+    '/soundtrack1.mp3',
+    '/soundtrack2.mp3'
+]
+
 </script>
 
 <template>
+    <GameSoundtrack :playlist="playlist" :min-silence="30000" :max-silence="120000" />
+
     <div class="relative w-screen h-screen overflow-hidden bg-slate-900 text-slate-200 z-0 overflow-hidden">
 
         <LandScene v-if="userId" quality="high" :user-id="userId" />
@@ -99,7 +107,7 @@ const activeTile = computed(() => gameStore.selectedTile || gameStore.hoveredTil
                                         modal.open({
                                             title: 'Tile Manager',
                                             component: markRaw(componentWithProps),
-                                            size: 'large',
+                                            size: 'fullscreen',
                                             path: ROUTES.TILE_MANAGER.pathDyn(activeTile.x, activeTile.z),
                                             sideBarMargin: true,
                                         });

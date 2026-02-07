@@ -16,7 +16,6 @@ import { useBreakpoints } from '@/stores/breakpoints';
 import { useWindowSize } from '@vueuse/core'
 import { useGameStore } from '@/stores/game';
 
-
 const uiStore = useUIStore();
 
 const auth = useAuthStore();
