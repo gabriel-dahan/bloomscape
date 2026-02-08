@@ -1,5 +1,35 @@
 <script setup lang="ts">
-import HomeMarketTicker from '@/components/HomeMarketTicker.vue';
+import { ref, onMounted } from 'vue'
+import HomeMarketTicker from '@/components/HomeMarketTicker.vue'
+import { GameController } from '@/server/controllers/GameController'
+import { MarketController, type MarketTickerItem } from '@/server/controllers/MarketController'
+
+const globalStats = ref({
+    activePlots: 0,
+    totalSapTraded: 0,
+    speciesCount: 0
+})
+
+const marketTicker = ref<MarketTickerItem[]>([])
+
+onMounted(async () => {
+    try {
+        const stats = await GameController.getGlobalStats()
+        globalStats.value = stats
+
+        const ticker = await MarketController.getMarketTicker()
+        marketTicker.value = ticker
+    } catch (e) {
+        console.error("Failed to load home data", e)
+    }
+})
+
+// Formatting helpers
+const formatNumber = (num: number) => {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'k'
+    return num.toString()
+}
 
 const getRarityGlowStyle = (rarity: string) => {
     const colors: Record<string, string> = {
@@ -75,16 +105,17 @@ const getRarityGlowStyle = (rarity: string) => {
                     <div
                         class="pt-8 flex flex-col phone:flex-row items-center justify-center lg:justify-start gap-6 phone:gap-8 border-t border-slate-800/60 w-full">
                         <div class="text-center lg:text-left">
-                            <div class="text-2xl font-bold text-white">12k+</div>
-                            <div class="text-xs text-slate-500 uppercase tracking-wider font-bold">Active Plots</div>
+                            <div class="text-2xl font-bold text-white">{{ formatNumber(globalStats.activePlots) }}</div>
+                            <div class="text-xs text-slate-500 uppercase tracking-wider font-bold">Plots</div>
                         </div>
                         <div class="text-center lg:text-left">
-                            <div class="text-2xl font-bold text-white">850k</div>
+                            <div class="text-2xl font-bold text-white">{{ formatNumber(globalStats.totalSapTraded) }}
+                            </div>
                             <div class="text-xs text-slate-500 uppercase tracking-wider font-bold">Sap Traded</div>
                         </div>
                         <div class="text-center lg:text-left">
-                            <div class="text-2xl font-bold text-white">142</div>
-                            <div class="text-xs text-slate-500 uppercase tracking-wider font-bold">Species</div>
+                            <div class="text-2xl font-bold text-white">{{ globalStats.speciesCount }}</div>
+                            <div class="text-xs text-slate-500 uppercase tracking-wider font-bold">Flower Species</div>
                         </div>
                     </div>
                 </div>
@@ -121,7 +152,7 @@ const getRarityGlowStyle = (rarity: string) => {
             </div>
         </header>
 
-        <HomeMarketTicker class="w-full max-w-full" />
+        <HomeMarketTicker :items="marketTicker" v-if="marketTicker.length > 0" />
 
         <section class="py-16 phone:py-24 bg-slate-950 relative w-full overflow-hidden">
             <div class="max-w-7xl mx-auto px-4 phone:px-6">

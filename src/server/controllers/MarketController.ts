@@ -12,6 +12,14 @@ import { BackendMethod, remult } from 'remult'
 import { FlowerAvailability, FlowerRarity } from '@/shared/types'
 import { GameController } from './GameController'
 
+export interface MarketTickerItem {
+  id: string
+  name: string
+  price: number
+  change: string
+  up: boolean
+}
+
 export class MarketController {
   @BackendMethod({ allowed: true })
   static async buyListing(listingId: string) {
@@ -287,5 +295,54 @@ export class MarketController {
     }
 
     await statsRepo.save(stat)
+  }
+  @BackendMethod({ allowed: true })
+  static async getMarketTicker(): Promise<MarketTickerItem[]> {
+    const speciesRepo = remult.repo(FlowerSpecies)
+    const statsRepo = remult.repo(MarketStats)
+
+    // Get all species
+    const allSpecies = await speciesRepo.find()
+    const tickerItems: MarketTickerItem[] = []
+
+    for (const species of allSpecies) {
+      // Get latest stat
+      const latestStat = await statsRepo.findFirst(
+        { speciesId: species.id },
+        { orderBy: { date: 'desc' } },
+      )
+
+      if (!latestStat) continue
+
+      // Get previous stat for comparison (stat before latestStat.date)
+      const previousStat = await statsRepo.findFirst(
+        {
+          speciesId: species.id,
+          date: { $lt: latestStat.date },
+        },
+        { orderBy: { date: 'desc' } },
+      )
+
+      let price = latestStat.averagePrice
+      let change = '0%'
+      let up = true
+
+      if (previousStat) {
+        const diff = price - previousStat.averagePrice
+        const percent = (diff / previousStat.averagePrice) * 100
+        change = `${diff >= 0 ? '+' : ''}${Math.round(percent)}%`
+        up = diff >= 0
+      }
+
+      tickerItems.push({
+        id: species.id,
+        name: species.name,
+        price,
+        change,
+        up,
+      })
+    }
+
+    return tickerItems
   }
 }

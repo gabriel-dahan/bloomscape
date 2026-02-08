@@ -5,7 +5,7 @@ const router = useRouter();
 </script>
 
 <template>
-    <div class="w-screen min-h-[50vw] bg-slate-950 relative flex items-center justify-center overflow-hidden font-sans">
+    <div class="w-screen min-h-screen bg-slate-950 relative flex items-center justify-center overflow-hidden font-sans">
 
         <div class="absolute inset-0 pointer-events-none">
             <div

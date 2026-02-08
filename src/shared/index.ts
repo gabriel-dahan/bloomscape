@@ -14,6 +14,7 @@ export * from './user/UserAchievement'
 export * from './flowers/FlowerSpecies'
 export * from './flowers/UserFlower'
 export * from './user/UserItem'
+export * from './user/UserSettings'
 
 // Economy
 export * from './economy/MarketListing'

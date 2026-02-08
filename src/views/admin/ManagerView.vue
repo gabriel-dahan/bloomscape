@@ -1,6 +1,7 @@
 <script setup lang="ts">
 
-import AdminSideBar, { MenuItem } from '@/components/admin/AdminSideBar.vue'
+import AdminSideBar from '@/components/admin/AdminSideBar.vue'
+import type { MenuItem } from '@/components/admin/AdminSideBar.vue'
 
 import AdminConfig from '@/components/admin/integrated_views/AdminConfig.vue'
 import AdminDatabase from '@/components/admin/integrated_views/AdminDatabase.vue'

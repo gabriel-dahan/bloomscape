@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import Chart from 'chart.js/auto'
-import { AdminController, DashboardData } from '@/server/controllers/AdminController'
+import { AdminController } from '@/server/controllers/AdminController'
+import type { DashboardData } from '@/server/controllers/AdminController'
 
 const loading = ref(true)
 const data = ref<DashboardData | null>(null)

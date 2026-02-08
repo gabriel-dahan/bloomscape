@@ -1,20 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 
-const marketTicker = ref([
-    { name: 'Moon Rose', change: '+12%', price: 420, up: true },
-    { name: 'Sun Sunflower', change: '-2%', price: 85, up: false },
-    { name: 'Void Tulip', change: '+5%', price: 1200, up: true },
-    { name: 'Basic Daisy', change: '0%', price: 15, up: true },
-    { name: 'Crystal Lily', change: '+24%', price: 2400, up: true },
-    { name: 'Fire Orchid', change: '-8%', price: 310, up: false },
-])
+import type { MarketTickerItem } from '@/server/controllers/MarketController'
+
+defineProps<{
+    items: MarketTickerItem[]
+}>()
 </script>
 
 <template>
     <div class="w-full bg-slate-900/50 border-y border-slate-800 overflow-hidden py-3 backdrop-blur-sm relative z-20">
         <div class="flex gap-12 animate-marquee whitespace-nowrap">
-            <div v-for="(item, i) in [...marketTicker, ...marketTicker, ...marketTicker]" :key="i"
+            <div v-for="(item, i) in [...items, ...items, ...items]" :key="i"
                 class="flex items-center gap-3 opacity-80 hover:opacity-100 transition-opacity cursor-default">
                 <span class="font-bold text-slate-300 text-sm">{{ item.name }}</span>
                 <span class="font-mono text-white text-sm">{{ item.price }} S</span>

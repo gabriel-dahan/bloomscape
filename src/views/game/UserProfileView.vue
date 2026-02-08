@@ -11,6 +11,7 @@ import { useGameStore } from '@/stores/game';
 import { FlowerDiscovery } from '@/shared/analytics/FlowerDiscovery';
 import FlowerImage from '@/components/FlowerImage.vue';
 import PixelImageViewer from '@/components/icons/PixelImageViewer.vue';
+import MarkdownRenderer from '@/components/MarkdownRenderer.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -101,7 +102,7 @@ function navigateToLand() {
 
 function navigateToSettings() {
     if (!user.value) return;
-    router.push(ROUTES.SETTINGS.pathDyn!(user.value.tag));
+    router.push(ROUTES.SETTINGS.path);
 }
 
 watch(() => route.params.tag, () => {
@@ -165,9 +166,9 @@ onMounted(async () => {
                                 </div>
                             </span>
                         </h1>
-                        <p class="text-slate-400 mt-1 max-w-xl text-sm md:text-base line-clamp-2">
-                            {{ user.description || "No bio provided yet." }}
-                        </p>
+                        <div class="mt-2 text-slate-400 text-sm md:text-base line-clamp-3">
+                            <MarkdownRenderer :content="user.description || 'No bio provided yet.'" />
+                        </div>
                     </div>
 
                     <div class="flex gap-3 w-full md:w-auto mt-2 md:mt-0">
@@ -210,15 +211,11 @@ onMounted(async () => {
                             <div class="text-lg font-bold text-white font-mono">{{ user.maxPlots }}</div>
                             <div class="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Plots Owned</div>
                         </div>
+
                         <div
                             class="bg-slate-900 p-4 rounded-xl border border-slate-800 flex flex-col items-center text-center">
-                            <div class="text-lg font-bold text-white font-mono">{{ user.score }}</div>
-                            <div class="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Score</div>
-                        </div>
-                        <div
-                            class="bg-slate-900 p-4 rounded-xl border border-slate-800 flex flex-col items-center text-center">
-                            <div class="text-lg font-bold text-white font-mono text-sm leading-6 mt-1">{{ stats.joinedAt
-                            }}</div>
+                            <div class="text-lg font-bold text-white font-mono leading-6 mt-1">{{ stats.joinedAt
+                                }}</div>
                             <div class="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Joined</div>
                         </div>
                     </div>
@@ -270,10 +267,11 @@ onMounted(async () => {
                                     </div>
 
                                     <div class="relative bg-slate-950 p-4 rounded-xl border border-slate-800 shadow-lg flex flex-col items-center gap-3 transform transition-all duration-500 group-hover:scale-105 group-hover:-translate-y-1"
-                                        :class="discovery.species ? getRarityColor(discovery.species.rarity).split(' ')[2] : ''">
+                                        :class="discovery.species ? getRarityColor(discovery.species.rarity || FlowerRarity.COMMON).split(' ')[2] : ''">
 
                                         <div class="text-4xl filter drop-shadow-md text-pink-400 mt-2">
-                                            <FlowerImage :slug="discovery.species.slugName" :size="80" />
+                                            <FlowerImage :slug="discovery.species?.slugName || 'missing_flower'"
+                                                :size="80" />
                                         </div>
 
                                         <div class="text-center w-full">

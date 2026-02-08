@@ -9,12 +9,13 @@ import {
   UserAchievement,
   UserFlower,
   UserItem,
-  FlowerRarity,
+  MarketHistory,
 } from '@/shared'
 import type { FlowerDTO, FlowerAttributes, PreferredSeasons } from '@/shared'
 import { BackendMethod, remult } from 'remult'
 import { PRICES } from '../ext'
 import { FlowerDiscovery } from '@/shared/analytics/FlowerDiscovery'
+
 import { getLevelFromXp } from '@/shared/leveling'
 import { AttributesLogic } from '@/shared/attributesLogic'
 
@@ -190,7 +191,6 @@ export class GameController {
       let flower = await flowerRepo.findId(tile.flowerId, { include: { species: true } })
 
       if (flower) {
-        // Fetch context for accurate stats
         const allFlowers = await flowerRepo.find({ where: { ownerId: flower.ownerId } })
 
         flower = await GameController.updateFlowerStatus(flower, allFlowers)
@@ -616,5 +616,27 @@ export class GameController {
       return true
     }
     return false
+  }
+
+  @BackendMethod({ allowed: true })
+  static async getGlobalStats() {
+    const tileRepo = remult.repo(Tile)
+    const speciesRepo = remult.repo(FlowerSpecies)
+    const historyRepo = remult.repo(MarketHistory)
+
+    const activePlots = await tileRepo.count({
+      type: 'land',
+    })
+    const speciesCount = await speciesRepo.count()
+
+    // Aggregate total sap traded
+    const allHistory = await historyRepo.find()
+    const totalSapTraded = allHistory.reduce((sum, h: any) => sum + h.price, 0)
+
+    return {
+      activePlots,
+      totalSapTraded,
+      speciesCount,
+    }
   }
 }

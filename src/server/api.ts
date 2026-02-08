@@ -17,6 +17,7 @@ import {
   UserFlower,
   UserItem,
   Item,
+  UserSettings,
 } from '@/shared/'
 
 import { remultApi } from 'remult/remult-express'
@@ -29,6 +30,7 @@ import { UserController } from './controllers/UserController'
 import { GameController } from './controllers/GameController'
 import { AdminController } from './controllers/AdminController'
 import { MarketController } from './controllers/MarketController'
+import { SettingsController } from './controllers/SettingsController'
 
 import dotenv from 'dotenv'
 import { ReportController } from './controllers/ReportController'
@@ -71,6 +73,7 @@ export const api = remultApi({
     FlowerSpecies,
     UserFlower,
     UserItem,
+    UserSettings,
 
     MarketListing,
     MarketHistory,
@@ -96,6 +99,7 @@ export const api = remultApi({
     GameController,
     AdminController,
     MarketController,
+    SettingsController,
     ReportController,
     ChatController,
     PaymentController,
