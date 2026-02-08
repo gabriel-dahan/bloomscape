@@ -135,8 +135,7 @@ export const ROUTES_ENUM = {
 
   SETTINGS: {
     name: 'userSettings',
-    path: '/p/:tag/settings',
-    pathDyn: (tag: string) => `/p/${tag}/settings`,
+    path: '/p/settings',
     viewPath: 'user/SettingsView.vue',
   },
 

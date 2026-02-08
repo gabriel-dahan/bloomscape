@@ -2,7 +2,7 @@
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { GameController } from '@/server/controllers/GameController'
 import { FlowerRarity, Tile, PreferredSeasons } from '@/shared';
-import type { FlowerDTO } from '@/shared';
+import type { FlowerDTO, FlowerStatus } from '@/shared';
 import FlowerImage from '@/components/FlowerImage.vue';
 
 const props = defineProps<{
@@ -150,7 +150,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 
 <template>
     <div
-        class="h-full flex flex-col bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 p-0 rounded-xl overflow-hidden shadow-2xl border border-slate-700/50">
+        class="h-full flex flex-col bg-linear-to-b from-slate-900 via-slate-900 to-slate-950 p-0 rounded-xl overflow-hidden shadow-2xl border border-slate-700/50">
 
         <div
             class="bg-slate-950/50 backdrop-blur-md p-3 border-b border-slate-800 flex justify-between items-center shrink-0">
@@ -249,7 +249,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                 <div class="mt-auto pt-4 border-t border-slate-800/50 shrink-0">
                     <button @click="handlePlant" :disabled="!selectedSeedId || isPlanting"
                         class="btn btn-primary w-full shadow-lg shadow-emerald-900/20 border-t border-white/10 relative overflow-hidden group">
-                        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer"
+                        <div class="absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer"
                             v-if="!isPlanting"></div>
                         <span v-if="isPlanting" class="loading loading-spinner loading-xs mr-2"></span>
                         {{ isPlanting ? 'Sowing Seeds...' : 'Confirm Planting' }}
@@ -264,7 +264,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                     <div
                         class="flex gap-4 items-center shrink-0 mb-4 bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
                         <div
-                            class="relative w-24 h-24 shrink-0 bg-gradient-to-br from-slate-800 to-black rounded-xl border border-slate-700 flex items-center justify-center overflow-hidden shadow-inner group cursor-help">
+                            class="relative w-24 h-24 shrink-0 bg-linear-to-br from-slate-800 to-black rounded-xl border border-slate-700 flex items-center justify-center overflow-hidden shadow-inner group cursor-help">
 
                             <div class="absolute inset-0 opacity-30 bg-radial-gradient blur-xl transition-opacity duration-700 group-hover:opacity-50"
                                 :class="currentRarityColor"></div>
@@ -273,7 +273,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                                 class="drop-shadow-2xl z-10 group-hover:scale-110 transition-transform duration-500 ease-out" />
 
                             <div
-                                class="absolute bottom-0 inset-x-0 h-6 bg-gradient-to-t from-black/80 to-transparent z-0">
+                                class="absolute bottom-0 inset-x-0 h-6 bg-linear-to-t from-black/80 to-transparent z-0">
                             </div>
 
                             <div v-if="flower.isShiny" class="absolute top-1 right-1">
@@ -294,7 +294,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                                     class="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded border bg-yellow-500/10 border-yellow-500/30 text-yellow-300">Shiny</span>
                             </div>
 
-                            <h2 class="text-xl font-black text-white tracking-tight leading-none break-words truncate"
+                            <h2 class="text-xl font-black text-white tracking-tight leading-none wrap-break-word truncate"
                                 :title="flower.species.name">{{ flower.species.name }}</h2>
 
                             <div class="flex items-center gap-3 mt-2 text-xs">
@@ -381,7 +381,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                                             style="background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.03) 10px, rgba(255,255,255,0.03) 20px);">
                                         </div>
                                         <div class="h-full transition-all duration-1000 ease-out relative"
-                                            :class="growthProgress >= 100 ? 'bg-gradient-to-r from-emerald-600 to-emerald-400' : 'bg-emerald-600'"
+                                            :class="growthProgress >= 100 ? 'bg-linear-to-r from-emerald-600 to-emerald-400' : 'bg-emerald-600'"
                                             :style="{ width: `${Math.min(100, growthProgress)}%` }">
                                             <div class="absolute inset-0 bg-white/20 animate-[shimmer_2s_infinite]">
                                             </div>
@@ -542,7 +542,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                                 <div class="flex flex-col bg-slate-900 p-2 rounded border border-slate-800/50">
                                     <span class="text-[10px] text-slate-500 uppercase font-bold">Season</span>
                                     <span class="font-bold mt-0.5" :class="seasonDisplay.color">{{ seasonDisplay.label
-                                        }}</span>
+                                    }}</span>
                                 </div>
                             </div>
                         </div>
@@ -567,7 +567,8 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                                     ? (index === currentStageIndex ? 'border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)] bg-emerald-900/20' : 'border-emerald-800/50 bg-slate-800')
                                     : 'border-slate-800'">
 
-                                <FlowerImage :slug="flower.species.slugName" :status="stage" type="icon" size="80%" />
+                                <FlowerImage :slug="flower.species.slugName" :status="stage as FlowerStatus" type="icon"
+                                    size="80%" />
 
                                 <div v-if="index === currentStageIndex"
                                     class="absolute inset-0 bg-emerald-400/10 animate-pulse"></div>

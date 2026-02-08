@@ -32,7 +32,7 @@ export interface FlowerDTO {
     descriptionLore?: string
     waterNeeds: string
     growthDuration: number
-    preferredSeason: string
+    preferredSeason: string | null
 
     attributes: FlowerAttributes
   }

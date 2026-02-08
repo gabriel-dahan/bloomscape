@@ -65,14 +65,14 @@ const navigationArray = [
             })
         }
     },
-    { name: 'Settings', icon: SettingsIcon, link: ROUTES.SETTINGS.pathDyn(auth.user?.tag) },
+    { name: 'Settings', icon: SettingsIcon, link: ROUTES.SETTINGS.path },
 ];
 </script>
 
 <template>
     <teleport to="body">
         <button v-if="!uiStore.isSidebarOpen" @click="uiStore.toggleSidebar"
-            class="fixed top-4 right-4 z-[100] p-2 bg-slate-800/80 backdrop-blur-md border border-white/10 rounded-full text-white shadow-lg md:hidden hover:bg-slate-700 transition-colors">
+            class="fixed top-4 right-4 z-100 p-2 bg-slate-800/80 backdrop-blur-md border border-white/10 rounded-full text-white shadow-lg md:hidden hover:bg-slate-700 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                 stroke="currentColor" class="w-6 h-6">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -81,11 +81,11 @@ const navigationArray = [
 
         <transition name="fade">
             <div v-if="uiStore.isSidebarOpen" @click="uiStore.toggleSidebar"
-                class="fixed inset-0 bg-black/60 z-[100] backdrop-blur-sm md:hidden"></div>
+                class="fixed inset-0 bg-black/60 z-100 backdrop-blur-sm md:hidden"></div>
         </transition>
 
         <aside v-ui-block ref="sidebarRef"
-            class="fixed top-5 left-5 h-[calc(100%-40px)] transition-all duration-300 ease-in-out glass-panel flex flex-col z-[101] pointer-events-auto rounded-2xl overflow-hidden isolate"
+            class="fixed top-5 left-5 h-[calc(100%-40px)] transition-all duration-300 ease-in-out glass-panel flex flex-col z-101 pointer-events-auto rounded-2xl overflow-hidden isolate"
             :class="[
                 uiStore.isSidebarOpen ? 'w-64 translate-x-0 shadow-2xl shadow-black/80' : 'w-0 -translate-x-full md:w-20 md:translate-x-0 shadow-lg shadow-black/40'
             ]" @mouseenter="uiStore.isSidebarHovered = true" @mouseleave="uiStore.isSidebarHovered = false"

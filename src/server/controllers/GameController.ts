@@ -11,7 +11,7 @@ import {
   UserItem,
   FlowerRarity,
 } from '@/shared'
-import type { FlowerDTO, FlowerAttributes } from '@/shared'
+import type { FlowerDTO, FlowerAttributes, PreferredSeasons } from '@/shared'
 import { BackendMethod, remult } from 'remult'
 import { PRICES } from '../ext'
 import { FlowerDiscovery } from '@/shared/analytics/FlowerDiscovery'
@@ -364,7 +364,7 @@ export class GameController {
     const flowerRepo = remult.repo(UserFlower)
 
     const tile = await tileRepo.findFirst({ id: tileId }, { include: { island: true } })
-    if (!tile || tile.island.ownerId !== remult.user.id) throw new Error('Invalid tile')
+    if (!tile || tile.island!.ownerId !== remult.user.id) throw new Error('Invalid tile')
     if (!tile.flowerId) throw new Error('Nothing to harvest')
 
     const flower = await flowerRepo.findId(tile.flowerId, { include: { species: true } })
