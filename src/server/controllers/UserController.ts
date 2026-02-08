@@ -1,5 +1,5 @@
 import { BackendMethod, Controller, remult, Allow, repo } from 'remult' // Import Allow
-import express from 'express'
+import type { Request } from 'express'
 import { User } from '@/shared/user/User'
 import { FlowerDiscovery } from '@/shared/analytics/FlowerDiscovery'
 
@@ -8,7 +8,7 @@ const ONLINE_THRESHOLD_MS = 2 * 60 * 1000
 
 declare module 'remult' {
   export interface RemultContext {
-    request?: express.Request
+    request?: Request
   }
 }
 

@@ -4,8 +4,8 @@ import {
   FlowerRarity,
   FlowerWaterConsumption,
   PreferredSeasons,
-  FlowerAttributes,
 } from '../types'
+import type { FlowerAttributes } from '../types'
 
 @Entity('flower_species', { allowApiCrud: 'admin' })
 export class FlowerSpecies {

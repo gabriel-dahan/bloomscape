@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { PropType, Ref } from 'vue'
+import { defineComponent } from 'vue'
+import type { PropType, Ref } from 'vue'
 
 const props = defineProps({
     method: {

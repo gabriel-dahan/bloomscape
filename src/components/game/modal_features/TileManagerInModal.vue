@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { GameController } from '@/server/controllers/GameController'
-import { FlowerRarity, Tile, PreferredSeasons, FlowerDTO } from '@/shared';
+import { FlowerRarity, Tile, PreferredSeasons } from '@/shared';
+import type { FlowerDTO } from '@/shared';
 import FlowerImage from '@/components/FlowerImage.vue';
 
 const props = defineProps<{
@@ -520,7 +521,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                                                     class="text-[10px] font-mono"
                                                     :class="mod.value < 0 ? 'text-red-400 font-bold' : 'text-emerald-500/70'">
                                                     {{ mod.value > 0 ? '+' : '' }}{{ mod.value }} {{
-                                                    mod.stat.split('_')[0] }}<span
+                                                        mod.stat.split('_')[0] }}<span
                                                         v-if="mIdx < syn.modifiers.length - 1"
                                                         class="text-slate-600">,</span>
                                                 </span>
@@ -541,7 +542,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                                 <div class="flex flex-col bg-slate-900 p-2 rounded border border-slate-800/50">
                                     <span class="text-[10px] text-slate-500 uppercase font-bold">Season</span>
                                     <span class="font-bold mt-0.5" :class="seasonDisplay.color">{{ seasonDisplay.label
-                                    }}</span>
+                                        }}</span>
                                 </div>
                             </div>
                         </div>

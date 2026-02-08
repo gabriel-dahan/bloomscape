@@ -9,9 +9,9 @@ import {
   UserAchievement,
   UserFlower,
   UserItem,
-  FlowerDTO,
-  FlowerAttributes,
+  FlowerRarity,
 } from '@/shared'
+import type { FlowerDTO, FlowerAttributes } from '@/shared'
 import { BackendMethod, remult } from 'remult'
 import { PRICES } from '../ext'
 import { FlowerDiscovery } from '@/shared/analytics/FlowerDiscovery'
@@ -95,18 +95,14 @@ export class GameController {
 
     if (newLevel > oldLevel) {
       user.level = newLevel
-      const { notifyUser } = await import('../socket')
+      const { ServerEvents } = await import('../server-events')
       const levelsGained = newLevel - oldLevel
       const message =
         levelsGained > 1
           ? `Incredible! You jumped ${levelsGained} levels to Level ${newLevel}!`
           : `Level Up! You are now Level ${newLevel}!`
 
-      notifyUser(userId, 'notification', {
-        title: 'Level Up!',
-        message: message,
-        type: 'success',
-      })
+      ServerEvents.notifyUser(userId, 'Level Up!', message, 'success')
     }
 
     await userRepo.save(user)
@@ -287,7 +283,7 @@ export class GameController {
 
     const tile = await tileRepo.findId(tileId, { include: { island: true } })
     if (!tile) throw new Error('Tile not found')
-    if (tile.island.ownerId !== remult.user.id) throw new Error('Not your land')
+    if (tile.island!.ownerId !== remult.user.id) throw new Error('Not your land')
     if (tile.flowerId) throw new Error('Tile is already occupied')
 
     const flower = await flowerRepo.findId(flowerId, { include: { species: true } })
@@ -307,13 +303,14 @@ export class GameController {
     tile.flowerId = flower.id
     await tileRepo.save(tile)
 
-    const { notifyUser } = await import('../socket')
+    const { ServerEvents } = await import('../server-events')
 
-    notifyUser(remult.user.id, 'notification', {
-      title: 'Successfuly planted a new seed !',
-      message: `Congratulation on your new seed of <b>${flower.species.name}</b>.`,
-      type: 'success',
-    })
+    ServerEvents.notifyUser(
+      remult.user.id,
+      'Successfuly planted a new seed !',
+      `Congratulation on your new seed of <b>${flower.species!.name}</b>.`,
+      'success',
+    )
 
     return {
       success: true,
@@ -330,7 +327,7 @@ export class GameController {
 
     const tile = await tileRepo.findFirst({ id: tileId }, { include: { island: true } })
 
-    if (!tile || tile.island.ownerId !== remult.user.id) throw new Error('Invalid tile')
+    if (!tile || tile.island!.ownerId !== remult.user.id) throw new Error('Invalid tile')
     if (!tile.flowerId) throw new Error('Nothing to water here')
 
     const flower = await flowerRepo.findId(tile.flowerId, { include: { species: true } })

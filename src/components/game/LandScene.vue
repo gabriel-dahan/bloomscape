@@ -191,8 +191,7 @@ watch(selectedTile, (newVal) => {
             </div>
         </transition>
 
-        <div v-if="showLoadingScreen"
-            class="absolute inset-0 z-50 flex items-center justify-center bg-slate-900 z-[100]">
+        <div v-if="showLoadingScreen" class="absolute inset-0 z-50 flex items-center justify-center bg-slate-900">
             <span class="loading loading-ring loading-lg text-emerald-500"></span>
             <span class="ml-4 text-emerald-500/80 font-mono text-sm animate-pulse">
                 {{ isFetchingData ? 'Fetching Data...' : 'Rendering Island...' }}

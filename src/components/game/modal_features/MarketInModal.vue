@@ -3,7 +3,8 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { remult } from 'remult'
 import { useModalStore } from '@/stores/modal'
 import { FlowerRarity } from '@/shared/types'
-import { FlowerSpecies, MarketListing, MarketStats, FlowerDTO } from '@/shared'
+import { FlowerSpecies, MarketListing, MarketStats } from '@/shared'
+import type { FlowerDTO } from '@/shared'
 import { MarketController } from '@/server/controllers/MarketController'
 import { GameController } from '@/server/controllers/GameController'
 import FlowerImage from '@/components/FlowerImage.vue'
@@ -498,9 +499,9 @@ const getQualityColor = (quality: number = 0) => {
                             </div>
                             <div class="text-xs flex gap-2 mt-0.5">
                                 <span :class="getRarityTextColorClass(item.species.rarity)">{{ item.species.rarity
-                                }}</span>
+                                    }}</span>
                                 <span :class="getQualityColor(item.quality)">Q: {{ Math.round(item.quality * 100)
-                                }}%</span>
+                                    }}%</span>
                             </div>
                         </div>
 

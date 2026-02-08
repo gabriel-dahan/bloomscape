@@ -1,5 +1,4 @@
 import { BackendMethod, remult, SqlDatabase } from 'remult'
-import { seedMarketData } from '../_seedMarket'
 import {
   Achievement,
   FlowerSpecies,
@@ -142,12 +141,13 @@ export class AdminController {
       plantedAt: new Date(),
     })
 
-    const { notifyUser } = await import('../socket')
+    const { ServerEvents } = await import('../server-events')
 
-    notifyUser(userId, 'notification', {
-      title: 'You were given a flower.',
-      message: `An admin gave you a <b>${species.name}</b>.`,
-    })
+    ServerEvents.notifyUser(
+      userId,
+      'You were given a flower.',
+      `An admin gave you a <b>${species.name}</b>.`,
+    )
 
     return { success: true, message: `Created ${species.name} Seed (Q${quality * 100})` }
   }

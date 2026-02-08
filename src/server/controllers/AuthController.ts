@@ -1,12 +1,12 @@
 import { BackendMethod, Controller, remult, type FindOptions } from 'remult'
-import express from 'express'
+import type { Request } from 'express'
 import { sanitizeUser, User } from '@/shared/user/User' // Assure-toi du chemin
 import { Role } from '@/shared'
 import slugify from 'slugify'
 
 declare module 'remult' {
   export interface RemultContext {
-    request?: express.Request
+    request?: Request
   }
 }
 

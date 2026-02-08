@@ -75,7 +75,7 @@ export interface TileData {
   flowerId?: string
   flower?: {
     status: string
-    species: { slugName: string }
+    species?: { slugName: string }
   } | null
 }
 
@@ -595,7 +595,7 @@ export class LandSceneManager {
     const visitedKeys = new Set<string>()
 
     tiles.forEach((tile) => {
-      if (!tile.flower) return
+      if (!tile.flower || !tile.flower.species) return
 
       const key = `${tile.x},${tile.z}`
       visitedKeys.add(key)

@@ -76,18 +76,19 @@ export class ChatController {
 
     const participants = await partRepo.find({ where: { chatId } })
 
-    const { notifyUser } = await import('../socket')
+    const { ServerEvents } = await import('../server-events')
 
     for (const p of participants) {
       const userChannel = new SubscriptionChannel(`user:${p.userId}`)
       await userChannel.publish({ type: 'INBOX_UPDATE' })
 
       if (p.userId !== remult.user.id) {
-        notifyUser(p.userId, 'notification', {
-          title: `Message from ${remult.user.tag}`,
-          message: payload.content.substring(0, 60) + (payload.content.length > 60 ? '...' : ''),
-          type: 'info',
-        })
+        ServerEvents.notifyUser(
+          p.userId,
+          `Message from ${remult.user.tag}`,
+          payload.content.substring(0, 60) + (payload.content.length > 60 ? '...' : ''),
+          'info',
+        )
       }
     }
 

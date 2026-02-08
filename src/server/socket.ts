@@ -11,6 +11,10 @@ export function initSocket(httpServer: HttpServer) {
     },
   })
 
+  import('./server-events').then(({ ServerEvents }) => {
+    ServerEvents.setIO(io!)
+  })
+
   io.on('connection', (socket: Socket) => {
     const userId = socket.handshake.query.userId as string
 

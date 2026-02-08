@@ -1,5 +1,5 @@
 import { UserFlower } from './flowers/UserFlower'
-import { FlowerAttributes, GlobalPlayerModifierType, GridModifierType } from './types'
+import type { FlowerAttributes, GlobalPlayerModifierType, GridModifierType } from './types'
 
 export class AttributesLogic {
   static calculateStats(target: UserFlower, allFlowers: UserFlower[]) {
@@ -56,7 +56,6 @@ export class AttributesLogic {
       GLOBAL_XP_MULTIPLIER: 1.0,
       SHOP_PRICE_DISCOUNT: 0,
       MARKET_SELLING_BONUS: 0,
-      ENERGY_REGEN_RATE: 0,
       RARE_FIND_LUCK: 0,
     }
 
