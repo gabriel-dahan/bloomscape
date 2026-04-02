@@ -31,8 +31,8 @@ const fetchUserData = async () => {
 
     isLoading.value = true;
     try {
-        const { user } = await UserController.getUserByTag(props.userTag);
-        displayedUser.value = user || null;
+        const res = await UserController.getUserByTag(props.userTag);
+        displayedUser.value = res?.user || null;
     } finally {
         isLoading.value = false;
     }
@@ -69,7 +69,7 @@ watch(() => props.userTag, () => {
 
             <div class="h-8 w-px bg-white/10"></div>
 
-            <RouterLink :to="ROUTES.USER_PROFILE.pathDyn(displayedUser?.tag)">
+            <RouterLink :to="ROUTES.USER_PROFILE.pathDyn(displayedUser?.tag || '')">
                 <div class="flex items-center gap-3 cursor-pointer group">
 
                     <div class="text-right hidden md:block">

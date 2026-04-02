@@ -68,8 +68,9 @@ const formatTime = (date?: Date | string) => {
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                         </svg>
                     </button>
-                    <RouterLink :to="ROUTES.USER_PROFILE.pathDyn(store.activeChat.otherUser.tag)">
-                        <div class="flex items-center gap-2" v-if="store.activeChat?.otherUser">
+                    <RouterLink v-if="store.activeChat?.otherUser"
+                        :to="ROUTES.USER_PROFILE.pathDyn(store.activeChat.otherUser.tag)">
+                        <div class="flex items-center gap-2">
                             <div
                                 class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-white shadow-inner border border-slate-700">
                                 {{ store.activeChat.otherUser.tag.substring(0, 2).toUpperCase() }}

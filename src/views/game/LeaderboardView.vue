@@ -3,8 +3,9 @@ import { ref, onMounted, computed } from 'vue';
 import { LeaderboardController } from '@/server/controllers/LeaderboardController';
 import { Island } from '@/shared';
 
-const podium = ref<Island[]>([]);
-const list = ref<Island[]>([]);
+const podium = ref<any[]>([]);
+const list = ref<any[]>([]);
+const myStatus = ref<any>(null);
 const currentPage = ref(1);
 const totalPages = ref(1);
 const isLoading = ref(true);
@@ -34,6 +35,14 @@ const loadPodium = async () => {
     }
 };
 
+const loadMyStatus = async () => {
+    try {
+        myStatus.value = await LeaderboardController.getMyStatus();
+    } catch (e) {
+        console.error(e);
+    }
+};
+
 const loadPage = async (page: number) => {
     isListLoading.value = true;
     try {
@@ -56,12 +65,12 @@ const changePage = (delta: number) => {
 };
 
 const calculateRank = (index: number) => {
-    return 3 + ((currentPage.value - 1) * 10) + index + 1;
+    return ((currentPage.value - 1) * 10) + index + 1;
 };
 
 onMounted(async () => {
     isLoading.value = true;
-    await Promise.all([loadPodium(), loadPage(1)]);
+    await Promise.all([loadPodium(), loadPage(1), loadMyStatus()]);
     isLoading.value = false;
 });
 </script>
@@ -75,12 +84,14 @@ onMounted(async () => {
 
         <div class="max-w-4xl mx-auto relative z-10">
 
-            <div class="text-center mb-12">
-                <h1
-                    class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-emerald-200 to-emerald-600 uppercase tracking-widest drop-shadow-sm">
-                    Seasonal Ranking
-                </h1>
-                <p class="text-slate-500 text-sm mt-2 font-mono">Top Islands by Month Score</p>
+            <div class="flex flex-col lg:flex-row items-center justify-center gap-6 mb-12">
+                <div class="w-full lg:w-auto ml-5 text-center">
+                    <h1
+                        class="page-title text-4xl font-bold text-white mb-2 flex items-center justify-center lg:justify-start gap-3">
+                        Leaderboard
+                    </h1>
+                    <p class="text-slate-400 flex justify-center lg:justify-start">Top Islands by Month Score.</p>
+                </div>
             </div>
 
             <div v-if="isLoading" class="flex justify-center py-20">
@@ -88,7 +99,7 @@ onMounted(async () => {
             </div>
 
             <div v-else>
-                <div class="flex justify-center items-end gap-4 mb-16 h-64">
+                <div class="flex justify-center items-end gap-10 mb-24 h-80 pt-10">
                     <div v-for="player in orderedPodium" :key="player.id"
                         class="relative flex flex-col items-center transition-all duration-500 hover:-translate-y-2"
                         :class="{
@@ -97,15 +108,20 @@ onMounted(async () => {
                             'order-3 z-0': player.rank === 3
                         }">
 
-                        <div v-if="player.rank === 1" class="text-4xl mb-2 animate-bounce">👑</div>
+
 
                         <div class="relative mb-3">
                             <div class="w-20 h-20 rounded-full border-4 overflow-hidden bg-slate-800 shadow-xl" :class="{
                                 'border-yellow-400 shadow-yellow-500/30 w-24 h-24': player.rank === 1,
                                 'border-slate-300 shadow-slate-400/30': player.rank === 2,
-                                'border-amber-700 shadow-amber-800/30': player.rank === 3
+                                'border-amber-700 shadow-amber-800/30': player.rank === 3,
+                                'ring-4 ring-emerald-400 ring-offset-2 ring-offset-slate-950': player.owner?.tag === myStatus?.owner?.tag
                             }">
                                 <img :src="getAvatar(player.owner?.tag || '')" class="w-full h-full object-cover" />
+                            </div>
+                            <div v-if="player.owner?.tag === myStatus?.owner?.tag"
+                                class="absolute -top-2 -right-2 badge badge-xs bg-emerald-500 border-none text-slate-950">
+                                YOU
                             </div>
                             <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 badge badge-lg font-bold shadow-md"
                                 :class="{
@@ -148,7 +164,8 @@ onMounted(async () => {
 
                     <div v-else class="divide-y divide-slate-800">
                         <div v-for="(island, index) in list" :key="island.id"
-                            class="group flex items-center p-3 hover:bg-white/5 transition-colors">
+                            class="group flex items-center p-3 hover:bg-white/5 transition-colors"
+                            :class="{ 'bg-emerald-500/10 border-l-4 border-emerald-500': island.owner?.tag === myStatus?.owner?.tag }">
 
                             <div class="w-16 text-center font-mono font-bold text-slate-600 group-hover:text-white">
                                 {{ calculateRank(index) }}
@@ -159,8 +176,10 @@ onMounted(async () => {
                                     class="w-10 h-10 rounded-full bg-slate-800" />
                                 <div class="min-w-0">
                                     <div
-                                        class="font-bold text-slate-200 truncate group-hover:text-emerald-400 transition-colors">
+                                        class="font-bold text-slate-200 truncate group-hover:text-emerald-400 transition-colors flex items-center gap-2">
                                         {{ island.owner?.tag }}
+                                        <span v-if="island.owner?.tag === myStatus?.owner?.tag"
+                                            class="badge badge-xs bg-emerald-500 text-slate-950 border-none">YOU</span>
                                     </div>
                                     <div class="text-xs text-slate-500 truncate">{{ island.name }}</div>
                                 </div>
@@ -190,6 +209,30 @@ onMounted(async () => {
                             class="btn btn-sm btn-ghost text-slate-400 disabled:opacity-30">
                             Next →
                         </button>
+                    </div>
+
+                    <!-- Personal Rank Footer -->
+                    <div v-if="myStatus"
+                        class="p-4 bg-emerald-950/40 border-t border-emerald-500/30 flex items-center gap-4 transition-all hover:bg-emerald-950/60">
+                        <div
+                            class="w-16 text-center font-black text-xl text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]">
+                            #{{ myStatus.rank }}
+                        </div>
+                        <div class="flex-1 px-4 flex items-center gap-3 overflow-hidden">
+                            <img :src="getAvatar(myStatus.owner?.tag || '')"
+                                class="w-10 h-10 rounded-full bg-slate-800 border-2 border-emerald-500/50" />
+                            <div class="min-w-0">
+                                <div class="font-bold text-white truncate flex items-center gap-2">
+                                    {{ myStatus.owner?.tag }}
+                                    <span class="badge badge-xs bg-emerald-500 text-slate-950 border-none">YOUR
+                                        RANK</span>
+                                </div>
+                                <div class="text-xs text-emerald-400/60 truncate">{{ myStatus.name }}</div>
+                            </div>
+                        </div>
+                        <div class="w-32 text-right px-4 font-mono font-bold text-emerald-400">
+                            {{ myStatus.monthScore.toLocaleString() }}
+                        </div>
                     </div>
                 </div>
             </div>

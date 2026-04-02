@@ -86,7 +86,7 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     const chatChannel = new SubscriptionChannel(`chat:${chatId}`)
-    unsubscribeChatChannel = await chatChannel.subscribe((newMessage: ChatMessage) => {
+    unsubscribeChatChannel = await chatChannel.subscribe((newMessage: any) => {
       if (!currentMessages.value.some((m) => m.id === newMessage.id)) {
         currentMessages.value.push(newMessage)
         if (activeChatId.value === chatId && isOpen.value) {

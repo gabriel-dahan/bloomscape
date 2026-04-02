@@ -3,6 +3,7 @@ import {
   DiscoverySource,
   FlowerSpecies,
   FlowerStatus,
+  FlowerWaterConsumption,
   Island,
   Tile,
   User,
@@ -10,6 +11,7 @@ import {
   UserFlower,
   UserItem,
   MarketHistory,
+  WATER_CONSUMPTION_AMOUNTS,
 } from '@/shared'
 import type { FlowerDTO, FlowerAttributes, PreferredSeasons } from '@/shared'
 import { BackendMethod, remult } from 'remult'
@@ -147,6 +149,7 @@ export class GameController {
 
     const allSpecies = await speciesRepo.find({
       orderBy: { rarity: 'asc', name: 'asc' },
+      include: { family: true },
     })
 
     const myDiscoveries = await discoveryRepo.find({
@@ -161,6 +164,7 @@ export class GameController {
         discoveryDate: discovery?.discoveredAt,
         discoverySource: discovery?.source,
         initialQuality: discovery?.initialQuality,
+        family: s.family ? { id: s.family.id, name: s.family.name } : undefined,
       }
     })
 
@@ -169,7 +173,7 @@ export class GameController {
 
   static getFlowerAssetUrl(
     flowerSlugName: string,
-    status: FlowerStatus = FlowerStatus.MATURE,
+    status: FlowerStatus = FlowerStatus.GROWING2,
     type: 'icon' | 'sprite' = 'icon',
   ) {
     return `/api/images/flowers/${flowerSlugName}/${status.toLowerCase()}/${type.toLowerCase()}`
@@ -207,9 +211,12 @@ export class GameController {
     flower: UserFlower,
     contextFlowers?: UserFlower[],
   ): Promise<UserFlower> {
+    const defaultAttributes = flower.species?.attributes as FlowerAttributes | undefined
+    const maxStatus = defaultAttributes?.maxStatus || FlowerStatus.GROWING2
+
     if (
       flower.status === FlowerStatus.SEED ||
-      flower.status === FlowerStatus.MATURE ||
+      flower.status === maxStatus ||
       flower.status === FlowerStatus.WITHERED
     ) {
       return flower
@@ -219,12 +226,22 @@ export class GameController {
       return flower
     }
 
+    if (!flower.lastProcessedAt) {
+      flower.lastProcessedAt = flower.plantedAt
+    }
+
+    const now = new Date()
+    const elapsedSinceLast = (now.getTime() - flower.lastProcessedAt.getTime()) / 1000
+
+    if (elapsedSinceLast <= 0) return flower
+
     let allFlowers = contextFlowers
     if (!allFlowers) {
       allFlowers = await remult.repo(UserFlower).find({ where: { ownerId: flower.ownerId } })
     }
 
     const stats = AttributesLogic.calculateStats(flower, allFlowers)
+    const duration = flower.species.growthDuration / stats.growthSpeedMultiplier
 
     if (stats.growthSpeedMultiplier !== 1) {
       console.log(
@@ -232,26 +249,73 @@ export class GameController {
       )
     }
 
-    const now = new Date()
-    const elapsedSeconds = (now.getTime() - flower.plantedAt.getTime()) / 1000
+    let timeToProcess = elapsedSinceLast
+    let updated = false
 
-    const duration = flower.species.growthDuration / stats.growthSpeedMultiplier
+    const waterConsumption =
+      WATER_CONSUMPTION_AMOUNTS[flower.species.waterNeeds as FlowerWaterConsumption] || 15
 
-    let newStatus: FlowerStatus = flower.status
+    const FULL_BOUNDARIES = [
+      FlowerStatus.SPROUT1,
+      FlowerStatus.SPROUT2,
+      FlowerStatus.GROWING1,
+      FlowerStatus.GROWING2,
+    ]
 
-    if (elapsedSeconds >= duration) {
-      newStatus = FlowerStatus.MATURE
-    } else {
-      const progress = elapsedSeconds / duration
+    const maxIndex = FULL_BOUNDARIES.indexOf(maxStatus as any)
+    const validStages = FULL_BOUNDARIES.slice(
+      0,
+      maxIndex === -1 ? FULL_BOUNDARIES.length : maxIndex + 1,
+    )
 
-      if (progress < 0.25) newStatus = FlowerStatus.SPROUT1
-      else if (progress < 0.5) newStatus = FlowerStatus.SPROUT2
-      else if (progress < 0.75) newStatus = FlowerStatus.GROWING1
-      else newStatus = FlowerStatus.GROWING2
+    const boundaries = validStages.map((status, index) => ({
+      status,
+      ratio: index / (validStages.length - 1 || 1),
+    }))
+
+    const CONTINUOUS_RATIO = 0.2
+    const BOUNDARY_RATIO = 0.8
+
+    while (timeToProcess > 0 && flower.waterLevel > 0) {
+      const currentRatio = flower.growthSeconds / duration
+      const nextBoundary = boundaries.find((b) => b.ratio > currentRatio)
+
+      if (!nextBoundary) {
+        flower.status = maxStatus
+        updated = true
+        break
+      }
+
+      const secondsToNextBoundary = nextBoundary.ratio * duration - flower.growthSeconds
+      // Since boundaries may not be 0.25 spaced, calculate dynamic stageDuration
+      const previousRatio = boundaries[boundaries.indexOf(nextBoundary) - 1]?.ratio || 0
+      const stageDuration = duration * (nextBoundary.ratio - previousRatio) || duration * 0.25
+
+      const continuousWaterPerSec = (waterConsumption * CONTINUOUS_RATIO) / stageDuration
+      const maxSecondsWithWater =
+        continuousWaterPerSec > 0 ? flower.waterLevel / continuousWaterPerSec : Infinity
+
+      const timeStep = Math.min(timeToProcess, secondsToNextBoundary, maxSecondsWithWater)
+
+      flower.growthSeconds += timeStep
+      timeToProcess -= timeStep
+      flower.waterLevel -= continuousWaterPerSec * timeStep
+
+      if (Math.abs(flower.growthSeconds - nextBoundary.ratio * duration) < 0.001) {
+        flower.waterLevel -= waterConsumption * BOUNDARY_RATIO
+        flower.status = nextBoundary.status
+      }
+
+      if (flower.waterLevel < 0) flower.waterLevel = 0
+
+      updated = true
+
+      if (flower.status === maxStatus) break
     }
 
-    if (newStatus !== flower.status) {
-      flower.status = newStatus
+    flower.lastProcessedAt = now
+
+    if (updated || elapsedSinceLast > 0) {
       await remult.repo(UserFlower).save(flower)
     }
 
@@ -294,6 +358,8 @@ export class GameController {
     flower.status = FlowerStatus.SPROUT1
     flower.plantedAt = new Date()
     flower.waterLevel = 50
+    flower.growthSeconds = 0
+    flower.lastProcessedAt = new Date()
 
     flower.gridX = tile.x
     flower.gridY = tile.z
@@ -330,10 +396,14 @@ export class GameController {
     if (!tile || tile.island!.ownerId !== remult.user.id) throw new Error('Invalid tile')
     if (!tile.flowerId) throw new Error('Nothing to water here')
 
-    const flower = await flowerRepo.findId(tile.flowerId, { include: { species: true } })
+    let flower = await flowerRepo.findId(tile.flowerId, { include: { species: true } })
     if (!flower) throw new Error('Flower data missing')
 
     const allFlowers = await flowerRepo.find({ where: { ownerId: remult.user.id } })
+
+    // Hydration fix: evaluate existing dry/wet time FIRST
+    flower = await GameController.updateFlowerStatus(flower, allFlowers)
+
     const stats = AttributesLogic.calculateStats(flower, allFlowers)
 
     const baseWaterAdd = 25
@@ -369,14 +439,16 @@ export class GameController {
 
     const flower = await flowerRepo.findId(tile.flowerId, { include: { species: true } })
     if (!flower) throw new Error('Flower data missing')
-    if (flower.status !== FlowerStatus.MATURE) throw new Error('Flower is not ready for harvest')
+
+    const attrs = flower.species!.attributes as FlowerAttributes
+    const maxStatus = attrs.maxStatus || FlowerStatus.GROWING2
+
+    if (flower.status !== maxStatus) throw new Error('Flower is not ready for harvest')
 
     const allFlowers = await flowerRepo.find({ where: { ownerId: remult.user.id } })
 
     const stats = AttributesLogic.calculateStats(flower, allFlowers)
     const globalEffects = AttributesLogic.getPlayerGlobalEffects(allFlowers)
-
-    const attrs = flower.species!.attributes as FlowerAttributes
 
     let finalXp = attrs.baseXpReward
     finalXp *= stats.xpMultiplier
@@ -424,6 +496,8 @@ export class GameController {
     flower.plantedAt = undefined
     flower.waterLevel = 100
     flower.quality = harvestedQuality
+    flower.growthSeconds = 0
+    flower.lastProcessedAt = undefined
 
     await flowerRepo.save(flower)
 
@@ -560,6 +634,8 @@ export class GameController {
       waterLevel: flower.waterLevel,
       quality: flower.quality,
       plantedAt: flower.plantedAt,
+      growthSeconds: flower.growthSeconds,
+      lastProcessedAt: flower.lastProcessedAt,
       isShiny: flower.isShiny,
       activeModifiers: activeStats || null,
       species: {

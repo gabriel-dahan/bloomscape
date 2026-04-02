@@ -43,6 +43,7 @@ const stats = ref<MarketStats[]>([])
 const selectedSpeciesId = ref<string | null>(null)
 const isLoading = ref(true)
 const buyingId = ref<string | null>(null)
+const removingId = ref<string | null>(null)
 const timeFilter = ref<'7d' | '30d' | '1y'>('7d')
 const rarityFilter = ref<FlowerRarity | 'ALL'>('ALL')
 const initialPrice = ref(0)
@@ -61,8 +62,6 @@ const fetchData = async () => {
         speciesList.value = sL
         listings.value = l
 
-        // RESPONSIVE LOGIC: Only auto-select first item on Desktop.
-        // On mobile, we want the user to see the list first.
         if (!selectedSpeciesId.value && speciesList.value.length > 0 && window.innerWidth >= 768) {
             selectedSpeciesId.value = speciesList.value[0].id
         }
@@ -324,6 +323,32 @@ const handleBuy = async (listing: MarketListing) => {
     }
 }
 
+const handleRemove = async (listing: MarketListing) => {
+    if (!confirm(`Are you sure you want to remove this listing?`)) return
+    removingId.value = listing.id
+    try {
+        const result = await MarketController.removeListing(listing.id)
+        listings.value = listings.value.filter(l => l.id !== listing.id)
+
+        if (listing.flower?.speciesId === selectedSpeciesId.value) {
+            updateChartData()
+        }
+
+        await fetchInventory()
+
+        useModalStore().open({
+            title: 'Success!',
+            message: result.message,
+            type: 'success',
+            size: 'standard'
+        })
+    } catch (e: any) {
+        alert(e.message)
+    } finally {
+        removingId.value = null
+    }
+}
+
 const toggleSelection = (item: FlowerDTO) => {
     const index = selectedSellItems.value.findIndex(i => i.id === item.id)
     if (index === -1) {
@@ -451,8 +476,8 @@ const getQualityColor = (quality: number = 0) => {
 
                         <div class="w-10 h-10 rounded-lg bg-slate-900 flex items-center justify-center transition-all duration-300 border border-transparent shrink-0"
                             :style="selectedSpeciesId === species.id ? getRarityGlowStyle(species.rarity) : {}">
-                            <FlowerImage :slug="species.slugName" status="MATURE" type="icon" size="32px"
-                                class="opacity-80 group-hover:opacity-100 transition-opacity" />
+                            <FlowerImage :slug="species.slugName" :status="species.attributes?.maxStatus || 'GROWING2'"
+                                type="icon" size="32px" class="opacity-80 group-hover:opacity-100 transition-opacity" />
                         </div>
 
                         <div class="flex-1 min-w-0">
@@ -490,7 +515,8 @@ const getQualityColor = (quality: number = 0) => {
 
                         <div
                             class="w-10 h-10 rounded-lg bg-slate-900 flex items-center justify-center border border-slate-700 shrink-0">
-                            <FlowerImage :slug="item.species.slugName" status="MATURE" type="icon" size="32px" />
+                            <FlowerImage :slug="item.species.slugName"
+                                :status="item.species.attributes?.maxStatus || 'GROWING2'" type="icon" size="32px" />
                         </div>
 
                         <div class="flex-1 min-w-0">
@@ -499,9 +525,9 @@ const getQualityColor = (quality: number = 0) => {
                             </div>
                             <div class="text-xs flex gap-2 mt-0.5">
                                 <span :class="getRarityTextColorClass(item.species.rarity)">{{ item.species.rarity
-                                    }}</span>
+                                }}</span>
                                 <span :class="getQualityColor(item.quality)">Q: {{ Math.round(item.quality * 100)
-                                    }}%</span>
+                                }}%</span>
                             </div>
                         </div>
 
@@ -528,7 +554,8 @@ const getQualityColor = (quality: number = 0) => {
                     <div class="flex gap-4">
                         <div class="w-20 h-20 bg-slate-900/50 rounded-xl p-2 border shadow-lg transition-all duration-300 shrink-0"
                             :style="getRarityGlowStyle(selectedSpecies.rarity)">
-                            <FlowerImage :slug="selectedSpecies.slugName" status="MATURE" type="sprite" size="100%"
+                            <FlowerImage :slug="selectedSpecies.slugName"
+                                :status="selectedSpecies.attributes?.maxStatus || 'GROWING2'" type="sprite" size="100%"
                                 class="drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
                         </div>
                         <div>
@@ -640,7 +667,14 @@ const getQualityColor = (quality: number = 0) => {
                                             {{ listing.price }}
                                         </td>
                                         <td class="py-3 text-right pr-2">
-                                            <button @click="handleBuy(listing)" :disabled="!!buyingId"
+                                            <button v-if="remult.user?.id === listing.sellerId"
+                                                @click="handleRemove(listing)" :disabled="!!removingId"
+                                                class="btn btn-xs btn-error opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <span v-if="removingId === listing.id"
+                                                    class="loading loading-spinner loading-xs"></span>
+                                                <span v-else>Remove</span>
+                                            </button>
+                                            <button v-else @click="handleBuy(listing)" :disabled="!!buyingId"
                                                 class="btn btn-xs btn-primary opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <span v-if="buyingId === listing.id"
                                                     class="loading loading-spinner loading-xs"></span>
@@ -679,7 +713,8 @@ const getQualityColor = (quality: number = 0) => {
                                 {{ selectedSellItems.length }}
                             </div>
 
-                            <FlowerImage :slug="selectedSellItems[0].species.slugName" status="MATURE" type="sprite"
+                            <FlowerImage :slug="selectedSellItems[0].species.slugName"
+                                :status="selectedSellItems[0].species.attributes?.maxStatus || 'GROWING2'" type="sprite"
                                 size="100%" class="drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)]" />
                         </div>
 

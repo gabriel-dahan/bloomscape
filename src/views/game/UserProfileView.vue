@@ -148,7 +148,7 @@ onMounted(async () => {
 
                     <div class="flex-1 mb-2 text-center md:text-left">
                         <h1
-                            class="text-3xl md:text-5xl font-bold text-white tracking-tight flex items-center justify-center md:justify-start gap-3">
+                            class="page-title text-3xl md:text-5xl font-bold text-white tracking-tight flex items-center justify-center md:justify-start gap-3">
                             {{ user.tag }}
                             <span v-if="user.roles.includes(Role.ADMIN)" class="tooltip tooltip-right"
                                 data-tip="Administrator">

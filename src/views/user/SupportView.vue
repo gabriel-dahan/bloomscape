@@ -104,7 +104,7 @@ async function submitForm() {
         <div class="max-w-7xl mx-auto relative z-10">
 
             <div class="text-center mb-16 animate-fade-in">
-                <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">Support Center</h1>
+                <h1 class="page-title text-4xl md:text-5xl font-bold text-white mb-4">Support Center</h1>
                 <p class="text-slate-400 max-w-2xl mx-auto text-lg">
                     Need help with your garden? Have a suggestion for the economy?
                     Our team is here to help.

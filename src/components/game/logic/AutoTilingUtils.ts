@@ -1,6 +1,6 @@
 // 1 = North, 2 = East, 4 = South, 8 = West
 
-import type { TileData } from './LandSceneManager'
+import type { TileData } from './constants'
 
 // Summing these gives a unique number from 0 to 15
 export interface TileLayout {

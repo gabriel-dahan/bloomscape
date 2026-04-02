@@ -11,6 +11,7 @@ import { initSocket } from './socket'
 
 import dotenv from 'dotenv'
 import { UserFlower, FlowerSpecies } from '@/shared'
+import { FlowerDiscovery } from '@/shared/analytics/FlowerDiscovery'
 import { GameService } from './services/gameService'
 dotenv.config({
   path: './src/server/.env',
@@ -55,15 +56,30 @@ app.get('/api/images/flowers/:slugName/:status/:type', async (req, res) => {
     let allowed = false
 
     if (remult.user) {
-      const speciesRepo = remult.repo(FlowerSpecies)
-      const species = await speciesRepo.findFirst({ slugName })
+      if (remult.isAllowed('admin')) {
+        allowed = true
+      } else {
+        const speciesRepo = remult.repo(FlowerSpecies)
+        const species = await speciesRepo.findFirst({ slugName })
 
-      if (species) {
-        const count = await remult.repo(UserFlower).count({
-          ownerId: remult.user.id,
-          speciesId: species.id,
-        })
-        if (count > 0) allowed = true
+        if (species) {
+          // Check if user owns the flower
+          const count = await remult.repo(UserFlower).count({
+            ownerId: remult.user.id,
+            speciesId: species.id,
+          })
+          if (count > 0) {
+            allowed = true
+          } else {
+            // Check if user has discovered the flower
+            const DiscoveryRepo = remult.repo(FlowerDiscovery)
+            const discovered = await DiscoveryRepo.count({
+              userId: remult.user.id,
+              speciesId: species.id,
+            })
+            if (discovered > 0) allowed = true
+          }
+        }
       }
     }
 
@@ -107,7 +123,7 @@ httpServer.listen(3002, () => {
   console.log('Server is running on port 3002')
 
   if (db) {
-    GameService.start(db)
+    GameService.start()
 
     console.log('\n---------------------')
     console.log('Game service started')

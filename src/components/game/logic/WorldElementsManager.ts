@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { ITEM_REGISTRY } from '../config/ItemRegistery'
-import type { TileData } from './LandSceneManager'
+import type { TileData } from './constants'
 
 export class WorldElementManager {
   private scene: THREE.Scene

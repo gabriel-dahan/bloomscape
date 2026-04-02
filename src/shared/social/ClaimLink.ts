@@ -13,7 +13,7 @@ export class ClaimLink {
   rewardSpeciesId!: string
 
   @Relations.toOne(() => FlowerSpecies, 'rewardSpeciesId')
-  rewardSpecies: FlowerSpecies
+  rewardSpecies!: FlowerSpecies
 
   @Fields.integer()
   maxUses: number = 1

@@ -11,6 +11,7 @@ export * from './user/Achievement'
 export * from './user/UserAchievement'
 
 // Flowers
+export * from './flowers/FlowerFamily'
 export * from './flowers/FlowerSpecies'
 export * from './flowers/UserFlower'
 export * from './user/UserItem'

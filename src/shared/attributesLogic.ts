@@ -64,9 +64,10 @@ export class AttributesLogic {
       if (!attrs?.playerEffects) continue
 
       for (const effect of attrs.playerEffects) {
+        const maxStatus = attrs.maxStatus || 'GROWING2'
         const isActive =
           effect.condition === 'WHILE_PLANTED' ||
-          (effect.condition === 'WHILE_MATURE' && flower.status === 'MATURE')
+          (effect.condition === 'WHILE_GROWING2' && flower.status === maxStatus)
 
         if (isActive) {
           if (effect.stat === 'GLOBAL_XP_MULTIPLIER') {

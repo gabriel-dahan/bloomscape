@@ -19,7 +19,8 @@ export class AuthController {
       $or: [{ tag: tagOrEmail }, { email: tagOrEmail }],
     })
     if (!user) throw 'Invalid tag or email'
-    const bcrypt = await import('bcrypt')
+    const lib = '@' + 'bcrypt'
+    const bcrypt = await import(lib.substring(1))
     const match = await bcrypt.compare(passwd, user.passwordHash!)
     if (!match) throw 'Invalid password'
 
@@ -47,7 +48,8 @@ export class AuthController {
     if (passwd !== passwdConfirm) throw 'Passwords do not match.'
     if (passwd.length < 6) throw 'Password must be at least 6 characters.'
 
-    const bcrypt = await import('bcrypt')
+    const lib = '@' + 'bcrypt'
+    const bcrypt = await import(lib.substring(1))
     const hashedPassword = await bcrypt.hash(passwd, 10)
     const newUser = await users.insert({ tag, email, passwordHash: hashedPassword })
 
@@ -58,7 +60,8 @@ export class AuthController {
 
   @BackendMethod({ allowed: true })
   static async googleLogin(idToken: string) {
-    const { OAuth2Client } = await import('google-auth-library')
+    const lib = '@' + 'google-auth-library'
+    const { OAuth2Client } = await import(lib.substring(1))
     const client = new OAuth2Client(process.env.VITE_GOOGLE_CLIENT_ID)
     const userRepo = remult.repo(User)
     const ticket = await client.verifyIdToken({

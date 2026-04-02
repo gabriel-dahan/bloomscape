@@ -104,5 +104,6 @@ export const useSocketStore = defineStore('socket', () => {
     deleteNotification,
     markAllRead,
     clearHistory,
+    handleIncomingNotification,
   }
 })

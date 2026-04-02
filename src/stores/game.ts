@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { remult } from 'remult'
 import { useAuthStore } from './auth'
 import { getLevelProgress } from '@/shared/leveling'
+import { useSocketStore } from '@/stores/socket'
 import { Island, Tile } from '@/shared'
 import { GameController } from '@/server/controllers/GameController'
 
@@ -31,7 +32,6 @@ export const useGameStore = defineStore('game', () => {
       return getLevelProgress(viewedUserTotalXp.value)
     }
 
-    // Fallback to logged-in user
     const xp = authStore.user?.xp || 0
     return getLevelProgress(xp)
   })
@@ -44,7 +44,6 @@ export const useGameStore = defineStore('game', () => {
     )
   })
 
-  // NEW: Action to set the context (Call this when loading a User Profile)
   function setXPContext(xp: number | null) {
     viewedUserTotalXp.value = xp
   }
@@ -74,7 +73,6 @@ export const useGameStore = defineStore('game', () => {
       if (remult.user) {
         await fetchIslandData(remult.user.id)
         await fetchBalance()
-        // Reset view context to self when starting own adventure
         setXPContext(null)
       }
     } catch (e: any) {
@@ -118,6 +116,15 @@ export const useGameStore = defineStore('game', () => {
       }
       await fetchBalance()
     } catch (e: any) {
+      const socketStore = useSocketStore()
+      socketStore.handleIncomingNotification({
+        id: Date.now().toString(),
+        type: 'error',
+        title: 'Action Failed',
+        message: e.message,
+        isRead: true,
+        createdAt: new Date(),
+      })
       console.error(e)
     } finally {
       isLoading.value = false

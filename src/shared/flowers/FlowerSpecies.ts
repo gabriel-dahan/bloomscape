@@ -1,4 +1,5 @@
-import { Entity, Fields } from 'remult'
+import { Entity, Fields, Relations } from 'remult'
+import { FlowerFamily } from './FlowerFamily'
 import {
   FlowerAvailability,
   FlowerRarity,
@@ -17,6 +18,12 @@ export class FlowerSpecies {
 
   @Fields.string()
   slugName!: string
+
+  @Fields.string({ allowNull: true })
+  familyId?: string
+
+  @Relations.toOne(() => FlowerFamily, 'familyId')
+  family?: FlowerFamily
 
   @Fields.string()
   description: string = ''

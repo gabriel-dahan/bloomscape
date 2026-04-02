@@ -46,7 +46,7 @@ const initData = async () => {
     } finally {
         isFetchingData.value = false;
 
-        if (!currentIsland.value && sceneManager) {
+        if (sceneManager) {
             isSceneReady.value = true;
         }
 
@@ -106,9 +106,14 @@ const handleClick = (x: number, z: number) => {
 }
 
 const handleStartAdventure = async () => {
-    await gameStore.startAdventure();
-    isSceneReady.value = false;
-    await initData();
+    isFetchingData.value = true;
+    try {
+        await gameStore.startAdventure();
+        await initData();
+    } finally {
+        isFetchingData.value = false;
+        isSceneReady.value = true;
+    }
 };
 
 onMounted(async () => {

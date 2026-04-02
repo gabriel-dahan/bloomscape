@@ -170,7 +170,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="h-[calc(100vh-8rem)] flex flex-col">
+    <div class="h-[calc(100vh-8rem)] flex flex-col min-w-0">
 
         <div class="flex flex-wrap gap-2 mb-4 p-1 bg-slate-900 rounded-lg border border-slate-800 w-fit shrink-0">
             <button v-for="conf in ENTITY_MAP" :key="conf.key" @click="activeEntityKey = conf.key"
@@ -196,9 +196,9 @@ onMounted(() => {
         </div>
 
         <div
-            class="flex-1 bg-slate-900 border border-slate-800 rounded-b-xl overflow-scroll flex flex-col min-h-0 relative">
+            class="flex-1 bg-slate-900 border border-slate-800 rounded-b-xl flex flex-col min-h-0 relative overflow-hidden">
 
-            <div class="overflow-scroll flex-1 custom-scrollbar">
+            <div class="overflow-auto flex-1 custom-scrollbar">
 
                 <div v-if="loading" class="absolute inset-0 flex items-center justify-center bg-slate-900/50 z-20">
                     <span class="loading loading-spinner text-emerald-500 loading-lg"></span>
@@ -213,24 +213,29 @@ onMounted(() => {
                     <p>No data currently available.</p>
                 </div>
 
-                <table v-else class="table table-xs w-full">
+                <table v-else class="table table-xs w-max min-w-full border-separate border-spacing-0">
                     <thead class="bg-slate-950 text-slate-400 sticky top-0 z-10 shadow-sm">
                         <tr>
-                            <th class="bg-slate-950 w-24">Actions</th>
-                            <th v-for="field in displayFields" :key="field.key" class="bg-slate-950 capitalize">
+                            <th class="bg-slate-950 w-24 sticky left-0 z-20 border-b border-slate-800">Actions</th>
+                            <th v-for="field in displayFields" :key="field.key"
+                                class="bg-slate-950 capitalize border-b border-slate-800">
                                 {{ field.caption || field.key }}
                             </th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="item in items" :key="item.id" class="hover:bg-slate-800/50 border-slate-800 group">
+                        <tr v-for="item in items" :key="item.id" class="hover:bg-slate-800/50 group">
                             <td
-                                class="flex gap-2 sticky left-0 bg-slate-900 group-hover:bg-slate-800 transition-colors">
-                                <button @click="openEdit(item)" class="text-blue-400 hover:text-blue-300">Edit</button>
-                                <button @click="deleteItem(item)" class="text-red-400 hover:text-red-300">Del</button>
+                                class="sticky left-0 bg-slate-900 group-hover:bg-slate-800 transition-colors z-10 border-b border-slate-800 border-r border-slate-800/50">
+                                <div class="flex gap-2">
+                                    <button @click="openEdit(item)"
+                                        class="text-blue-400 hover:text-blue-300">Edit</button>
+                                    <button @click="deleteItem(item)"
+                                        class="text-red-400 hover:text-red-300">Del</button>
+                                </div>
                             </td>
                             <td v-for="field in displayFields" :key="field.key"
-                                class="whitespace-nowrap max-w-xs truncate">
+                                class="whitespace-nowrap max-w-xs truncate border-b border-slate-800">
                                 <span v-if="field.valueType === Boolean">
                                     <span v-if="item[field.key]" class="text-emerald-400">Yes</span>
                                     <span v-else class="text-slate-600">No</span>

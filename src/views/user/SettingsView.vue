@@ -170,7 +170,7 @@ const formatVolume = (val: number) => Math.round(val * 100) + '%'
                     </div>
 
                     <div class="flex-1 w-full md:w-auto mb-2">
-                        <h1 class="text-3xl md:text-5xl font-bold text-white tracking-tight flex items-center gap-3">
+                        <h1 class="page-title text-3xl md:text-5xl font-bold text-white tracking-tight flex items-center gap-3">
                             {{ user.tag }}
                             <span v-if="user.roles.includes(Role.ADMIN)" class="tooltip tooltip-right"
                                 data-tip="Administrator">

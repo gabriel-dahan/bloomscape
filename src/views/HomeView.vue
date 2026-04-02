@@ -46,6 +46,8 @@ const getRarityGlowStyle = (rarity: string) => {
         color: color
     };
 };
+
+const appVersion = import.meta.env.VITE_APP_VERSION
 </script>
 
 <template>
@@ -75,11 +77,11 @@ const getRarityGlowStyle = (rarity: string) => {
                                 class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                             <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                         </span>
-                        Closed Economy Alpha Live
+                        v{{ appVersion }}
                     </div>
 
                     <h1
-                        class="text-4xl phone:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight text-white break-words">
+                        class="page-title text-4xl phone:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight text-white break-words">
                         Cultivate your <br>
                         <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
                             Digital Paradise

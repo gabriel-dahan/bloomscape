@@ -3,6 +3,7 @@ import { AuthController } from '@/server/controllers/AuthController'
 import {
   Achievement,
   ClaimLink,
+  FlowerFamily,
   FlowerSpecies,
   Friendship,
   Island,
@@ -31,6 +32,7 @@ import { GameController } from './controllers/GameController'
 import { AdminController } from './controllers/AdminController'
 import { MarketController } from './controllers/MarketController'
 import { SettingsController } from './controllers/SettingsController'
+import { LeaderboardController } from './controllers/LeaderboardController'
 
 import dotenv from 'dotenv'
 import { ReportController } from './controllers/ReportController'
@@ -70,6 +72,7 @@ export const api = remultApi({
     UserAchievement,
     UserNotification,
 
+    FlowerFamily,
     FlowerSpecies,
     UserFlower,
     UserItem,
@@ -103,6 +106,7 @@ export const api = remultApi({
     ReportController,
     ChatController,
     PaymentController,
+    LeaderboardController,
   ],
   getUser: (req) => req.session!.user,
   admin: true, // UI Interface for admins

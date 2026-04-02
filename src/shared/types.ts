@@ -20,6 +20,8 @@ export interface FlowerDTO {
   waterLevel: number
   quality: number
   plantedAt?: Date
+  growthSeconds?: number
+  lastProcessedAt?: Date
   isShiny: boolean
   activeModifiers?: FlowerModifiersDTO | null
 
@@ -63,7 +65,6 @@ export const FlowerStatus = {
   SPROUT2: 'SPROUT2',
   GROWING1: 'GROWING1',
   GROWING2: 'GROWING2',
-  MATURE: 'MATURE',
   WITHERED: 'WITHERED',
 } as const
 
@@ -89,6 +90,14 @@ export const FlowerWaterConsumption = {
 
 export type FlowerWaterConsumption =
   (typeof FlowerWaterConsumption)[keyof typeof FlowerWaterConsumption]
+
+export const WATER_CONSUMPTION_AMOUNTS: Record<FlowerWaterConsumption, number> = {
+  [FlowerWaterConsumption.VERY_LOW]: 5,
+  [FlowerWaterConsumption.LOW]: 10,
+  [FlowerWaterConsumption.NORMAL]: 15,
+  [FlowerWaterConsumption.HIGH]: 20,
+  [FlowerWaterConsumption.VERY_HIGH]: 25,
+}
 
 export const FriendshipStatus = {
   PENDING: 'PENDING',
@@ -176,7 +185,7 @@ export interface FlowerAura {
 export interface PlayerGlobalEffect {
   stat: GlobalPlayerModifierType
   value: number
-  condition: 'WHILE_PLANTED' | 'WHILE_MATURE' | 'PERMANENT_UNLOCK'
+  condition: 'WHILE_PLANTED' | 'WHILE_GROWING2' | 'PERMANENT_UNLOCK'
 }
 
 export interface EnvironmentalTraits {
@@ -197,4 +206,6 @@ export interface FlowerAttributes {
     canMutate: boolean
     tier: number
   }
+
+  maxStatus?: FlowerStatus
 }

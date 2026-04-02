@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { remult } from 'remult'
 import { UserReport } from '@/shared/analytics/UserReport'
 import { ReportStatus, ReportType } from '@/shared'
@@ -10,8 +10,8 @@ const reports = ref<UserReport[]>([])
 const loading = ref(false)
 const filterStatus = ref<string>('ALL') // 'ALL', 'OPEN', 'RESOLVED'
 
-// Modal state for viewing full details
 const selectedReport = ref<UserReport | null>(null)
+const adminMessage = ref('')
 
 // --- ACTIONS ---
 
@@ -41,13 +41,19 @@ async function fetchReports() {
 
 async function updateStatus(report: UserReport, status: string) {
     try {
-        await repo.save({ ...report, status: status as any, resolvedAt: new Date() })
+        const { ReportController } = await import('@/server/controllers/ReportController')
+        await ReportController.resolveReport(report.id, status as any, adminMessage.value)
         await fetchReports()
         if (selectedReport.value?.id === report.id) selectedReport.value = null // Close modal if open
     } catch (e: any) {
         alert(e.message)
     }
 }
+
+// Reset message when modal changes
+watch(selectedReport, () => {
+    adminMessage.value = ''
+})
 
 // --- HELPERS ---
 
@@ -146,11 +152,11 @@ onMounted(fetchReports)
                                     <div class="avatar placeholder">
                                         <div class="bg-slate-800 text-slate-400 rounded-full w-6">
                                             <span class="text-xs">{{ report.reporter?.tag.slice(0, 2).toUpperCase()
-                                            }}</span>
+                                                }}</span>
                                         </div>
                                     </div>
                                     <span class="text-xs font-mono text-slate-400">{{ report.reporter?.tag || 'Unknown'
-                                    }}</span>
+                                        }}</span>
                                 </div>
                             </td>
 
@@ -197,6 +203,15 @@ onMounted(fetchReports)
                     {{ selectedReport.description }}
                 </div>
 
+                <div v-if="selectedReport.status === ReportStatus.OPEN || selectedReport.status === ReportStatus.IN_PROGRESS"
+                    class="p-6 border-t border-slate-800 bg-slate-900">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Admin Resolution
+                        Message</label>
+                    <textarea v-model="adminMessage"
+                        class="textarea textarea-bordered bg-slate-950 border-slate-700 w-full text-slate-200"
+                        placeholder="Type a message to send to the player..."></textarea>
+                </div>
+
                 <div class="p-6 bg-slate-950 border-t border-slate-800 flex justify-between items-center">
                     <div class="text-xs text-slate-500">
                         Reported by <span class="text-white">{{ selectedReport.reporter?.tag }}</span> on {{ new
@@ -210,11 +225,11 @@ onMounted(fetchReports)
                             Mark In Progress
                         </button>
                         <button @click="updateStatus(selectedReport, ReportStatus.REJECTED)"
-                            class="btn btn-sm btn-error btn-outline">
+                            class="btn btn-sm btn-error btn-outline" :disabled="!adminMessage.trim()">
                             Reject
                         </button>
                         <button @click="updateStatus(selectedReport, ReportStatus.RESOLVED)"
-                            class="btn btn-sm btn-success">
+                            class="btn btn-sm btn-success" :disabled="!adminMessage.trim()">
                             Resolve
                         </button>
                     </div>

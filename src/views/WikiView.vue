@@ -92,7 +92,7 @@ const getRarityColor = (rarity: string) => {
             <div
                 class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 pb-8 border-b border-slate-800">
                 <div>
-                    <h1 class="text-3xl font-bold text-white mb-2">
+                    <h1 class="page-title text-3xl font-bold text-white mb-2">
                         {{ activeCategory === 'OVERVIEW' ? 'Welcome to BloomScape' :
                             activeCategory === 'TOOLS' ? 'Equipment & Items' :
                                 activeCategory === 'MECHANICS' ? 'Advanced Mechanics' : 'Economic Theory' }}

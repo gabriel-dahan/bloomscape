@@ -15,12 +15,15 @@ interface FloradexEntry {
     discoveryDate?: string
     discoverySource?: typeof DiscoverySource[keyof typeof DiscoverySource]
     initialQuality?: number
+    family?: { id: string, name: string }
+    attributes?: any
 }
 
 const floradex = ref<FloradexEntry[]>([])
 const isLoading = ref(true)
 const searchQuery = ref('')
 const sortOption = ref<'RARITY_DESC' | 'RARITY_ASC' | 'NAME_ASC' | 'DISCOVERED' | 'DATE_DESC'>('RARITY_DESC')
+const groupByFamily = ref(false)
 
 const RARITY_WEIGHT: Record<string, number> = {
     'LEGENDARY': 5,
@@ -62,6 +65,26 @@ const processedFloradex = computed(() => {
             default: return 0
         }
     })
+})
+
+const groupedFloradex = computed(() => {
+    if (!groupByFamily.value) return []
+
+    const groups: Record<string, FloradexEntry[]> = {}
+    processedFloradex.value.forEach(f => {
+        const familyName = f.family?.name || 'No family'
+        if (!groups[familyName]) groups[familyName] = []
+        groups[familyName].push(f)
+    })
+
+    return Object.keys(groups).sort((a, b) => {
+        if (a === 'No family') return 1;
+        if (b === 'No family') return -1;
+        return a.localeCompare(b);
+    }).map(key => ({
+        name: key,
+        items: groups[key]
+    }))
 })
 
 const fetchFloradex = async () => {
@@ -118,7 +141,7 @@ const getSourceLabel = (source?: string) => {
             <div class="flex flex-col lg:flex-row items-end lg:items-center justify-between mb-8 gap-6">
                 <div class="w-full lg:w-auto ml-5">
                     <h1
-                        class="text-4xl font-bold text-white mb-2 flex items-center justify-center lg:justify-start gap-3">
+                        class="page-title text-4xl font-bold text-white mb-2 flex items-center justify-center lg:justify-start gap-3">
                         FloraDex
                     </h1>
                     <p class="text-slate-400 flex justify-center lg:justify-start">Track your botanical discoveries.</p>
@@ -140,6 +163,13 @@ const getSourceLabel = (source?: string) => {
                         <option value="DATE_DESC">Date Discovered</option>
                         <option value="DISCOVERED">Discovered Status</option>
                     </select>
+
+                    <label
+                        class="label cursor-pointer flex items-center gap-2 bg-slate-950 px-3 py-1 rounded-md border border-slate-700">
+                        <span class="label-text text-slate-300 text-sm whitespace-nowrap">As families</span>
+                        <input v-model="groupByFamily" type="checkbox"
+                            class="checkbox checkbox-sm checkbox-primary border-slate-600" />
+                    </label>
                 </div>
             </div>
 
@@ -158,83 +188,162 @@ const getSourceLabel = (source?: string) => {
                 <div v-for="i in 10" :key="i" class="h-64 bg-slate-900 rounded-xl animate-pulse"></div>
             </div>
 
-            <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            <div v-else>
 
-                <div v-for="flower in processedFloradex" :key="flower.id"
-                    class="group relative bg-slate-900 rounded-xl border overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
-                    :class="flower.discovered ? getRarityBg(flower.rarity) + ' ' + getRarityColor(flower.rarity) : 'border-slate-800 bg-slate-900'">
+                <!-- Render when Group by Family is Active -->
+                <div v-if="groupByFamily" class="space-y-12">
+                    <div v-for="group in groupedFloradex" :key="group.name">
+                        <h2
+                            class="text-2xl font-bold text-white mb-6 pb-2 border-b border-slate-800 flex items-center gap-2">
+                            <span class="text-emerald-500">❖</span>
+                            {{ group.name }}
+                        </h2>
 
-                    <div v-if="flower.discovered"
-                        class="absolute top-3 right-3 z-10 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-950/80 backdrop-blur border border-white/10 shadow-sm">
-                        {{ flower.rarity }}
-                    </div>
+                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                            <div v-for="flower in group.items" :key="flower.id"
+                                class="group relative bg-slate-900 rounded-xl border overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+                                :class="flower.discovered ? getRarityBg(flower.rarity) + ' ' + getRarityColor(flower.rarity) : 'border-slate-800 bg-slate-900'">
 
-                    <div class="aspect-square relative p-6 flex items-center justify-center bg-slate-950/30">
-                        <FlowerImage :slug="flower.slugName" status="MATURE" type="icon" size="100%"
-                            class="transition-all duration-500"
-                            :class="flower.discovered
-                                ? 'drop-shadow-[0_4px_6px_rgba(0,0,0,0.5)] group-hover:scale-110'
-                                : 'brightness-0 opacity-20 grayscale blur-[2px] group-hover:blur-0 group-hover:opacity-40'" />
+                                <div v-if="flower.discovered"
+                                    class="absolute top-3 right-3 z-10 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-950/80 backdrop-blur border border-white/10 shadow-sm">
+                                    {{ flower.rarity }}
+                                </div>
 
-                        <div v-if="!flower.discovered"
-                            class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div
-                                class="w-10 h-10 rounded-full bg-slate-800/80 backdrop-blur flex items-center justify-center text-slate-500 border border-slate-700">
-                                🔒
+                                <div
+                                    class="aspect-square relative p-6 flex items-center justify-center bg-slate-950/30">
+                                    <FlowerImage :slug="flower.slugName"
+                                        :status="(flower.attributes as any)?.maxStatus || 'GROWING2'" type="icon"
+                                        size="100%" class="transition-all duration-500"
+                                        :class="flower.discovered
+                                            ? 'drop-shadow-[0_4px_6px_rgba(0,0,0,0.5)] group-hover:scale-110'
+                                            : 'brightness-0 opacity-20 grayscale blur-[2px] group-hover:blur-0 group-hover:opacity-40'" />
+
+                                    <div v-if="!flower.discovered"
+                                        class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                        <div
+                                            class="w-10 h-10 rounded-full bg-slate-800/80 backdrop-blur flex items-center justify-center text-slate-500 border border-slate-700">
+                                            🔒
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="p-4 border-t border-white/5 flex flex-col h-full">
+                                    <div v-if="flower.discovered">
+                                        <h3 class="font-bold text-white truncate">{{ flower.name }}</h3>
+                                        <p class="text-xs text-white/50 line-clamp-2 mt-1 mb-2 min-h-[2.5em]">{{
+                                            flower.description
+                                        }}</p>
+
+                                        <div class="mt-auto pt-2 border-t border-white/5 space-y-1">
+                                            <div class="flex justify-between items-center text-[10px] text-slate-400">
+                                                <span class="uppercase tracking-wider">Date</span>
+                                                <span class="font-mono text-slate-200">
+                                                    {{ flower.discoveryDate ? new
+                                                        Date(flower.discoveryDate).toLocaleDateString() :
+                                                        '-' }}
+                                                </span>
+                                            </div>
+                                            <div class="flex justify-between items-center text-[10px] text-slate-400">
+                                                <span class="uppercase tracking-wider">Source</span>
+                                                <span class="text-emerald-400 font-bold">
+                                                    {{ getSourceLabel(flower.discoverySource) }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div v-else>
+                                        <h3 class="font-bold text-slate-600">Unknown Species</h3>
+                                        <p class="text-xs text-slate-700 mt-1">Discover this flower to unlock its data.
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <div class="p-4 border-t border-white/5 flex flex-col h-full">
-                        <div v-if="flower.discovered">
-                            <h3 class="font-bold text-white truncate">{{ flower.name }}</h3>
-                            <p class="text-xs text-white/50 line-clamp-2 mt-1 mb-2 min-h-[2.5em]">{{ flower.description
+                <!-- Render when Group by Family is NOT Active (Default flat list) -->
+                <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+
+                    <div v-for="flowerData in processedFloradex" :key="flowerData.id"
+                        class="group relative bg-slate-900 rounded-xl border overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+                        :class="flowerData.discovered ? getRarityBg(flowerData.rarity) + ' ' + getRarityColor(flowerData.rarity) : 'border-slate-800 bg-slate-900'">
+
+                        <div v-if="flowerData.discovered"
+                            class="absolute top-3 right-3 z-10 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-950/80 backdrop-blur border border-white/10 shadow-sm">
+                            {{ flowerData.rarity }}
+                        </div>
+
+                        <div class="aspect-square relative p-6 flex items-center justify-center bg-slate-950/30">
+                            <FlowerImage :slug="flowerData.slugName"
+                                :status="(flowerData.attributes as any)?.maxStatus || 'GROWING2'" type="icon"
+                                size="100%" class="transition-all duration-500"
+                                :class="flowerData.discovered
+                                    ? 'drop-shadow-[0_4px_6px_rgba(0,0,0,0.5)] group-hover:scale-110'
+                                    : 'brightness-0 opacity-20 grayscale blur-[2px] group-hover:blur-0 group-hover:opacity-40'" />
+
+                            <div v-if="!flowerData.discovered"
+                                class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div
+                                    class="w-10 h-10 rounded-full bg-slate-800/80 backdrop-blur flex items-center justify-center text-slate-500 border border-slate-700">
+                                    🔒
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-4 border-t border-white/5 flex flex-col h-full">
+                            <div v-if="flowerData.discovered">
+                                <h3 class="font-bold text-white truncate">{{ flowerData.name }}</h3>
+                                <p class="text-xs text-white/50 line-clamp-2 mt-1 mb-2 min-h-[2.5em]">{{
+                                    flowerData.description
                                 }}</p>
 
-                            <div class="mt-auto pt-2 border-t border-white/5 space-y-1">
-                                <div class="flex justify-between items-center text-[10px] text-slate-400">
-                                    <span class="uppercase tracking-wider">Date</span>
-                                    <span class="font-mono text-slate-200">
-                                        {{ flower.discoveryDate ? new Date(flower.discoveryDate).toLocaleDateString() :
-                                            '-' }}
-                                    </span>
-                                </div>
-                                <div class="flex justify-between items-center text-[10px] text-slate-400">
-                                    <span class="uppercase tracking-wider">Source</span>
-                                    <span class="text-emerald-400 font-bold">
-                                        {{ getSourceLabel(flower.discoverySource) }}
-                                    </span>
+                                <div class="mt-auto pt-2 border-t border-white/5 space-y-1">
+                                    <div class="flex justify-between items-center text-[10px] text-slate-400">
+                                        <span class="uppercase tracking-wider">Date</span>
+                                        <span class="font-mono text-slate-200">
+                                            {{ flowerData.discoveryDate ? new
+                                                Date(flowerData.discoveryDate!).toLocaleDateString() :
+                                                '-' }}
+                                        </span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-[10px] text-slate-400">
+                                        <span class="uppercase tracking-wider">Source</span>
+                                        <span class="text-emerald-400 font-bold">
+                                            {{ getSourceLabel(flowerData.discoverySource) }}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div v-else>
-                            <h3 class="font-bold text-slate-600">Unknown Species</h3>
-                            <p class="text-xs text-slate-700 mt-1">Discover this flower to unlock its data.</p>
+                            <div v-else>
+                                <h3 class="font-bold text-slate-600">Unknown Species</h3>
+                                <p class="text-xs text-slate-700 mt-1">Discover this flower to unlock its data.</p>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div v-if="!searchQuery"
-                    class="relative bg-slate-950 rounded-xl border border-slate-800 border-dashed flex flex-col items-center justify-center text-center p-6 group cursor-help overflow-hidden min-h-[250px]">
-                    <div
-                        class="absolute inset-0 bg-gradient-to-br from-purple-900/10 to-blue-900/10 opacity-0 group-hover:opacity-100 transition-opacity">
-                    </div>
-                    <div class="relative z-10 transform transition-transform group-hover:scale-110 duration-500">
+                    <div v-if="!searchQuery"
+                        class="relative bg-slate-950 rounded-xl border border-slate-800 border-dashed flex flex-col items-center justify-center text-center p-6 group cursor-help overflow-hidden min-h-[250px]">
                         <div
-                            class="text-6xl mb-4 opacity-30 group-hover:opacity-100 transition-opacity filter blur-[1px] group-hover:blur-0">
-                            🧬
+                            class="absolute inset-0 bg-gradient-to-br from-purple-900/10 to-blue-900/10 opacity-0 group-hover:opacity-100 transition-opacity">
                         </div>
-                    </div>
-                    <div class="relative z-10">
-                        <h3 class="font-bold text-slate-500 group-hover:text-purple-400 transition-colors">Secret
-                            Variations</h3>
-                        <p class="text-xs text-slate-600 mt-2 group-hover:text-slate-400 transition-colors">
-                            Rare mutations & event exclusives hide in the shadows.
-                        </p>
+                        <div class="relative z-10 transform transition-transform group-hover:scale-110 duration-500">
+                            <div
+                                class="text-6xl mb-4 opacity-30 group-hover:opacity-100 transition-opacity filter blur-[1px] group-hover:blur-0">
+                                🧬
+                            </div>
+                        </div>
+                        <div class="relative z-10">
+                            <h3 class="font-bold text-slate-500 group-hover:text-purple-400 transition-colors">Secret
+                                Variations</h3>
+                            <p class="text-xs text-slate-600 mt-2 group-hover:text-slate-400 transition-colors">
+                                Rare mutations & event exclusives hide in the shadows.
+                            </p>
+                        </div>
                     </div>
                 </div>
 
-                <div v-if="processedFloradex.length === 0 && searchQuery"
+                <div v-if="(!groupByFamily && processedFloradex.length === 0 && searchQuery) || (groupByFamily && processedFloradex.length === 0 && searchQuery)"
                     class="col-span-full py-12 text-center text-slate-500 italic">
                     No flowers found matching "{{ searchQuery }}"
                 </div>

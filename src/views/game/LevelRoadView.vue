@@ -64,7 +64,7 @@ const getColorClasses = (reward: LevelReward, status: string) => {
                     </div>
                 </div>
                 <div>
-                    <h1 class="text-xl md:text-2xl font-bold text-white tracking-tight">Level Road</h1>
+                    <h1 class="page-title text-xl md:text-2xl font-bold text-white tracking-tight">Level Road</h1>
                     <p class="text-slate-400 text-xs md:text-sm">Rewards & Unlocks</p>
                 </div>
             </div>

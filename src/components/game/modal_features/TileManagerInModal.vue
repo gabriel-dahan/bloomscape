@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, watch, onUnmounted, onMounted } from 'vue'
 import { GameController } from '@/server/controllers/GameController'
-import { FlowerRarity, Tile, PreferredSeasons } from '@/shared';
+import { FlowerRarity, Tile, PreferredSeasons, WATER_CONSUMPTION_AMOUNTS } from '@/shared';
 import type { FlowerDTO, FlowerStatus } from '@/shared';
 import FlowerImage from '@/components/FlowerImage.vue';
+import { calculateGameTime } from '@/shared/gameTime'
 
 const props = defineProps<{
     x: number,
@@ -22,17 +23,33 @@ const selectedSeedId = ref<string>('')
 const activeTab = ref<'status' | 'info'>('status')
 const errorMsg = ref('')
 
+const displayWaterLevel = ref(0)
+const displayStatus = ref('')
+
 const growthProgress = ref(0)
+const remainingGrowthStr = ref('')
+const gameTimeStr = ref('')
 let timer: any = null
 
 const hasTile = computed(() => !!tile.value)
 const hasFlower = computed(() => !!flower.value)
 
-const GROWTH_STAGES = ['SEED', 'SPROUT1', 'SPROUT2', 'GROWING1', 'GROWING2', 'MATURE']
+const ALL_GROWTH_STAGES = ['SEED', 'SPROUT1', 'SPROUT2', 'GROWING1', 'GROWING2']
+
+const GROWTH_STAGES = computed(() => {
+    if (!flower.value?.species) return ALL_GROWTH_STAGES
+    const maxStatus = flower.value.species.attributes?.maxStatus || 'GROWING2'
+    const maxIndex = ALL_GROWTH_STAGES.indexOf(maxStatus as string)
+
+    // Fallback if maxStatus is not found or is SEED
+    if (maxIndex <= 0) return ALL_GROWTH_STAGES
+
+    return ALL_GROWTH_STAGES.slice(0, maxIndex + 1)
+})
 
 const currentStageIndex = computed(() => {
     if (!flower.value) return -1
-    return GROWTH_STAGES.indexOf(flower.value.status as string)
+    return GROWTH_STAGES.value.indexOf((displayStatus.value || flower.value.status) as string)
 })
 
 const rarityColors: Record<string, string> = {
@@ -50,10 +67,10 @@ const currentRarityColor = computed(() => {
 
 const waterStatus = computed(() => {
     if (!flower.value) return { label: 'Unknown', color: 'text-slate-500', bar: 'bg-slate-700' }
-    const w = flower.value.waterLevel
-    if (w > 80) return { label: 'Hydrated', color: 'text-blue-400', bar: 'progress-info' }
-    if (w > 30) return { label: 'Thirsty', color: 'text-warning', bar: 'progress-warning' }
-    return { label: 'Critical', color: 'text-error', bar: 'progress-error' }
+    const w = displayWaterLevel.value
+    if (w > 80) return { label: 'Hydrated', color: 'text-blue-400', bar: 'bg-info' }
+    if (w > 30) return { label: 'Thirsty', color: 'text-warning', bar: 'bg-warning' }
+    return { label: 'Critical', color: 'text-error', bar: 'bg-error' }
 })
 
 const seasonDisplay = computed(() => {
@@ -129,20 +146,127 @@ const handleHarvest = async () => {
 }
 
 const calculateGrowth = () => {
-    if (!flower.value?.species || !flower.value.plantedAt) return 0
-    const start = new Date(flower.value.plantedAt).getTime()
-    const now = new Date().getTime()
-    const multiplier = flower.value.activeModifiers?.growthSpeedMultiplier || 1
-    const baseDurationMs = flower.value.species.growthDuration * 1000
-    const realDurationMs = baseDurationMs / multiplier
-    growthProgress.value = Math.min(100, ((now - start) / realDurationMs) * 100)
+    if (!flower.value?.species) {
+        remainingGrowthStr.value = ''
+        return 0
+    }
+
+    let currentGrowth = flower.value.growthSeconds || 0
+    let currentWater = flower.value.waterLevel || 0
+    let currentStatus = flower.value.status
+
+    const maxStatus = flower.value.species.attributes?.maxStatus || 'GROWING2'
+
+    if (currentWater > 0 && currentStatus !== maxStatus && flower.value.lastProcessedAt) {
+        const last = new Date(flower.value.lastProcessedAt).getTime()
+        const now = new Date().getTime()
+        let timeToProcess = (now - last) / 1000
+
+        const multiplier = flower.value.activeModifiers?.growthSpeedMultiplier || 1
+        const duration = flower.value.species.growthDuration / multiplier
+
+        const waterNeedsStr = flower.value.species.waterNeeds as keyof typeof WATER_CONSUMPTION_AMOUNTS
+        const waterConsumption = WATER_CONSUMPTION_AMOUNTS[waterNeedsStr] || 15
+
+        // Use the valid stages computed without mutating state
+        const STAGES = ['SPROUT1', 'SPROUT2', 'GROWING1', 'GROWING2']
+        const maxIndex = STAGES.indexOf(maxStatus as string)
+        const validStages = STAGES.slice(0, maxIndex === -1 ? STAGES.length : maxIndex + 1)
+
+        const boundaries = validStages.map((status, index) => ({
+            status: status as FlowerStatus,
+            ratio: index / (validStages.length - 1 || 1)
+        }))
+
+        const CONTINUOUS_RATIO = 0.2
+        const BOUNDARY_RATIO = 0.8
+
+        while (timeToProcess > 0 && currentWater > 0) {
+            const currentRatio = currentGrowth / duration
+            const nextBoundary = boundaries.find(b => b.ratio > currentRatio)
+
+            if (!nextBoundary) {
+                currentStatus = maxStatus as FlowerStatus
+                break
+            }
+
+            const secondsToNextBoundary = (nextBoundary.ratio * duration) - currentGrowth
+            const previousRatio = boundaries[boundaries.indexOf(nextBoundary) - 1]?.ratio || 0;
+            const stageDuration = duration * (nextBoundary.ratio - previousRatio) || (duration * 0.25);
+
+            const continuousWaterPerSec = (waterConsumption * CONTINUOUS_RATIO) / stageDuration
+
+            const maxSecondsWithWater = continuousWaterPerSec > 0 ? currentWater / continuousWaterPerSec : Infinity
+
+            const timeStep = Math.min(timeToProcess, secondsToNextBoundary, maxSecondsWithWater)
+
+            currentGrowth += timeStep
+            timeToProcess -= timeStep
+            currentWater -= continuousWaterPerSec * timeStep
+
+            if (Math.abs(currentGrowth - (nextBoundary.ratio * duration)) < 0.001) {
+                currentWater -= waterConsumption * BOUNDARY_RATIO
+                currentStatus = nextBoundary.status
+            }
+
+            if (currentWater < 0) currentWater = 0
+            if (currentStatus === maxStatus) break
+        }
+
+        const realDuration = flower.value.species.growthDuration / multiplier
+        growthProgress.value = Math.min(100, (currentGrowth / realDuration) * 100)
+
+        const remainingSecs = Math.max(0, realDuration - currentGrowth)
+        if (remainingSecs <= 0 || currentStatus === maxStatus) {
+            remainingGrowthStr.value = 'Ready'
+        } else if (currentWater <= 0) {
+            remainingGrowthStr.value = 'Paused (No Water)'
+        } else {
+            const h = Math.floor(remainingSecs / 3600)
+            const m = Math.floor((remainingSecs % 3600) / 60)
+            const s = Math.floor(remainingSecs % 60)
+            remainingGrowthStr.value = h > 0 ? `${h}h ${m}m` : (m > 0 ? `${m}m ${s}s` : `${s}s`)
+        }
+
+    } else {
+        const multiplier = flower.value.activeModifiers?.growthSpeedMultiplier || 1
+        const realDuration = flower.value.species.growthDuration / multiplier
+        growthProgress.value = Math.min(100, (currentGrowth / realDuration) * 100)
+
+        const remainingSecs = Math.max(0, realDuration - currentGrowth)
+        if (remainingSecs <= 0 || currentStatus === maxStatus) {
+            remainingGrowthStr.value = 'Ready'
+        } else if (currentWater <= 0) {
+            remainingGrowthStr.value = 'Paused (No Water)'
+        } else {
+            const h = Math.floor(remainingSecs / 3600)
+            const m = Math.floor((remainingSecs % 3600) / 60)
+            const s = Math.floor(remainingSecs % 60)
+            remainingGrowthStr.value = h > 0 ? `${h}h ${m}m` : (m > 0 ? `${m}m ${s}s` : `${s}s`)
+        }
+    }
+
+    displayWaterLevel.value = currentWater
+    displayStatus.value = currentStatus as string
+}
+
+const updateTimers = () => {
+    const gt = calculateGameTime()
+    gameTimeStr.value = `${gt.formatted} - ${String(gt.hour).padStart(2, '0')}:${String(gt.minute).padStart(2, '0')}`
+    if (flower.value) {
+        calculateGrowth()
+    }
 }
 
 const startGrowthTimer = () => {
     if (timer) clearInterval(timer)
-    calculateGrowth()
-    timer = setInterval(calculateGrowth, 1000)
+    updateTimers()
+    timer = setInterval(updateTimers, 1000)
 }
+
+onMounted(() => {
+    startGrowthTimer() // Unconditionally tick game time while component is alive
+})
 
 watch(() => [props.x, props.z], loadData, { immediate: true })
 onUnmounted(() => { if (timer) clearInterval(timer) })
@@ -157,6 +281,9 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
             <div class="flex items-center gap-2">
                 <div class="badge badge-neutral font-mono text-xs border-slate-700 bg-slate-800">X: {{ x }}</div>
                 <div class="badge badge-neutral font-mono text-xs border-slate-700 bg-slate-800">Z: {{ z }}</div>
+            </div>
+            <div class="text-[10px] text-slate-400 font-mono tracking-wider ml-auto mr-4 hidden sm:block">
+                {{ gameTimeStr }}
             </div>
             <div class="text-[10px] uppercase font-bold tracking-widest text-emerald-500/80">
                 {{ isLoading ? 'SCANNING...' : (tile?.type || 'UNKNOWN') }}
@@ -269,7 +396,8 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                             <div class="absolute inset-0 opacity-30 bg-radial-gradient blur-xl transition-opacity duration-700 group-hover:opacity-50"
                                 :class="currentRarityColor"></div>
 
-                            <FlowerImage :slug="flower.species.slugName" :status="flower.status" type="icon" size="80px"
+                            <FlowerImage :slug="flower.species.slugName"
+                                :status="(displayStatus || flower.status) as FlowerStatus" type="icon" size="80px"
                                 class="drop-shadow-2xl z-10 group-hover:scale-110 transition-transform duration-500 ease-out" />
 
                             <div
@@ -308,7 +436,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                                     <span class="text-[9px] text-slate-500 uppercase font-bold">Stage</span>
                                     <span class="font-bold"
                                         :class="growthProgress >= 100 ? 'text-emerald-400' : 'text-slate-300'">{{
-                                            flower.status }}</span>
+                                            displayStatus || flower.status }}</span>
                                 </div>
                             </div>
                         </div>
@@ -371,9 +499,14 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                                             </svg>
                                             Growth Progress
                                         </span>
-                                        <span
-                                            class="text-xs font-mono text-emerald-400 font-bold bg-emerald-900/30 px-1.5 rounded">{{
-                                                Math.floor(growthProgress) }}%</span>
+                                        <div class="flex items-center gap-2">
+                                            <span v-if="remainingGrowthStr"
+                                                class="text-[10px] text-slate-400 font-mono tracking-wider">{{
+                                                    remainingGrowthStr }}</span>
+                                            <span
+                                                class="text-xs font-mono text-emerald-400 font-bold bg-emerald-900/30 px-1.5 rounded">{{
+                                                    Math.floor(growthProgress) }}%</span>
+                                        </div>
                                     </div>
                                     <div
                                         class="h-3 w-full bg-slate-900 rounded-full overflow-hidden shadow-inner border border-slate-700/50 relative">
@@ -410,17 +543,17 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                                     <div
                                         class="h-3 w-full bg-slate-900 rounded-full overflow-hidden shadow-inner border border-slate-700/50">
                                         <div class="h-full transition-all duration-500 ease-out"
-                                            :class="waterStatus.bar.replace('progress-', 'bg-')"
-                                            :style="{ width: `${Math.min(100, flower.waterLevel)}%` }">
+                                            :class="waterStatus.bar"
+                                            :style="{ width: `${Math.min(100, displayWaterLevel)}%` }">
                                         </div>
                                     </div>
                                     <div class="text-right text-[10px] text-slate-500 font-mono">{{
-                                        Math.round(flower.waterLevel) }} / 100</div>
+                                        Math.round(displayWaterLevel) }} / 100</div>
                                 </div>
                             </div>
 
                             <div class="mt-auto grid grid-cols-2 gap-3 pt-2">
-                                <button @click="handleWater" :disabled="flower.waterLevel >= 100"
+                                <button @click="handleWater" :disabled="displayWaterLevel >= 100"
                                     class="btn btn-info bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border-blue-500/30 hover:border-blue-400 h-12 relative overflow-hidden group">
                                     <div
                                         class="absolute inset-0 flex items-center justify-center opacity-10 group-hover:scale-150 transition-transform duration-700">

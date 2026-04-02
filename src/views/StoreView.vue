@@ -74,7 +74,7 @@ onMounted(() => {
 
             <div class="text-center mb-12">
                 <h1
-                    class="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-600 mb-4 drop-shadow-sm">
+                    class="page-title text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-600 mb-4 drop-shadow-sm">
                     Store
                 </h1>
                 <p class="text-slate-400 max-w-2xl mx-auto">

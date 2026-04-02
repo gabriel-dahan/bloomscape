@@ -1,6 +1,6 @@
 import { Allow, Entity, Fields } from 'remult'
 
-@Entity('userSettings', {
+@Entity('user_settings', {
   allowApiCrud: Allow.authenticated,
 })
 export class UserSettings {

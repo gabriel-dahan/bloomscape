@@ -20,8 +20,8 @@ const userId = ref<string | null>(null);
 onMounted(async () => {
     await auth.fetchSessionUser();
     userId.value = route.params.tag
-        ? (await UserController.getUserByTag(route.params.tag as string)).user.id
-        : auth.user?.id;
+        ? (await UserController.getUserByTag(route.params.tag as string))?.user?.id || null
+        : auth.user?.id || null;
 });
 
 const formatCoord = (n: number) => n.toString().padStart(2, '0');
@@ -48,7 +48,7 @@ const playlist = [
 
         <div class="absolute inset-0 z-10 pointer-events-none">
             <SideBar />
-            <TopBar :user-tag="route.params.tag || auth.user?.tag || ''" />
+            <TopBar :user-tag="(route.params.tag as string) || auth.user?.tag || ''" />
 
             <transition name="slide-up">
                 <div v-if="activeTile"
@@ -93,12 +93,18 @@ const playlist = [
                                 <button v-if="activeTile.isOwned"
                                     class="btn btn-sm btn-primary w-full text-white shadow-lg shadow-emerald-500/20"
                                     @click="() => {
+                                        if (!activeTile || !gameStore.currentIsland) return;
+
+                                        const currentX = activeTile.x;
+                                        const currentZ = activeTile.z;
+                                        const currentIslandId = gameStore.currentIsland.id;
+
                                         const componentWithProps = defineComponent({
                                             render() {
                                                 return h(TileManagerInModal, {
-                                                    x: activeTile.x,
-                                                    z: activeTile.z,
-                                                    islandId: gameStore.currentIsland.id
+                                                    x: currentX,
+                                                    z: currentZ,
+                                                    islandId: currentIslandId
                                                 })
                                             }
                                         })
@@ -108,7 +114,7 @@ const playlist = [
                                             title: 'Tile Manager',
                                             component: markRaw(componentWithProps),
                                             size: 'fullscreen',
-                                            path: ROUTES.TILE_MANAGER.pathDyn(activeTile.x, activeTile.z),
+                                            path: ROUTES.TILE_MANAGER.pathDyn(currentX, currentZ),
                                             sideBarMargin: true,
                                         });
                                     }">

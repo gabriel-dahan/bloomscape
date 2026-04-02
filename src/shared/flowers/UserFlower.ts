@@ -32,6 +32,12 @@ export class UserFlower {
   @Fields.number()
   waterLevel: number = 100 // 0-100%
 
+  @Fields.number()
+  growthSeconds: number = 0
+
+  @Fields.date()
+  lastProcessedAt?: Date
+
   @Fields.boolean()
   isShiny: boolean = false
 

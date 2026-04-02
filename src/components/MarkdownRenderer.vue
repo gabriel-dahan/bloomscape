@@ -1,6 +1,20 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { marked } from 'marked';
+import { Marked } from 'marked';
+
+const marked = new Marked({
+    renderer: {
+        heading({ tokens }) {
+            return `<p><strong>${this.parser.parseInline(tokens)}</strong></p>\n`;
+        },
+        image() {
+            return '';
+        },
+        html() {
+            return '';
+        }
+    }
+});
 
 const props = defineProps<{
     content: string;
@@ -8,7 +22,7 @@ const props = defineProps<{
 
 const renderedContent = computed(() => {
     if (!props.content) return '';
-    return marked(props.content);
+    return marked.parse(props.content);
 });
 </script>
 
@@ -17,7 +31,6 @@ const renderedContent = computed(() => {
 </template>
 
 <style scoped>
-/* Custom prose overrides if needed */
 :deep(a) {
     color: #34d399;
     text-decoration: underline;

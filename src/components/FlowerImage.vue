@@ -13,7 +13,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    status: FlowerStatus.MATURE,
+    status: FlowerStatus.GROWING2,
     type: 'icon',
     size: 32,
     alt: 'Flower icon'

@@ -46,13 +46,13 @@ const activeTitle = computed(() =>
 </script>
 
 <template>
-    <div class="w-screen min-h-screen bg-slate-950 text-slate-200 flex font-sans">
+    <div class="w-full min-h-screen bg-slate-950 text-slate-200 font-sans">
 
         <AdminSideBar :active-tab="activeTabId" :menu-items="menuItems" @update:tab="(id) => activeTabId = id" />
 
-        <main class="flex-1 ml-64 p-8 bg-slate-950 min-h-screen">
-            <header class="flex justify-between items-center mb-8 pb-4 border-b border-slate-800">
-                <h1 class="text-2xl font-bold text-white">
+        <main class="ml-64 p-8 bg-slate-950 min-h-screen min-w-0 flex flex-col">
+            <header class="flex justify-between items-center mb-8 pb-4 border-b border-slate-800 shrink-0">
+                <h1 class="page-title text-2xl font-bold text-white">
                     {{ activeTitle }}
                 </h1>
             </header>

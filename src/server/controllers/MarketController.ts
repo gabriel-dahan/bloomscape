@@ -82,6 +82,29 @@ export class MarketController {
   }
 
   @BackendMethod({ allowed: true })
+  static async removeListing(listingId: string) {
+    const user = remult.user
+    if (!user) throw new Error('Not authenticated')
+
+    const listingRepo = remult.repo(MarketListing)
+    const flowerRepo = remult.repo(UserFlower)
+
+    const listing = await listingRepo.findId(listingId, { include: { flower: true } })
+
+    if (!listing) throw new Error('Listing not found or already removed.')
+    if (listing.sellerId !== user.id) throw new Error('You can only remove your own listings.')
+
+    if (listing.flower) {
+      listing.flower.isListed = false
+      await flowerRepo.save(listing.flower)
+    }
+
+    await listingRepo.delete(listing)
+
+    return { success: true, message: 'Listing removed successfully.' }
+  }
+
+  @BackendMethod({ allowed: true })
   static async addBulkListing(flowerIds: string[], pricePerUnit: number) {
     const user = remult.user
     if (!user) throw new Error('Not authenticated')
@@ -301,11 +324,14 @@ export class MarketController {
     const speciesRepo = remult.repo(FlowerSpecies)
     const statsRepo = remult.repo(MarketStats)
 
-    // Get all species
     const allSpecies = await speciesRepo.find()
-    const tickerItems: MarketTickerItem[] = []
+    const tickerItemsWithDate: (MarketTickerItem & { date: Date })[] = []
 
     for (const species of allSpecies) {
+      if (species.availability === FlowerAvailability.EVENT_ONLY) {
+        continue
+      }
+
       // Get latest stat
       const latestStat = await statsRepo.findFirst(
         { speciesId: species.id },
@@ -323,26 +349,33 @@ export class MarketController {
         { orderBy: { date: 'desc' } },
       )
 
-      let price = latestStat.averagePrice
-      let change = '0%'
-      let up = true
+      const price = latestStat.averagePrice
 
-      if (previousStat) {
+      if (previousStat && price !== previousStat.averagePrice) {
         const diff = price - previousStat.averagePrice
         const percent = (diff / previousStat.averagePrice) * 100
-        change = `${diff >= 0 ? '+' : ''}${Math.round(percent)}%`
-        up = diff >= 0
-      }
+        const change = `${diff >= 0 ? '+' : ''}${Math.round(percent)}%`
+        const up = diff >= 0
 
-      tickerItems.push({
-        id: species.id,
-        name: species.name,
-        price,
-        change,
-        up,
-      })
+        tickerItemsWithDate.push({
+          id: species.id,
+          name: species.name,
+          price,
+          change,
+          up,
+          date: latestStat.date,
+        })
+      }
     }
 
-    return tickerItems
+    tickerItemsWithDate.sort((a, b) => b.date.getTime() - a.date.getTime())
+
+    return tickerItemsWithDate.slice(0, 10).map((item) => ({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      change: item.change,
+      up: item.up,
+    }))
   }
 }

@@ -325,10 +325,10 @@ watch(activeTab, () => {
 
                 <div v-else-if="isFlower(selectedObject)" :key="selectedObject.id" class="flex flex-col h-full">
                     <div class="flex justify-center mb-6">
-                        <div class="w-32 h-32 rounded-2xl bg-slate-900/50 border shadow-lg transition-all duration-300 flex items-center justify-center relative overflow-hidden"
-                            :style="getRarityGlowStyle(selectedObject.species?.rarity)">
+                        <div
+                            class="w-32 h-32 rounded-2xl bg-slate-900/50 shadow-lg transition-all duration-300 flex items-center justify-center relative overflow-hidden">
 
-                            <FlowerImage :slug="selectedObject.species?.slugName || ''" status="SEED" type="sprite"
+                            <FlowerImage :slug="selectedObject.species?.slugName || ''" status="GROWING2" type="icon"
                                 size="96px" class="drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] scale-125" />
                         </div>
                     </div>

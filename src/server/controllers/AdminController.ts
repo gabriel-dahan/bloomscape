@@ -9,9 +9,11 @@ import {
   UserAchievement,
   UserFlower,
   UserItem,
+  DiscoverySource,
 } from '@/shared'
 import { ModerationLog } from '@/shared/analytics/ModerationLog'
 import { DailySnapshot } from '@/shared/analytics/DailySnapshot'
+import { FlowerDiscovery } from '@/shared/analytics/FlowerDiscovery'
 
 export interface DashboardData {
   stats: {
@@ -53,16 +55,19 @@ export class AdminController {
 
     const snapshots = await snapshotRepo.find({
       limit: 30,
-      orderBy: { date: 'asc' },
+      orderBy: { date: 'desc' },
     })
 
+    // Reverse to get chronological order for charts
+    snapshots.reverse()
+
     const registrationsChart = snapshots.map((s) => ({
-      date: s.date.toLocaleDateString(),
+      date: s.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       value: s.newRegistrations,
     }))
 
     const economyChart = snapshots.map((s) => ({
-      date: s.date.toLocaleDateString(),
+      date: s.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       value: s.marketVolume,
     }))
 
@@ -84,6 +89,7 @@ export class AdminController {
   static async banUser(userId: string, reason: string) {
     const userRepo = remult.repo(User)
     const logRepo = remult.repo(ModerationLog)
+    const notificationRepo = remult.repo(UserNotification)
 
     const user = await userRepo.findId(userId)
     if (!user) throw new Error('User not found')
@@ -97,6 +103,22 @@ export class AdminController {
       action: 'BAN',
       reason: reason,
     })
+
+    await notificationRepo.insert({
+      userId: userId,
+      title: 'Account Suspended',
+      message: `Your account has been banned by a moderator.\nReason: ${reason}`,
+      type: 'error',
+      createdAt: new Date(),
+    })
+
+    const { ServerEvents } = await import('../server-events')
+    ServerEvents.notifyUser(
+      userId,
+      'Account Suspended',
+      `You have been banned. Reason: ${reason}`,
+      'error'
+    )
 
     return { success: true, message: `User ${user.tag} has been banned.` }
   }
@@ -128,6 +150,7 @@ export class AdminController {
   static async giveFlower(userId: string, speciesSlug: string, quality: number) {
     const speciesRepo = remult.repo(FlowerSpecies)
     const flowerRepo = remult.repo(UserFlower)
+    const discoveryRepo = remult.repo(FlowerDiscovery)
 
     const species = await speciesRepo.findFirst({ slugName: speciesSlug })
     if (!species) throw new Error('Species not found')
@@ -140,6 +163,16 @@ export class AdminController {
       waterLevel: 100,
       plantedAt: new Date(),
     })
+
+    const existingDiscovery = await discoveryRepo.findFirst({ userId, speciesId: species.id })
+    if (!existingDiscovery) {
+      await discoveryRepo.insert({
+        userId,
+        speciesId: species.id,
+        source: DiscoverySource.GIFT,
+        initialQuality: quality,
+      })
+    }
 
     const { ServerEvents } = await import('../server-events')
 

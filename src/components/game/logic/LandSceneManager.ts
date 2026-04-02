@@ -5,134 +5,22 @@ import { getTileLayout } from './AutoTilingUtils'
 import { calculateGameTime } from '@/shared/gameTime'
 import { useUIStore } from '@/stores/ui'
 
-const WORLD_SIZE = 60
-const WATER_ANIM_SPEED = 200
-const TILE_SCALE = 0.98
-
-const COLORS = {
-  highlight: 0x333399,
-  selection: 0x3333cc,
-  owned: 0x10b981,
-  grid: 0xffffff,
-  waterBase: 0xffffff,
-  firefly: new THREE.Color(0xffcc00),
-}
-
-const CYCLE_KEYS = [
-  {
-    progress: 0.0,
-    sky: new THREE.Color(0x020617),
-    light: new THREE.Color(0xc7d2fe),
-    ambient: 0.9,
-    dir: 1.2,
-    focus: 4.0,
-  },
-  {
-    progress: 0.2,
-    sky: new THREE.Color(0x020617),
-    light: new THREE.Color(0xc7d2fe),
-    ambient: 0.9,
-    dir: 1.2,
-    focus: 4.0,
-  },
-  {
-    progress: 0.35,
-    sky: new THREE.Color(0x87ceeb),
-    light: new THREE.Color(0xffffff),
-    ambient: 0.95,
-    dir: 1.5,
-    focus: 1.0,
-  },
-  {
-    progress: 0.8,
-    sky: new THREE.Color(0x87ceeb),
-    light: new THREE.Color(0xffffff),
-    ambient: 0.95,
-    dir: 1.5,
-    focus: 1.0,
-  },
-  {
-    progress: 1.0,
-    sky: new THREE.Color(0x020617),
-    light: new THREE.Color(0xc7d2fe),
-    ambient: 0.9,
-    dir: 1.2,
-    focus: 4.0,
-  },
-]
-
-export interface SceneConfig {
-  quality: 'low' | 'high'
-  tileSize: number
-  onHover: (x: number, z: number) => void
-  onClick?: (x: number, z: number) => void
-  onAssetsLoaded?: () => void
-}
-
-export interface TileData {
-  x: number
-  z: number
-  flowerId?: string
-  flower?: {
-    status: string
-    species?: { slugName: string }
-  } | null
-}
-
-type WaterCategory = 'open' | '1side' | '2sides' | '3sides' | '4sides'
-
-const FireflyVertexShader = `
-uniform float uTime;
-uniform float uSize;
-attribute float aPhase;
-attribute float aYBase;
-
-void main() {
-  vec3 pos = position;
-  float yOffset = sin(uTime * 1.5 + aPhase) * 0.4; 
-  pos.y = aYBase + yOffset;
-
-  vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-  gl_Position = projectionMatrix * mvPosition;
-
-  gl_PointSize = uSize * (30.0 / -mvPosition.z);
-}
-`
-
-const FireflyFragmentShader = `
-uniform vec3 uColor;
-uniform float uOpacity;
-uniform float uTime;
-
-void main() {
-  vec2 p = gl_PointCoord - vec2(0.5);
-  
-  float dist = max(abs(p.x), abs(p.y));
-  float isCore = step(dist, 0.1); 
-  float isBody = step(dist, 0.25); 
-  float isGlow = step(dist, 0.5);
-
-  if (isGlow < 0.1) discard;
-
-  vec3 finalColor = uColor;
-  float finalAlpha = uOpacity * 0.2; 
-
-  if (isBody > 0.5) {
-    finalAlpha = uOpacity * 0.8; 
-  }
-
-  if (isCore > 0.5) {
-    finalColor = mix(uColor, vec3(1.0, 1.0, 1.0), 0.9); 
-    finalAlpha = uOpacity; 
-  }
-
-  float blink = sin(uTime * 4.0 + gl_FragCoord.x * 0.1);
-  float steppedBlink = smoothstep(-0.2, 0.2, blink);
-  float intensity = 0.7 + 0.3 * steppedBlink;
-
-  gl_FragColor = vec4(finalColor, finalAlpha * intensity);
-}
-`
+import {
+  WORLD_SIZE,
+  WATER_ANIM_SPEED,
+  TILE_SCALE,
+  COLORS,
+  CYCLE_KEYS,
+  type SceneConfig,
+  type TileData,
+  type WaterCategory,
+} from './constants'
+import {
+  FireflyVertexShader,
+  FireflyFragmentShader,
+  LightningVertexShader,
+  LightningFragmentShader,
+} from './shaders'
 
 export class LandSceneManager {
   private scene!: THREE.Scene
@@ -156,13 +44,20 @@ export class LandSceneManager {
     uColor: { value: THREE.Color }
     uSize: { value: number }
   }
+  private synergyUniforms!: {
+    uTime: { value: number }
+    colorBlue: { value: THREE.Color }
+    colorRed: { value: THREE.Color }
+  }
 
   private loadingManager: THREE.LoadingManager
 
-  private elementManager: WorldElementManager
+  private elementManager!: WorldElementManager
 
   private cursorMesh!: THREE.Mesh
-  private selectionMesh!: THREE.Object3D
+  private selectionMesh!: THREE.LineSegments
+  private synergyMeshBlue!: THREE.LineSegments
+  private synergyMeshRed!: THREE.LineSegments
   private raycastPlane!: THREE.Mesh
   private onDownPosition = new THREE.Vector2()
 
@@ -262,7 +157,15 @@ export class LandSceneManager {
       1,
       1000,
     )
-    this.camera.position.set(40, 40, 40)
+
+    const defaultDistanceToCamera = Math.sqrt(40 * 40 + 40 * 40)
+    const defaultRotationAngle = Math.PI / 3
+
+    this.camera.position.set(
+      Math.cos(defaultRotationAngle) * defaultDistanceToCamera,
+      40,
+      Math.sin(defaultRotationAngle) * defaultDistanceToCamera,
+    )
     this.camera.lookAt(0, 0, 0)
     this.camera.zoom = 4.5
 
@@ -386,6 +289,42 @@ export class LandSceneManager {
     )
     this.selectionMesh.visible = false
     this.scene.add(this.selectionMesh)
+
+    this.synergyUniforms = {
+      uTime: { value: 0 },
+      colorBlue: { value: new THREE.Color(COLORS.synergyBuff) },
+      colorRed: { value: new THREE.Color(COLORS.synergyDebuff) },
+    }
+
+    this.synergyMeshBlue = new THREE.LineSegments(
+      new THREE.BufferGeometry(),
+      new THREE.ShaderMaterial({
+        uniforms: {
+          uTime: this.synergyUniforms.uTime,
+          uColor: this.synergyUniforms.colorBlue,
+        },
+        vertexShader: LightningVertexShader,
+        fragmentShader: LightningFragmentShader,
+        transparent: true,
+        depthWrite: false,
+      }),
+    )
+    this.scene.add(this.synergyMeshBlue)
+
+    this.synergyMeshRed = new THREE.LineSegments(
+      new THREE.BufferGeometry(),
+      new THREE.ShaderMaterial({
+        uniforms: {
+          uTime: this.synergyUniforms.uTime,
+          uColor: this.synergyUniforms.colorRed,
+        },
+        vertexShader: LightningVertexShader,
+        fragmentShader: LightningFragmentShader,
+        transparent: true,
+        depthWrite: false,
+      }),
+    )
+    this.scene.add(this.synergyMeshRed)
 
     const loadTex = (p: string) => {
       const t = loader.load(p)
@@ -518,6 +457,7 @@ export class LandSceneManager {
     )
 
     this.elementManager.updateElements(landTiles)
+    this.updateSynergyLinks(landTiles)
 
     const waterCounts: Record<WaterCategory, number> = {
       open: 0,
@@ -647,6 +587,82 @@ export class LandSceneManager {
         this.flowerMeshes.delete(key)
       }
     })
+  }
+
+  public updateSynergyLinks(tiles: TileData[]) {
+    const bluePositions: number[] = []
+    const blueT: number[] = []
+    const redPositions: number[] = []
+    const redT: number[] = []
+
+    const numSegments = 10
+
+    const flowersOnGrid = tiles.filter((t) => t.flower && t.flower.species)
+    const flowerMap = new Map<string, TileData>()
+    flowersOnGrid.forEach((t) => flowerMap.set(`${t.x},${t.z}`, t))
+
+    flowersOnGrid.forEach((tile) => {
+      const synergies = tile.flower?.species?.attributes?.synergies
+      if (!synergies || synergies.length === 0) return
+
+      // Check neighbors in range 1
+      for (let dx = -this.config.tileSize; dx <= this.config.tileSize; dx += this.config.tileSize) {
+        for (
+          let dz = -this.config.tileSize;
+          dz <= this.config.tileSize;
+          dz += this.config.tileSize
+        ) {
+          if (dx === 0 && dz === 0) continue
+
+          const nx = tile.x + dx
+          const nz = tile.z + dz
+          const neighbor = flowerMap.get(`${nx},${nz}`)
+
+          if (neighbor && neighbor.flower?.species) {
+            const neighborSlug = neighbor.flower.species.slugName
+
+            synergies.forEach((syn) => {
+              if (syn.targetSlug === neighborSlug) {
+                const isBuff = syn.modifiers.some((m) => m.value > 0)
+                const posArr = isBuff ? bluePositions : redPositions
+                const tArr = isBuff ? blueT : redT
+
+                const start = new THREE.Vector3(tile.x, 0.6, tile.z)
+                const end = new THREE.Vector3(neighbor.x, 0.6, neighbor.z)
+
+                // Subdivide link into segments
+                for (let i = 0; i < numSegments; i++) {
+                  const t1 = i / numSegments
+                  const t2 = (i + 1) / numSegments
+                  const p1 = new THREE.Vector3().lerpVectors(start, end, t1)
+                  const p2 = new THREE.Vector3().lerpVectors(start, end, t2)
+
+                  posArr.push(p1.x, p1.y, p1.z)
+                  posArr.push(p2.x, p2.y, p2.z)
+                  tArr.push(t1, t2)
+                }
+              }
+            })
+          }
+        }
+      }
+    })
+
+    const updateMesh = (mesh: THREE.LineSegments, posArray: number[], tArray: number[]) => {
+      if (posArray.length === 0) {
+        mesh.visible = false
+        return
+      }
+      mesh.visible = true
+      mesh.geometry.dispose()
+      const geometry = new THREE.BufferGeometry()
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(posArray, 3))
+      geometry.setAttribute('aT', new THREE.Float32BufferAttribute(tArray, 1))
+      mesh.geometry = geometry
+    }
+
+    updateMesh(this.synergyMeshBlue, bluePositions, blueT)
+    updateMesh(this.synergyMeshRed, redPositions, redT)
   }
 
   private loadFlowerTextureWithFallback(
@@ -816,6 +832,7 @@ export class LandSceneManager {
     this.updateDayNightCycle(gameTime.progress)
 
     this.fireflyUniforms.uTime.value = time * 0.001
+    this.synergyUniforms.uTime.value = time * 0.001
 
     if (this.selectionMesh.visible) {
       const scale = 1 + Math.sin(time * 0.005) * 0.03
@@ -870,6 +887,18 @@ export class LandSceneManager {
     this.container?.removeChild(this.renderer.domElement)
 
     if (this.elementManager) this.elementManager.dispose()
+    this.synergyMeshBlue.geometry.dispose()
+    if (Array.isArray(this.synergyMeshBlue.material)) {
+      this.synergyMeshBlue.material.forEach((m) => m.dispose())
+    } else {
+      this.synergyMeshBlue.material.dispose()
+    }
+    this.synergyMeshRed.geometry.dispose()
+    if (Array.isArray(this.synergyMeshRed.material)) {
+      this.synergyMeshRed.material.forEach((m) => m.dispose())
+    } else {
+      this.synergyMeshRed.material.dispose()
+    }
     this.controls.dispose()
   }
 }
