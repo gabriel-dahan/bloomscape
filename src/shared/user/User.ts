@@ -26,7 +26,7 @@ export class User {
   passwordHash!: string
 
   @Fields.number()
-  sap: number = 0
+  sap: number = 100
 
   @Fields.integer()
   level: number = 1
@@ -39,6 +39,9 @@ export class User {
 
   @Fields.boolean()
   enableAds: boolean = false
+
+  @Fields.boolean()
+  hasIsland: boolean = false
 
   @Fields.date()
   lastAdRevenue?: Date

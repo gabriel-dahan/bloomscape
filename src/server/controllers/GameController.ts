@@ -20,6 +20,8 @@ import { FlowerDiscovery } from '@/shared/analytics/FlowerDiscovery'
 
 import { getLevelFromXp } from '@/shared/leveling'
 import { AttributesLogic } from '@/shared/attributesLogic'
+import { LoggerService } from '../services/LoggerService'
+import { LogSource } from '@/shared/analytics/SystemLog'
 
 export class GameController {
   @BackendMethod({ allowed: true })
@@ -525,6 +527,7 @@ export class GameController {
     const dbUser = await userRepo.findId(user.id)
     if (dbUser) {
       dbUser.sap += 100
+      dbUser.hasIsland = true
       await userRepo.save(dbUser)
     }
 
@@ -548,6 +551,8 @@ export class GameController {
     for (const t of initialTiles) {
       await tileRepo.insert(t as any)
     }
+
+    await LoggerService.info(LogSource.GAME, `Started new adventure`, user.id, island.id)
 
     return island
   }
@@ -594,13 +599,17 @@ export class GameController {
 
     await GameController.removeSap(finalPrice)
 
-    return await tileRepo.insert({
+    const newTile = await tileRepo.insert({
       islandId: island.id,
       x: x,
       z: z,
       type: 'land',
       createdAt: new Date(),
     })
+
+    await LoggerService.info(LogSource.GAME, `Bought new land plot at (${x}, ${z}) for ${finalPrice} Sap`, currentUser.id, newTile.id)
+
+    return newTile
   }
 
   @BackendMethod({ allowed: true })

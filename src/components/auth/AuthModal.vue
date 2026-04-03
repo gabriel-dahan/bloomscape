@@ -131,7 +131,7 @@ const signUp = async () => {
         // 3. Success Handling
         mode.value = 'login'
         formData.tagOrEmail = formData.email // Auto-fill login
-        error.general = '✅ Account successfully registered! You can now login.'
+        error.general = 'Account successfully registered! You can now login.'
 
     } catch (err: any) {
         handleApiError(err)
@@ -205,9 +205,9 @@ const formConfig = computed(() => {
 
 <template>
     <dialog ref="dialogRef" class="modal modal-middle" @close="handleDialogClose">
-        <div class="modal-box w-11/12 max-w-md p-0">
+        <div class="modal-box w-11/12 max-w-md p-0 bg-white border border-slate-200 shadow-2xl">
             <form method="dialog">
-                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2 text-slate-500">✕</button>
             </form>
 
             <div class="space-y-4">
@@ -215,7 +215,7 @@ const formConfig = computed(() => {
                 <Form method="POST" :title="formConfig.title" :submitButtonText="formConfig.submitButtonText"
                     :submitAction="formConfig.submitAction" :fieldSetBorder="false">
                     <template #header>
-                        <div v-if="mode === 'signup'" class="text-center text-sm opacity-90">
+                        <div v-if="mode === 'signup'" class="text-center text-sm text-slate-600">
                             You don't have an account yet? Sign up now and join the
                             <span class="font-bold text-primary">BloomScape</span> community!
                         </div>
@@ -235,19 +235,19 @@ const formConfig = computed(() => {
                                 'label',
                                 field.type === 'checkbox' ? 'cursor-pointer justify-start gap-3' : '',
                             ]">
-                                <span class="label-text">{{ field.label }}</span>
+                                <span class="label-text text-slate-700 font-medium">{{ field.label }}</span>
                             </label>
 
                             <input :type="field.type" :class="[
                                 field.type === 'checkbox'
-                                    ? 'checkbox checkbox-primary'
-                                    : 'input input-bordered w-full',
+                                    ? 'checkbox checkbox-primary border-slate-300'
+                                    : 'input input-bordered w-full bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:bg-white',
                                 error[field.vmodel] && 'input-error',
                             ]" :placeholder="field.type !== 'checkbox' ? field.placeholder : ''"
                                 v-model="formData[field.vmodel]" @input="() => delete error[field.vmodel]" />
 
                             <div v-if="error[field.vmodel]" class="label">
-                                <span class="label-text-alt text-error">{{ error[field.vmodel] }}</span>
+                                <span class="label-text-alt text-error font-medium">{{ error[field.vmodel] }}</span>
                             </div>
                         </div>
                     </template>

@@ -77,7 +77,27 @@ app.get('/api/images/flowers/:slugName/:status/:type', async (req, res) => {
               userId: remult.user.id,
               speciesId: species.id,
             })
-            if (discovered > 0) allowed = true
+            if (discovered > 0) {
+              allowed = true
+            } else {
+              const dbProvider = remult.dataProvider as import('remult').SqlDatabase;
+              if (dbProvider.execute) {
+                try {
+                  const query = `
+                    SELECT COUNT(1) as count 
+                    FROM market_listings ml
+                    JOIN user_flowers uf ON ml.flowerId = uf.id
+                    WHERE uf.speciesId = '${species.id}'
+                  `;
+                  const result = await dbProvider.execute(query);
+                  if (result.rows && result.rows[0].count > 0) {
+                    allowed = true;
+                  }
+                } catch (e) {
+                  console.error('Failed to check market listings for species images', e);
+                }
+              }
+            }
           }
         }
       }

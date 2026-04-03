@@ -32,13 +32,13 @@ const props = defineProps({
     <form :method="method" @submit.prevent="submitAction">
         <div class="flex justify-center">
             <fieldset
-                class="flex flex-col gap-5 fieldset bg-base-100 rounded-box w-xs phone:w-sm sm:w-md p-6 mt-5 mb-5 text-sm"
+                class="flex flex-col gap-5 fieldset bg-white rounded-box w-xs phone:w-sm sm:w-md p-6 mt-5 mb-5 text-sm text-slate-900"
                 :class="{
-                    'border border-base-300': fieldSetBorder,
+                    'border border-slate-200': fieldSetBorder,
                 }">
-                <legend class="fieldset-legend">{{ title }}</legend>
+                <legend class="fieldset-legend text-slate-900">{{ title }}</legend>
 
-                <h2 v-if="$slots.default" class="color-neutral-content">
+                <h2 v-if="$slots.default" class="text-slate-800 font-medium">
                     <slot name="header"></slot>
                 </h2>
 

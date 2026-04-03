@@ -10,6 +10,9 @@ export * from './user/User'
 export * from './user/Achievement'
 export * from './user/UserAchievement'
 
+// Analytics
+export * from './analytics/SystemLog'
+
 // Flowers
 export * from './flowers/FlowerFamily'
 export * from './flowers/FlowerSpecies'

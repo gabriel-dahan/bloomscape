@@ -3,6 +3,13 @@ import { ref, onMounted } from 'vue'
 import HomeMarketTicker from '@/components/HomeMarketTicker.vue'
 import { GameController } from '@/server/controllers/GameController'
 import { MarketController, type MarketTickerItem } from '@/server/controllers/MarketController'
+import { useAuthStore } from '@/stores/auth';
+import { router } from '@/routes'
+import { ROUTES_ENUM } from '@/routes/routes_enum'
+import { useAuthModal } from '@/components/auth/logic/useAuthModal'
+
+const auth = useAuthStore();
+const authModal = useAuthModal();
 
 const globalStats = ref({
     activePlots: 0,
@@ -22,12 +29,14 @@ onMounted(async () => {
     } catch (e) {
         console.error("Failed to load home data", e)
     }
+
+    if (!auth.user) await auth.fetchSessionUser()
 })
 
-// Formatting helpers
 const formatNumber = (num: number) => {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'k'
+    if (num >= 1_000_000_000) return (num / 1_000_000_000).toFixed(1) + 'Md'
+    if (num >= 1_000_000) return (num / 1_000_000).toFixed(1) + 'M'
+    if (num >= 1_000) return (num / 1_000).toFixed(1) + 'k'
     return num.toString()
 }
 
@@ -48,6 +57,29 @@ const getRarityGlowStyle = (rarity: string) => {
 };
 
 const appVersion = import.meta.env.VITE_APP_VERSION
+
+const handleIslandClick = async () => {
+    if (!auth.user) {
+        authModal.openAuthModal('login')
+        return
+    }
+
+    if (!auth.user.hasIsland) {
+        try {
+            await GameController.startAdventure()
+            // The hasIsland flag is updated in the backend, but we might want to refresh it here
+            // However, the router guard should handle it if we navigate
+        } catch (e) {
+            console.error("Failed to start adventure", e)
+        }
+    }
+    
+    router.push(ROUTES_ENUM.LAND.path)
+}
+
+const handleMarketClick = () => {
+    router.push(ROUTES_ENUM.MARKET.path)
+}
 </script>
 
 <template>
@@ -94,11 +126,15 @@ const appVersion = import.meta.env.VITE_APP_VERSION
                     </p>
 
                     <div class="flex flex-col phone:flex-row gap-4 justify-center lg:justify-start w-full">
-                        <button
+                        <button v-if="auth.user" @click="handleIslandClick"
                             class="btn btn-lg w-full phone:w-auto bg-emerald-500 hover:bg-emerald-400 text-slate-900 border-none font-bold px-8 shadow-xl shadow-emerald-500/20 transition-all active:scale-95 hover:scale-105 hover:-translate-y-1">
-                            Start Your Garden
+                            {{ auth.user.hasIsland ? "My Island" : "Start Your Island" }}
                         </button>
-                        <button
+                        <button v-else @click="handleIslandClick"
+                            class="btn btn-lg w-full phone:w-auto bg-emerald-500 hover:bg-emerald-400 text-slate-900 border-none font-bold px-8 shadow-xl shadow-emerald-500/20 transition-all active:scale-95 hover:scale-105 hover:-translate-y-1">
+                            Start Your Island
+                        </button>
+                        <button @click="handleMarketClick"
                             class="btn btn-lg w-full phone:w-auto btn-outline border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 hover:border-slate-600">
                             Explore Market
                         </button>

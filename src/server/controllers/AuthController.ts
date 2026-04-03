@@ -1,8 +1,11 @@
 import { BackendMethod, Controller, remult, type FindOptions } from 'remult'
 import type { Request } from 'express'
 import { sanitizeUser, User } from '@/shared/user/User' // Assure-toi du chemin
-import { Role } from '@/shared'
+import { Role, FlowerSpecies, UserFlower, FlowerStatus, DiscoverySource } from '@/shared'
 import slugify from 'slugify'
+import { FlowerDiscovery } from '@/shared/analytics/FlowerDiscovery'
+import { LoggerService } from '../services/LoggerService'
+import { LogSource } from '@/shared/analytics/SystemLog'
 
 declare module 'remult' {
   export interface RemultContext {
@@ -12,6 +15,31 @@ declare module 'remult' {
 
 @Controller('auth')
 export class AuthController {
+  private static async giveInitialRewards(user: User) {
+    const speciesRepo = remult.repo(FlowerSpecies)
+    const flowerRepo = remult.repo(UserFlower)
+    const discoveryRepo = remult.repo(FlowerDiscovery)
+
+    const dandelion = await speciesRepo.findFirst({ slugName: 'common_dandelion' })
+    if (dandelion) {
+      await flowerRepo.insert({
+        ownerId: user.id,
+        speciesId: dandelion.id,
+        status: FlowerStatus.SEED,
+        quality: 0.5,
+        waterLevel: 100,
+        plantedAt: new Date(),
+      })
+
+      await discoveryRepo.insert({
+        userId: user.id,
+        speciesId: dandelion.id,
+        source: DiscoverySource.SYSTEM,
+        initialQuality: 0.5,
+        discoveredAt: new Date(),
+      })
+    }
+  }
   @BackendMethod({ allowed: true })
   static async login(tagOrEmail: string, passwd: string, rememberMe: boolean = false) {
     const users = remult.repo(User)
@@ -52,9 +80,14 @@ export class AuthController {
     const bcrypt = await import(lib.substring(1))
     const hashedPassword = await bcrypt.hash(passwd, 10)
     const newUser = await users.insert({ tag, email, passwordHash: hashedPassword })
+    
+    await AuthController.giveInitialRewards(newUser)
 
     const req = remult.context!.request!
     req.session!.user = sanitizeUser(newUser)
+
+    await LoggerService.success(LogSource.AUTH, `New user registered via email: ${tag}`, newUser.id)
+
     return { success: true, user: req?.session!.user }
   }
 
@@ -89,6 +122,9 @@ export class AuthController {
           counter++
         }
         user = await userRepo.insert({ tag, email, googleId, roles: [Role.USER] })
+        await AuthController.giveInitialRewards(user)
+        
+        await LoggerService.success(LogSource.AUTH, `New user registered via Google: ${tag}`, user.id)
       }
     }
     const req = remult.context!.request!

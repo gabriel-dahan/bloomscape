@@ -11,6 +11,8 @@ import {
 import { BackendMethod, remult } from 'remult'
 import { FlowerAvailability, FlowerRarity } from '@/shared/types'
 import { GameController } from './GameController'
+import { LoggerService } from '../services/LoggerService'
+import { LogSource } from '@/shared/analytics/SystemLog'
 
 export interface MarketTickerItem {
   id: string
@@ -77,6 +79,8 @@ export class MarketController {
     }
 
     await listingRepo.delete(listing)
+    
+    await LoggerService.success(LogSource.MARKET, `Purchased market item for ${listing.price} Sap`, buyer.id, listing.flower?.speciesId || '')
 
     return { success: true, message: `Successfully purchased for ${listing.price} Sap!` }
   }
@@ -100,6 +104,8 @@ export class MarketController {
     }
 
     await listingRepo.delete(listing)
+
+    await LoggerService.info(LogSource.MARKET, `Removed market listing`, user.id, listing.flower?.speciesId || '')
 
     return { success: true, message: 'Listing removed successfully.' }
   }
@@ -156,6 +162,8 @@ export class MarketController {
     })
 
     await listingRepo.insert(listings)
+
+    await LoggerService.info(LogSource.MARKET, `Listed ${listings.length} items at ${pricePerUnit} Sap each`, user.id)
 
     return { success: true, message: `Successfully listed ${listings.length} items.` }
   }

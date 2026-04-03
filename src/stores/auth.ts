@@ -45,9 +45,7 @@ export const useAuthStore = defineStore('auth', {
       this.user = res.user as User
     },
 
-    // Cette fonction sert maintenant de "Refresh" universel
     async fetchSessionUser() {
-      // Appelle le AuthController modifié qui va chercher les données fraîches en DB
       const freshUser = await AuthController.getSessionUser()
       remult.user = freshUser as User
       this.user = freshUser as User

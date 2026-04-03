@@ -14,6 +14,8 @@ import {
 import { ModerationLog } from '@/shared/analytics/ModerationLog'
 import { DailySnapshot } from '@/shared/analytics/DailySnapshot'
 import { FlowerDiscovery } from '@/shared/analytics/FlowerDiscovery'
+import { LoggerService } from '../services/LoggerService'
+import { SystemLog, LogSource } from '@/shared/analytics/SystemLog'
 
 export interface DashboardData {
   stats: {
@@ -120,6 +122,8 @@ export class AdminController {
       'error'
     )
 
+    await LoggerService.warn(LogSource.ADMIN, `Banned user. Reason: ${reason}`, remult.user!.id, userId)
+
     return { success: true, message: `User ${user.tag} has been banned.` }
   }
 
@@ -202,6 +206,53 @@ export class AdminController {
       unlockedAt: new Date(),
     })
 
+    await LoggerService.info(LogSource.ADMIN, `Gave achievement ${def.name}`, remult.user!.id, userId)
+
     return { success: true, message: `Unlocked: ${def.name}` }
+  }
+
+  @BackendMethod({ allowed: 'admin' })
+  static async exportLogs(
+    startDate: Date,
+    endDate: Date,
+    levels: string[],
+    sources: string[],
+    userIdFilter?: string
+  ): Promise<string> {
+    const filters: any = {
+      createdAt: { $gte: startDate, $lte: endDate },
+    }
+    
+    if (levels && levels.length > 0 && !levels.includes('ALL')) {
+      filters.level = { $in: levels }
+    }
+    
+    if (sources && sources.length > 0 && !sources.includes('ALL')) {
+      filters.source = { $in: sources }
+    }
+    
+    if (userIdFilter) {
+      filters.userId = userIdFilter
+    }
+
+    const logs = await remult.repo(SystemLog).find({
+      where: filters,
+      orderBy: { createdAt: 'desc' },
+      limit: 10000,
+    })
+
+    // Construct CSV
+    const headers = ['ID', 'Date', 'Level', 'Source', 'User ID', 'Message', 'Target ID']
+    const rows = logs.map(l => [
+      l.id,
+      l.createdAt?.toISOString() || '',
+      l.level,
+      l.source,
+      l.userId || '',
+      `"${(l.message || '').replace(/"/g, '""')}"`, // escape quotes
+      l.targetId || ''
+    ])
+
+    return [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
   }
 }

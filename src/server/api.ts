@@ -19,6 +19,7 @@ import {
   UserItem,
   Item,
   UserSettings,
+  SystemLog,
 } from '@/shared/'
 
 import { remultApi } from 'remult/remult-express'
@@ -66,6 +67,7 @@ export const api = remultApi({
     ModerationLog,
     FlowerDiscovery,
     DailySnapshot,
+    SystemLog,
 
     User,
     Achievement,
