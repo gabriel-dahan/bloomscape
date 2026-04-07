@@ -26,6 +26,7 @@ export * from './economy/MarketHistory'
 export * from './economy/SapPurchase'
 export * from './economy/MarketStat'
 export * from './economy/Item'
+export * from './economy/GlobalBank'
 
 // Social
 export * from './social/Friendship'

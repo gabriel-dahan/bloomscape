@@ -56,6 +56,15 @@ async function fetchUserProfile() {
         const res = await UserController.getUserByTag(targetTag)
 
         if (res && res.user) {
+            // Ensure roles is an array (sometimes SQLite/Remult returns it as stringified JSON)
+            if (typeof res.user.roles === 'string') {
+                try {
+                    res.user.roles = JSON.parse(res.user.roles);
+                } catch (e) {
+                    res.user.roles = [];
+                }
+            }
+
             user.value = res.user
             stats.value.joinedAt = new Date(res.user.createdAt!).toLocaleDateString()
 
@@ -114,6 +123,26 @@ onMounted(async () => {
     if (!auth.user) await auth.fetchSessionUser()
     fetchUserProfile();
 });
+
+
+const roleDetails = [
+    {
+        name: Role.ADMIN,
+        tooltipDetail: "Administrator",
+        badgePath: "/api/images/badges/admin"
+    },
+    {
+        name: Role.DEVELOPER,
+        tooltipDetail: "Developer",
+        badgePath: "/api/images/badges/developer"
+    },
+    {
+        name: Role.SUNBEAM,
+        tooltipDetail: "Sunbeam VIP",
+        badgePath: "/api/images/badges/sunbeam"
+
+    }
+]
 </script>
 
 <template>
@@ -148,26 +177,21 @@ onMounted(async () => {
 
                     <div class="flex-1 mb-2 text-center md:text-left">
                         <h1
-                            class="page-title text-3xl md:text-5xl font-bold text-white tracking-tight flex items-center justify-center md:justify-start gap-3">
+                            class="text-3xl md:text-5xl font-bold text-white tracking-tight flex items-center justify-center md:justify-start gap-3">
                             {{ user.tag }}
-                            <span v-if="user.roles.includes(Role.ADMIN)" class="tooltip tooltip-right"
-                                data-tip="Administrator">
-                                <div class="inline-block mt-1">
-                                    <PixelImageViewer src="/api/images/badges/admin" alt="Admin" height="24px"
-                                        width="24px" />
-                                </div>
-                            </span>
-
-                            <span v-if="user.roles.includes(Role.DEVELOPER)" class="tooltip tooltip-right"
-                                data-tip="Developer">
-                                <div class="inline-block mt-1">
-                                    <PixelImageViewer src="/api/images/badges/developer" alt="Dev" height="24px"
-                                        width="24px" />
-                                </div>
-                            </span>
+                            <template v-for="role in roleDetails" :key="role.name">
+                                <span v-if="user.roles.includes(role.name)" class="tooltip tooltip-right"
+                                    :data-tip="role.tooltipDetail">
+                                    <div class="inline-block mt-1">
+                                        <PixelImageViewer :src="role.badgePath" :alt="role.tooltipDetail" height="24px"
+                                            width="24px" />
+                                    </div>
+                                </span>
+                            </template>
                         </h1>
                         <div class="mt-2 text-slate-400 text-sm md:text-base line-clamp-3">
-                            <MarkdownRenderer :content="user.description || 'No bio provided yet.'" />
+                            <MarkdownRenderer :content="user.description || 'No bio provided yet.'"
+                                :roles="user.roles" />
                         </div>
                     </div>
 
@@ -238,7 +262,8 @@ onMounted(async () => {
                                     :class="ach.unlocked ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-950/50 border-transparent opacity-50 grayscale'">
                                     <div>
                                         <div class="font-bold text-sm"
-                                            :class="ach.unlocked ? 'text-white' : 'text-slate-500'">{{ ach.name }}</div>
+                                            :class="ach.unlocked ? 'text-white' : 'text-slate-500'">{{
+                                                ach.name }}</div>
                                         <div class="text-xs text-slate-500">{{ ach.description }}</div>
                                         <div v-if="ach.unlocked && ach.unlockedAt"
                                             class="text-[10px] text-emerald-500 mt-1">

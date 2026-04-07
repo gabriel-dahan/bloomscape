@@ -27,6 +27,10 @@ const showBanModal = ref(false)
 const banTargetUser = ref<User | null>(null)
 const banReason = ref('')
 
+// --- STATE: DELETE MODAL ---
+const showDeleteModal = ref(false)
+const deleteTargetUser = ref<User | null>(null)
+
 // Catalogs for Dropdowns
 const catalogItems = ref<Item[]>([])
 const catalogSpecies = ref<FlowerSpecies[]>([])
@@ -108,6 +112,32 @@ async function confirmBan() {
         // Refresh list to show ban status if visualized
         await fetchUsers()
         if (selectedUser.value?.id === banTargetUser.value.id) {
+            closeUser()
+        }
+    } catch (e: any) {
+        alert(e.message)
+    } finally {
+        isActionLoading.value = false
+    }
+}
+
+// --- DELETE LOGIC ---
+
+function openDeleteModal(user: User) {
+    deleteTargetUser.value = user
+    showDeleteModal.value = true
+}
+
+async function confirmDelete() {
+    if (!deleteTargetUser.value) return
+    isActionLoading.value = true
+
+    try {
+        const res = await AdminController.deleteUser(deleteTargetUser.value.id)
+        alert(res.message)
+        showDeleteModal.value = false
+        await fetchUsers()
+        if (selectedUser.value?.id === deleteTargetUser.value.id) {
             closeUser()
         }
     } catch (e: any) {
@@ -311,10 +341,13 @@ const totalPages = computed(() => Math.ceil(totalCount.value / pageSize) || 1)
                             <button @click="openBanModal(selectedUser)" class="btn btn-outline btn-error btn-sm w-full">
                                 Ban User
                             </button>
+                            <button @click="openDeleteModal(selectedUser)" class="btn btn-error btn-sm w-full text-white">
+                                Delete User
+                            </button>
                             <button class="btn btn-outline btn-warning btn-sm w-full">
                                 Warn
                             </button>
-                            <button class="btn btn-outline btn-ghost btn-sm w-full col-span-2">
+                            <button class="btn btn-outline btn-ghost btn-sm w-full font-bold">
                                 View Logs
                             </button>
                         </div>
@@ -450,6 +483,36 @@ const totalPages = computed(() => Math.ceil(totalCount.value / pageSize) || 1)
                         class="btn btn-sm btn-error text-white">
                         <span v-if="isActionLoading" class="loading loading-spinner"></span>
                         <span v-else>Confirm Ban</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="showDeleteModal"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+            <div class="bg-slate-900 border border-red-500/30 rounded-xl w-full max-w-md shadow-2xl p-6">
+                <h3 class="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                    <span class="text-red-500">🗑️</span> Delete User?
+                </h3>
+                <div class="bg-red-500/10 border border-red-500/20 rounded-lg p-3 my-4 text-xs text-red-200">
+                    <p class="font-bold mb-1">WARNING! THIS ACTION IS IRREVERSIBLE.</p>
+                    <ul class="list-disc list-inside space-y-1 ml-1 text-red-300">
+                        <li>The user's tag will become <b>[deleted]</b> for existing market items.</li>
+                        <li>Their Island and Tiles will be permanently wiped.</li>
+                        <li>Their unlisted flowers and inventory will be transferred to the Global Bank.</li>
+                        <li>Their Sap and Rubies will be sent to the Global Bank to curb inflation.</li>
+                    </ul>
+                </div>
+                <p class="text-slate-400 text-sm mb-6">
+                    Are you incredibly sure you want to annihilate <span class="font-bold text-white">{{ deleteTargetUser?.tag }}</span>'s account?
+                </p>
+
+                <div class="flex justify-end gap-3">
+                    <button @click="showDeleteModal = false" class="btn btn-sm btn-ghost text-slate-400">Nevermind</button>
+                    <button @click="confirmDelete" :disabled="isActionLoading"
+                        class="btn btn-sm btn-error text-white font-bold">
+                        <span v-if="isActionLoading" class="loading loading-spinner"></span>
+                        <span v-else>Annihilate Account</span>
                     </button>
                 </div>
             </div>

@@ -12,6 +12,8 @@ import {
   UserItem,
   MarketHistory,
   WATER_CONSUMPTION_AMOUNTS,
+  GlobalBank,
+  GLOBAL_BANK_ID
 } from '@/shared'
 import type { FlowerDTO, FlowerAttributes, PreferredSeasons } from '@/shared'
 import { BackendMethod, remult } from 'remult'
@@ -529,6 +531,12 @@ export class GameController {
       dbUser.sap += 100
       dbUser.hasIsland = true
       await userRepo.save(dbUser)
+
+      const bankRepo = remult.repo(GlobalBank)
+      let bank = await bankRepo.findFirst()
+      if (!bank) bank = await bankRepo.insert({ id: GLOBAL_BANK_ID, sap: 1000000, rubies: 0 })
+      bank.sap -= 100
+      await bankRepo.save(bank)
     }
 
     const island = await islandRepo.insert({
@@ -550,6 +558,20 @@ export class GameController {
 
     for (const t of initialTiles) {
       await tileRepo.insert(t as any)
+    }
+
+    // Grant initial flower: common_dandelion
+    const speciesRepo = remult.repo(FlowerSpecies)
+    const dandelion = await speciesRepo.findFirst({ slugName: 'common_dandelion' })
+    if (dandelion) {
+      const flowerRepo = remult.repo(UserFlower)
+      await flowerRepo.insert({
+        ownerId: user.id,
+        speciesId: dandelion.id,
+        status: FlowerStatus.SEED,
+        quality: 0.5,
+      })
+      await GameController.registerDiscovery(user.id, dandelion.id, 0.5, DiscoverySource.GIFT)
     }
 
     await LoggerService.info(LogSource.GAME, `Started new adventure`, user.id, island.id)
@@ -607,7 +629,12 @@ export class GameController {
       createdAt: new Date(),
     })
 
-    await LoggerService.info(LogSource.GAME, `Bought new land plot at (${x}, ${z}) for ${finalPrice} Sap`, currentUser.id, newTile.id)
+    await LoggerService.info(
+      LogSource.GAME,
+      `Bought new land plot at (${x}, ${z}) for ${finalPrice} Sap`,
+      currentUser.id,
+      newTile.id,
+    )
 
     return newTile
   }
@@ -678,6 +705,13 @@ export class GameController {
 
     dbUser.sap -= amount
     await userRepo.save(dbUser)
+
+    const bankRepo = remult.repo(GlobalBank)
+    let bank = await bankRepo.findFirst()
+    if (!bank) bank = await bankRepo.insert({ id: GLOBAL_BANK_ID, sap: 1000000, rubies: 0 })
+    bank.sap += amount
+    await bankRepo.save(bank)
+
     return dbUser.sap
   }
 

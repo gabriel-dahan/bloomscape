@@ -10,7 +10,7 @@ import { createServer } from 'http'
 import { initSocket } from './socket'
 
 import dotenv from 'dotenv'
-import { UserFlower, FlowerSpecies } from '@/shared'
+import { UserFlower, FlowerSpecies, FlowerAvailability } from '@/shared'
 import { FlowerDiscovery } from '@/shared/analytics/FlowerDiscovery'
 import { GameService } from './services/gameService'
 dotenv.config({
@@ -78,6 +78,11 @@ app.get('/api/images/flowers/:slugName/:status/:type', async (req, res) => {
               speciesId: species.id,
             })
             if (discovered > 0) {
+              allowed = true
+            } else if (
+              species.availability === FlowerAvailability.WILD ||
+              species.availability === FlowerAvailability.SHOP_ONLY
+            ) {
               allowed = true
             } else {
               const dbProvider = remult.dataProvider as import('remult').SqlDatabase;

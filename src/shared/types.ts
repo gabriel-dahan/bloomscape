@@ -2,6 +2,7 @@ export const Role = {
   USER: 'user',
   ADMIN: 'admin',
   DEVELOPER: 'developer',
+  SUNBEAM: 'sunbeam',
 } as const
 
 export type Role = (typeof Role)[keyof typeof Role]
@@ -35,6 +36,7 @@ export interface FlowerDTO {
     waterNeeds: string
     growthDuration: number
     preferredSeason: string | null
+    availability: FlowerAvailability
 
     attributes: FlowerAttributes
   }

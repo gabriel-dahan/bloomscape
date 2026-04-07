@@ -10,6 +10,7 @@ import AdminModeration from '@/components/admin/integrated_views/AdminModeration
 import AdminOverview from '@/components/admin/integrated_views/AdminOverview.vue'
 import AdminReports from '@/components/admin/integrated_views/AdminReports.vue'
 import AdminUsers from '@/components/admin/integrated_views/AdminUsers.vue'
+import AdminBank from '@/components/admin/integrated_views/AdminBank.vue'
 
 import { ref, computed } from 'vue'
 
@@ -21,6 +22,7 @@ const menuItems: MenuItem[] = [
     { id: 'MODERATION', label: 'Moderation Queue' },
     { id: 'REPORTS', label: 'Player Reports' },
     { id: 'USERS', label: 'User Management' },
+    { id: 'BANK', label: 'Global Bank' },
     { id: 'DATABASE', label: 'Database Editor' },
     { id: 'CONFIG', label: 'Game Config' },
     { id: 'LOGS', label: 'System Logs' }
@@ -33,6 +35,7 @@ const currentView = computed(() => {
         case 'MODERATION': return AdminModeration
         case 'REPORTS': return AdminReports
         case 'USERS': return AdminUsers
+        case 'BANK': return AdminBank
         case 'DATABASE': return AdminDatabase
         case 'CONFIG': return AdminConfig
         case 'LOGS': return AdminLogs

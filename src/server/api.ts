@@ -20,6 +20,7 @@ import {
   Item,
   UserSettings,
   SystemLog,
+  GlobalBank,
 } from '@/shared/'
 
 import { remultApi } from 'remult/remult-express'
@@ -86,6 +87,7 @@ export const api = remultApi({
     MarketStats,
     Item,
     StoreItem,
+    GlobalBank,
 
     Friendship,
     ClaimLink,

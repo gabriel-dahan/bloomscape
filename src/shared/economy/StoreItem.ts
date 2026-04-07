@@ -7,6 +7,12 @@ export enum StoreCategory {
   PREMIUM = 'Premium',
 }
 
+export enum CurrencyType {
+  USD = 'USD',
+  RUBY = 'RUBY',
+  SAP = 'SAP',
+}
+
 @Entity('store_items', { allowApiCrud: 'admin' })
 export class StoreItem {
   @Fields.uuid()
@@ -23,6 +29,9 @@ export class StoreItem {
 
   @Fields.number()
   price: number = 0.0
+
+  @Fields.string()
+  currency: CurrencyType = CurrencyType.USD
 
   @Fields.string()
   category: StoreCategory = StoreCategory.CURRENCY

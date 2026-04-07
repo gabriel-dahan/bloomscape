@@ -153,6 +153,36 @@ const getItemTypeIcon = (type?: ItemType) => {
     }
 };
 
+const getAvailabilityColorClass = (availability?: string) => {
+    switch (availability) {
+        case 'WILD': return 'text-emerald-400 border-emerald-400/30 bg-emerald-400/10'
+        case 'BREEDING_ONLY': return 'text-purple-400 border-purple-500/30 bg-purple-500/10'
+        case 'EVENT_ONLY': return 'text-amber-400 border-amber-400/30 bg-amber-500/10'
+        case 'SHOP_ONLY': return 'text-blue-400 border-blue-500/30 bg-blue-500/10'
+        default: return 'text-slate-400 border-slate-400/20 bg-slate-400/5'
+    }
+}
+
+const getAvailabilityLabel = (availability?: string) => {
+    switch (availability) {
+        case 'WILD': return 'Wild'
+        case 'BREEDING_ONLY': return 'Breeding'
+        case 'EVENT_ONLY': return 'Event'
+        case 'SHOP_ONLY': return 'Shop'
+        default: return 'Unknown'
+    }
+}
+
+const getAvailabilityDescription = (availability?: string) => {
+    switch (availability) {
+        case 'WILD': return 'Naturally occurring species. Can be found randomly during adventures or in the wild surroundings of your island.'
+        case 'BREEDING_ONLY': return 'Hybrid species created through cross-pollination. These cannot be found in the wild and must be bred manually.'
+        case 'SHOP_ONLY': return 'Exclusive species available for direct purchase. These are typically consistent stock in the BloomScape shop.'
+        case 'EVENT_ONLY': return 'Rare species limited to special occasions or unique claim links. They do not appear in the wild or the regular shop.'
+        default: return 'Source information for this species is currently unknown.'
+    }
+}
+
 const isFlower = (obj: any): obj is UserFlower => {
     return obj && 'species' in obj;
 };
@@ -341,7 +371,18 @@ watch(activeTab, () => {
                                 {{ selectedObject.species?.rarity }}
                             </span>
                         </div>
-                        <p class="text-xs text-slate-500 uppercase tracking-widest font-bold mb-2">Seed</p>
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-xs text-slate-500 uppercase tracking-widest font-bold">Seed</p>
+                            <div class="group/availability relative flex">
+                                <span class="text-[10px] px-1.5 py-0.5 rounded border leading-none font-bold uppercase tracking-tight cursor-help transition-colors" :class="getAvailabilityColorClass(selectedObject.species?.availability)">
+                                    {{ getAvailabilityLabel(selectedObject.species?.availability) }}
+                                </span>
+                                <!-- Tooltip -->
+                                <div class="absolute bottom-full right-0 mb-2 w-56 p-2 rounded-lg bg-slate-900 border border-slate-700 shadow-2xl backdrop-blur-md opacity-0 translate-y-1 group-hover/availability:opacity-100 group-hover/availability:translate-y-0 transition-all duration-200 pointer-events-none z-[100] text-[10px] text-slate-300 leading-normal font-normal normal-case tracking-normal font-sans">
+                                    {{ getAvailabilityDescription(selectedObject.species?.availability) }}
+                                </div>
+                            </div>
+                        </div>
                         <p class="text-sm text-slate-400 italic leading-relaxed">
                             {{ selectedObject.species?.description }}
                         </p>

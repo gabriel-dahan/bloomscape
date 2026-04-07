@@ -7,6 +7,8 @@ import {
   FlowerSpecies,
   DiscoverySource,
   FlowerStatus,
+  GlobalBank,
+  GLOBAL_BANK_ID
 } from '@/shared'
 import { BackendMethod, remult } from 'remult'
 import { FlowerAvailability, FlowerRarity } from '@/shared/types'
@@ -46,10 +48,34 @@ export class MarketController {
 
     buyer.sap -= listing.price
 
+    const bankRepo = remult.repo(GlobalBank)
+    
+    // Tax is 10% of the price
+    const taxAmount = Math.floor(listing.price * 0.10)
+    const sellerRevenue = listing.price - taxAmount
+
     const seller = await userRepo.findId(listing.sellerId)
     if (seller) {
-      seller.sap += listing.price
-      await userRepo.save(seller)
+      if (seller.tag.startsWith('[deleted-')) {
+        let bank = await bankRepo.findFirst()
+        if (!bank) bank = await bankRepo.insert({ id: GLOBAL_BANK_ID, sap: 1000000, rubies: 0 })
+        bank.sap += listing.price // Bank receives 100% of deleted user's revenue
+        await bankRepo.save(bank)
+      } else {
+        seller.sap += sellerRevenue
+        await userRepo.save(seller)
+        
+        let bank = await bankRepo.findFirst()
+        if (!bank) bank = await bankRepo.insert({ id: GLOBAL_BANK_ID, sap: 1000000, rubies: 0 })
+        bank.sap += taxAmount
+        await bankRepo.save(bank)
+      }
+    } else {
+        // If the seller account doesn't exist, route everything to the bank
+        let bank = await bankRepo.findFirst()
+        if (!bank) bank = await bankRepo.insert({ id: GLOBAL_BANK_ID, sap: 1000000, rubies: 0 })
+        bank.sap += listing.price
+        await bankRepo.save(bank)
     }
     await userRepo.save(buyer)
 

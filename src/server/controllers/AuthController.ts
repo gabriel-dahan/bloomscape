@@ -34,7 +34,7 @@ export class AuthController {
       await discoveryRepo.insert({
         userId: user.id,
         speciesId: dandelion.id,
-        source: DiscoverySource.SYSTEM,
+        source: DiscoverySource.GIFT,
         initialQuality: 0.5,
         discoveredAt: new Date(),
       })

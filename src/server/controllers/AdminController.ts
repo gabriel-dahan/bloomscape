@@ -10,6 +10,10 @@ import {
   UserFlower,
   UserItem,
   DiscoverySource,
+  Island,
+  Tile,
+  GlobalBank,
+  GLOBAL_BANK_ID
 } from '@/shared'
 import { ModerationLog } from '@/shared/analytics/ModerationLog'
 import { DailySnapshot } from '@/shared/analytics/DailySnapshot'
@@ -125,6 +129,69 @@ export class AdminController {
     await LoggerService.warn(LogSource.ADMIN, `Banned user. Reason: ${reason}`, remult.user!.id, userId)
 
     return { success: true, message: `User ${user.tag} has been banned.` }
+  }
+
+  @BackendMethod({ allowed: ['admin'] })
+  static async deleteUser(userId: string) {
+    const userRepo = remult.repo(User)
+    const logRepo = remult.repo(SystemLog)
+    const islandRepo = remult.repo(Island)
+    const tileRepo = remult.repo(Tile)
+    const flowerRepo = remult.repo(UserFlower)
+    const itemRepo = remult.repo(UserItem)
+    const bankRepo = remult.repo(GlobalBank)
+
+    const user = await userRepo.findId(userId)
+    if (!user) throw new Error('User not found')
+
+    let bank = await bankRepo.findFirst()
+    if (!bank) {
+      bank = await bankRepo.insert({ id: GLOBAL_BANK_ID, sap: 1000000, rubies: 0 })
+    }
+
+    // Transfer funds
+    bank.sap += user.sap || 0
+    bank.rubies += user.rubies || 0
+    await bankRepo.save(bank)
+
+    // Delete Island and Tiles
+    const island = await islandRepo.findFirst({ ownerId: userId })
+    if (island) {
+      const tiles = await tileRepo.find({ where: { islandId: island.id }})
+      for (const t of tiles) await tileRepo.delete(t)
+      await islandRepo.delete(island)
+    }
+
+    // Unlisted items and flowers go to bank
+    const unlistedFlowers = await flowerRepo.find({ where: { ownerId: userId, isListed: false }})
+    for (const f of unlistedFlowers) {
+      f.ownerId = GLOBAL_BANK_ID
+      f.gridX = undefined
+      f.gridY = undefined
+      f.plantedAt = undefined
+      await flowerRepo.save(f)
+    }
+
+    const unlistedItems = await itemRepo.find({ where: { userId }})
+    for (const item of unlistedItems) {
+      item.userId = GLOBAL_BANK_ID
+      await itemRepo.save(item)
+    }
+
+    // Anonymize user instead of deleting to keep market active
+    const oldTag = user.tag
+    user.tag = `[deleted-${user.id.substring(0, 8)}]`
+    user.email = `deleted_${user.id}@bloomscape.local`
+    user.passwordHash = ''
+    user.googleId = ''
+    user.banned = true
+    user.sap = 0
+    user.rubies = 0
+    await userRepo.save(user)
+
+    await LoggerService.warn(LogSource.ADMIN, `Deleted user ${oldTag}`, remult.user!.id, userId)
+
+    return { success: true, message: `User ${oldTag} deleted and assets transferred to Bank.` }
   }
 
   @BackendMethod({ allowed: 'admin' })

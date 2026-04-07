@@ -63,4 +63,7 @@ export class User {
 
   @Fields.boolean()
   banned: boolean = false
+
+  @Fields.number()
+  rubies: number = 0
 }

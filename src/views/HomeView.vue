@@ -67,13 +67,11 @@ const handleIslandClick = async () => {
     if (!auth.user.hasIsland) {
         try {
             await GameController.startAdventure()
-            // The hasIsland flag is updated in the backend, but we might want to refresh it here
-            // However, the router guard should handle it if we navigate
         } catch (e) {
             console.error("Failed to start adventure", e)
         }
     }
-    
+
     router.push(ROUTES_ENUM.LAND.path)
 }
 
