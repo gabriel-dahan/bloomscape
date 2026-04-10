@@ -21,6 +21,8 @@ import {
   UserSettings,
   SystemLog,
   GlobalBank,
+  RoulettePrize,
+  CasinoGameResult,
 } from '@/shared/'
 
 import { remultApi } from 'remult/remult-express'
@@ -49,6 +51,8 @@ import { PaymentController } from './controllers/PaymentController'
 import { StoreItem } from '@/shared/economy/StoreItem'
 import { UserNotification } from '@/shared/user/UserNotification'
 import { DailySnapshot } from '@/shared/analytics/DailySnapshot'
+import { DailyRouletteState } from '@/shared/economy/DailyRouletteState'
+import { RouletteController } from './controllers/RouletteController'
 
 dotenv.config({
   path: './src/server/.env',
@@ -68,6 +72,7 @@ export const api = remultApi({
     ModerationLog,
     FlowerDiscovery,
     DailySnapshot,
+    DailyRouletteState,
     SystemLog,
 
     User,
@@ -88,6 +93,8 @@ export const api = remultApi({
     Item,
     StoreItem,
     GlobalBank,
+    RoulettePrize,
+    CasinoGameResult,
 
     Friendship,
     ClaimLink,
@@ -111,6 +118,7 @@ export const api = remultApi({
     ChatController,
     PaymentController,
     LeaderboardController,
+    RouletteController,
   ],
   getUser: (req) => req.session!.user,
   admin: true, // UI Interface for admins

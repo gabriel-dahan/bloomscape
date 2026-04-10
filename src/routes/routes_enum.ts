@@ -218,6 +218,13 @@ export const ROUTES_ENUM = {
     viewPath: 'StoreView.vue',
   },
 
+  ROULETTE: {
+    name: 'roulette',
+    path: '/roulette',
+    windowTitle: 'Roulette & Casino',
+    viewPath: 'game/RouletteView.vue',
+  },
+
   ADMIN_MANAGER: {
     name: 'adminManager',
     path: '/admin/...',

@@ -78,6 +78,10 @@ const handleIslandClick = async () => {
 const handleMarketClick = () => {
     router.push(ROUTES_ENUM.MARKET.path)
 }
+
+const handleRouletteClick = () => {
+    router.push(ROUTES_ENUM.ROULETTE.path)
+}
 </script>
 
 <template>
@@ -123,7 +127,7 @@ const handleMarketClick = () => {
                         Design your island and discover the secrets of botany in BloomScape.
                     </p>
 
-                    <div class="flex flex-col phone:flex-row gap-4 justify-center lg:justify-start w-full">
+                    <div class="flex flex-col phone:flex-row flex-wrap gap-4 justify-center lg:justify-start w-full">
                         <button v-if="auth.user" @click="handleIslandClick"
                             class="btn btn-lg w-full phone:w-auto bg-emerald-500 hover:bg-emerald-400 text-slate-900 border-none font-bold px-8 shadow-xl shadow-emerald-500/20 transition-all active:scale-95 hover:scale-105 hover:-translate-y-1">
                             {{ auth.user.hasIsland ? "My Island" : "Start Your Island" }}
@@ -132,6 +136,12 @@ const handleMarketClick = () => {
                             class="btn btn-lg w-full phone:w-auto bg-emerald-500 hover:bg-emerald-400 text-slate-900 border-none font-bold px-8 shadow-xl shadow-emerald-500/20 transition-all active:scale-95 hover:scale-105 hover:-translate-y-1">
                             Start Your Island
                         </button>
+                        
+                        <button @click="handleRouletteClick"
+                            class="btn btn-lg w-full phone:w-auto bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-900 border-none font-bold px-8 shadow-xl shadow-orange-500/20 transition-all active:scale-95 hover:scale-105 hover:-translate-y-1 flex items-center gap-2">
+                            Bloom Casino
+                        </button>
+
                         <button @click="handleMarketClick"
                             class="btn btn-lg w-full phone:w-auto btn-outline border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 hover:border-slate-600">
                             Explore Market

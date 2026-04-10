@@ -12,4 +12,7 @@ export class GlobalBank {
 
   @Fields.number()
   rubies: number = 0
+
+  @Fields.number()
+  rouletteCoins: number = 0
 }

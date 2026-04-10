@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { ROUTES_ENUM as ROUTES } from '@/routes/routes_enum';
 import { useAuthModal } from './auth/logic/useAuthModal';
-import { RouterLink, useRouter } from 'vue-router';
+import { RouterLink, useRouter, useRoute } from 'vue-router';
 import { remult } from 'remult';
 import { useAuthStore } from '@/stores/auth';
 import { useChatStore } from '@/stores/chat';
@@ -20,6 +20,17 @@ const router = useRouter()
 const isMenuOpen = ref(false)
 // Track which mobile sub-menu is open
 const openMobileSubmenu = ref<string | null>(null);
+
+const route = useRoute()
+
+const isRouletteRoute = computed(() => route.path === ROUTES.ROULETTE.path)
+
+const navClass = computed(() => {
+    if (isRouletteRoute.value) {
+        return 'bg-[rgb(15,5,5)]/90 backdrop-blur-md border-b border-red-900/50';
+    }
+    return 'bg-slate-900/80 backdrop-blur-md border-b border-slate-700/50';
+})
 
 const toggleMenu = () => {
     isMenuOpen.value = !isMenuOpen.value
@@ -75,7 +86,7 @@ onMounted(async () => {
 </script>
 
 <template>
-    <nav class="sticky top-0 w-full z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-700/50">
+    <nav class="sticky top-0 w-full z-50 transition-colors duration-500" :class="navClass">
         <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
 
             <button class="flex items-center gap-2 cursor-pointer z-50" @click="handleLinkClick(ROUTES.HOME.path)">

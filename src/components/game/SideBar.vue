@@ -65,6 +65,13 @@ const navigationArray = [
             })
         }
     },
+    {
+        name: 'Casino', icon: null,
+        action: () => {
+            if (uiStore.isSidebarOpen) uiStore.closeSidebar();
+            router.push(ROUTES.ROULETTE.path);
+        }
+    },
     { name: 'Settings', icon: SettingsIcon, link: ROUTES.SETTINGS.path },
 ];
 </script>
@@ -142,10 +149,20 @@ const navigationArray = [
                     </div>
                 </div>
                 <div class="rounded-lg p-3 overflow-hidden">
-                    <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Balance</p>
-                    <div class="flex items-center gap-2 text-emerald-400 font-mono text-sm md:text-lg">
-                        <span>⟠</span>
-                        <span>{{ userBalance }}</span>
+                    <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Balances</p>
+                    <div class="flex flex-col gap-2">
+                        <div class="flex items-center gap-2 text-rose-400 font-mono text-sm md:text-base">
+                            <img src="/game/ruby.png" class="w-4 h-4 object-contain" alt="Rubies" onerror="this.style.display='none'" />
+                            <span>{{ (auth.user as any).rubies?.toLocaleString() || 0 }}</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-amber-400 font-mono text-sm md:text-base">
+                            <img src="/game/roulette_coin.png" class="w-4 h-4 object-contain" alt="Roulette Coins" onerror="this.style.display='none'" />
+                            <span>{{ (auth.user as any).rouletteCoins?.toLocaleString() || 0 }}</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-emerald-400 font-mono text-sm md:text-base">
+                            <img src="/game/sap_drop.png" class="w-4 h-4 object-contain" alt="Sap" onerror="this.style.display='none'" />
+                            <span>{{ typeof userBalance === 'number' ? userBalance.toLocaleString() : userBalance }}</span>
+                        </div>
                     </div>
                 </div>
             </div>

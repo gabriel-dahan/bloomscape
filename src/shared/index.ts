@@ -26,7 +26,10 @@ export * from './economy/MarketHistory'
 export * from './economy/SapPurchase'
 export * from './economy/MarketStat'
 export * from './economy/Item'
+export * from './economy/RoulettePrize'
+export * from './economy/CasinoGameResult'
 export * from './economy/GlobalBank'
+export * from './economy/DailyRouletteState'
 
 // Social
 export * from './social/Friendship'

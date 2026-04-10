@@ -66,4 +66,16 @@ export class User {
 
   @Fields.number()
   rubies: number = 0
+
+  @Fields.number()
+  rouletteCoins: number = 0
+
+  @Fields.string()
+  lastFreeRouletteDate: string = ''
+
+  @Fields.integer()
+  dailyRoulettePlays: number = 0
+
+  @Fields.integer()
+  pityCounter: number = 0
 }
