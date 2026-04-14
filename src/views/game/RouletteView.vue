@@ -35,42 +35,26 @@ const numSegments = computed(() => prizes.value.length);
 const sliceAngle = computed(() => numSegments.value > 0 ? 360 / numSegments.value : 0);
 const wheelRotation = ref(0);
 
-const prizesGradient = computed(() => {
-    if (numSegments.value === 0) return 'transparent';
-    let gradient = 'conic-gradient(';
-    prizes.value.forEach((p, i) => {
-        const start = i * sliceAngle.value;
-        const end = (i + 1) * sliceAngle.value;
-        const color = p.type === 'FLOWER' ? '#f59e0b' : (i % 2 === 0 ? '#3f3f46' : '#27272a');
-        gradient += `${color} ${start}deg ${end}deg${i === numSegments.value - 1 ? '' : ', '}`;
-    });
-    gradient += ')';
-    return gradient;
-});
+function getPetalPath(angle: number, isBack = false) {
+    if (!angle) return '';
+    const halfAngle = (angle * Math.PI) / 180 / 2;
+    const innerR = isBack ? 70 : 90;
+    const outerR = isBack ? 340 : 310; // Doubled radii
 
-const petalWidth = computed(() => {
-    if (numSegments.value === 0) return 0;
-    // Calculate width to cover the slice at outer edge (320px diameter)
-    const rad = (sliceAngle.value * Math.PI) / 180;
-    return Math.tan(rad / 2) * 160 * 1.6; // 1.6 for slight overlap like natural flower petals
-});
+    // Base points
+    const p1x = innerR * Math.sin(-halfAngle * 0.6);
+    const p1y = -innerR * Math.cos(-halfAngle * 0.6);
+    const p4x = innerR * Math.sin(halfAngle * 0.6);
+    const p4y = -innerR * Math.cos(halfAngle * 0.6);
 
-function getPetalStyle(p: any, i: number) {
-    const isJackpot = p.type === 'FLOWER';
-    const color = isJackpot ?
-        'linear-gradient(to bottom, #f59e0b, #d97706)' :
-        (i % 2 === 0 ? 'linear-gradient(to bottom, #3f3f46, #27272a)' : 'linear-gradient(to bottom, #2d2d33, #18181b)');
+    // Mid shoulder points
+    const midR = isBack ? 260 : 220;
+    const p2x = midR * Math.sin(-halfAngle * 1.4);
+    const p2y = -midR * Math.cos(-halfAngle * 1.4);
+    const p3x = midR * Math.sin(halfAngle * 1.4);
+    const p3y = -midR * Math.cos(halfAngle * 1.4);
 
-    return {
-        width: `${petalWidth.value}px`,
-        height: '160px',
-        background: color,
-        boxShadow: isJackpot ? '0 0 25px rgba(245, 158, 11, 0.4), inset 0 0 10px rgba(255, 255, 255, 0.2)' : 'inset 0 0 10px rgba(255, 255, 255, 0.03)',
-        border: `1px solid ${isJackpot ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.05)'}`,
-        zIndex: isJackpot ? 10 : 1,
-        transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
-        borderRadius: '50%'
-    };
+    return `M ${p1x} ${p1y} C ${p2x} ${p2y}, 0 ${-outerR - 60}, ${p3x} ${p3y} L ${p4x} ${p4y} Z`;
 }
 
 // --- Black/Red State ---
@@ -335,86 +319,144 @@ onMounted(() => {
                                     </template>
                                 </div>
 
-                                <p class="text-3xl font-extrabold text-white mb-2">{{ wonPrize.prizeAmount > 1 ? wonPrize.prizeAmount + ' ' : '' }}{{ getPrizeName({ type: wonPrize.prizeType, value: wonPrize.prizeValue }) }}</p>
+                                <p class="text-3xl font-extrabold text-white mb-2">{{ wonPrize.prizeAmount > 1 ?
+                                    wonPrize.prizeAmount + ' ' : '' }}{{
+                                        getPrizeName({ type: wonPrize.prizeType, value: wonPrize.prizeValue }) }}</p>
                                 <button @click="wonPrize = null"
                                     class="mt-8 px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full font-bold transition-all">Close</button>
                             </div>
 
                             <div class="relative z-10">
 
-                                <div class="relative w-80 h-80 mx-auto mb-10">
-                                    <!-- Visual Wheel (The Flower) -->
-                                    <div class="absolute inset-0 flex items-center justify-center">
+                                <div class="relative w-[760px] h-[760px] mx-auto mb-10 overflow-visible">
+                                    <!-- Decorative backdrop glow -->
+                                    <div
+                                        class="absolute inset-0 bg-amber-500/10 rounded-full blur-[120px] pointer-events-none">
+                                    </div>
 
-                                        <!-- Petals Wrapper -->
-                                        <div v-for="(p, i) in prizes" :key="p.id"
-                                            class="absolute bottom-1/2 left-1/2 w-0 h-0 origin-bottom transition-all z-10"
-                                            :style="{ transform: `rotate(${i * sliceAngle + wheelRotation}deg)`, transition: 'transform 4s cubic-bezier(0.2, 0.8, 0.3, 1)' }"
-                                            @mouseenter="hoveredIndex = i" @mouseleave="hoveredIndex = null"
-                                            :class="hoveredIndex === i ? '!z-[50]' : ''">
+                                    <!-- SVG Visual Wheel -->
+                                    <svg viewBox="-400 -400 800 800"
+                                        class="absolute inset-0 w-full h-full overflow-visible drop-shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+                                        <defs>
+                                            <linearGradient id="jackpotGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                                <stop offset="0%" stop-color="#f59e0b" />
+                                                <stop offset="60%" stop-color="#d97706" />
+                                                <stop offset="100%" stop-color="#78350f" />
+                                            </linearGradient>
+                                            <linearGradient id="darkGrad1" x1="0%" y1="0%" x2="0%" y2="100%">
+                                                <stop offset="0%" stop-color="#4b5563" />
+                                                <stop offset="100%" stop-color="#111827" />
+                                            </linearGradient>
+                                            <linearGradient id="darkGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
+                                                <stop offset="0%" stop-color="#374151" />
+                                                <stop offset="100%" stop-color="#030712" />
+                                            </linearGradient>
+                                            <linearGradient id="backPetalGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                                <stop offset="0%" stop-color="#7c2d12" />
+                                                <stop offset="100%" stop-color="#450a0a" />
+                                            </linearGradient>
+                                            <filter id="petalGlow">
+                                                <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+                                                <feMerge>
+                                                    <feMergeNode in="coloredBlur" />
+                                                    <feMergeNode in="SourceGraphic" />
+                                                </feMerge>
+                                            </filter>
+                                            <radialGradient id="pollenGrad">
+                                                <stop offset="0%" stop-color="#fbbf24" />
+                                                <stop offset="70%" stop-color="#92400e" />
+                                                <stop offset="100%" stop-color="#451a03" />
+                                            </radialGradient>
+                                        </defs>
 
-                                            <!-- The Actual Petal (Handles Hover Slide) -->
-                                            <div class="absolute bottom-0 left-1/2 -translate-x-1/2 cursor-help transition-all duration-300 shadow-lg"
-                                                :style="getPetalStyle(p, i)"
-                                                :class="hoveredIndex === i ? '-translate-y-8 scale-110' : ''">
+                                        <!-- Background Petals (Static Depth) -->
+                                        <g :style="{ transform: `rotate(${wheelRotation * 0.5}deg)`, transition: 'transform 4s cubic-bezier(0.2, 0.8, 0.3, 1)' }"
+                                            class="opacity-40">
+                                            <path v-for="i in prizes.length" :key="'back-' + i"
+                                                :d="getPetalPath(sliceAngle, true)" fill="url(#backPetalGrad)"
+                                                stroke="rgba(0,0,0,0.3)" stroke-width="1"
+                                                :style="{ transform: `rotate(${i * sliceAngle + (sliceAngle / 2)}deg)` }" />
+                                        </g>
 
-                                                <!-- Prize Content on Petal -->
-                                                <div class="flex flex-col items-center pt-6 text-white font-bold drop-shadow-md transition-transform duration-300"
-                                                    :class="hoveredIndex === i ? 'scale-110' : ''">
+                                        <!-- Rotatable Petals Group -->
+                                        <g
+                                            :style="{ transform: `rotate(${wheelRotation}deg)`, transition: 'transform 4s cubic-bezier(0.2, 0.8, 0.3, 1)' }">
+                                            <g v-for="(p, i) in prizes" :key="p.id"
+                                                :style="{ transform: `rotate(${i * sliceAngle}deg)` }"
+                                                class="transition-transform duration-300 transform-gpu cursor-pointer"
+                                                :class="hoveredIndex === i ? 'scale-[1.08]' : 'scale-100'"
+                                                @mouseenter="hoveredIndex = i" @mouseleave="hoveredIndex = null">
+                                                <path :d="getPetalPath(sliceAngle)"
+                                                    :fill="p.type === 'FLOWER' ? 'url(#jackpotGrad)' : (i % 2 === 0 ? 'url(#darkGrad1)' : 'url(#darkGrad2)')"
+                                                    :stroke="p.type === 'FLOWER' ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.1)'"
+                                                    stroke-width="2"
+                                                    :filter="p.type === 'FLOWER' ? 'url(#petalGlow)' : ''"
+                                                    class="transition-all duration-300 hover:brightness-125" />
+                                            </g>
+                                        </g>
+                                    </svg>
+
+                                    <!-- Wheel Icons & Text HTML Layer (Rotates with the wheel) -->
+                                    <div class="absolute inset-0 pointer-events-none"
+                                        :style="{ transform: `rotate(${wheelRotation}deg)`, transition: 'transform 4s cubic-bezier(0.2, 0.8, 0.3, 1)' }">
+
+                                        <div v-for="(p, i) in prizes" :key="'label-' + p.id"
+                                            class="absolute top-1/2 left-1/2 flex flex-col items-center justify-start origin-bottom w-48 -ml-24"
+                                            :style="{
+                                                height: '360px',
+                                                transform: `rotate(${i * sliceAngle}deg)`,
+                                                marginTop: '-360px'
+                                            }">
+                                            <div class="flex flex-col items-center pt-20 gap-3 transition-transform duration-300"
+                                                :class="hoveredIndex === i ? 'scale-110 -translate-y-4' : ''">
+                                                <div class="w-20 h-20 flex items-center justify-center">
                                                     <PixelatedImage v-if="p.type !== 'FLOWER'" :src="getPrizeImage(p)"
-                                                        width="32px" height="32px" class="mb-1" />
+                                                        width="56px" height="56px"
+                                                        class="drop-shadow-[0_6px_12px_rgba(0,0,0,0.5)]" />
                                                     <FlowerImage v-else :slug="p.value" status="GROWING2" type="icon"
-                                                        class="w-12 h-12 mb-1 drop-shadow-md animate-pulse" />
-                                                    <span class="text-[9px] tracking-tight text-white/90 uppercase text-center px-1 leading-tight break-words max-w-full">
-                                                        {{ p.amount > 1 ? p.amount + ' ' : '' }}{{ getPrizeName(p) }}
-                                                    </span>
+                                                        class="w-20 h-20 drop-shadow-[0_0_25px_rgba(245,158,11,0.8)] animate-pulse" />
                                                 </div>
+                                                <span
+                                                    class="text-[14px] font-black text-white px-2 tracking-wide text-center uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] leading-tight max-w-[160px]">
+                                                    {{ p.amount > 1 ? p.amount + ' ' : '' }}{{ getPrizeName(p) }}
+                                                </span>
                                             </div>
-                                        </div>
-
-                                        <!-- Fake Petal for Cycle overlap (Left half of Petal 0) -->
-                                        <div v-if="prizes.length > 0"
-                                            class="absolute bottom-1/2 left-1/2 w-0 h-0 origin-bottom z-10 pointer-events-none"
-                                            :style="{ transform: `rotate(${wheelRotation}deg)`, transition: 'transform 4s cubic-bezier(0.2, 0.8, 0.3, 1)' }"
-                                            :class="hoveredIndex === 0 ? '!z-[50]' : ''">
-
-                                            <div class="absolute bottom-0 left-1/2 -translate-x-1/2 transition-all duration-300 shadow-lg pointer-events-none"
-                                                :style="{ ...getPetalStyle(prizes[0], 0), clipPath: 'inset(0 50% 0 0)' }"
-                                                :class="hoveredIndex === 0 ? '-translate-y-8 scale-110' : ''">
-
-                                                <div class="flex flex-col items-center pt-6 text-white font-bold drop-shadow-md transition-transform duration-300"
-                                                    :class="hoveredIndex === 0 ? 'scale-110' : ''">
-                                                    <PixelatedImage v-if="prizes[0].type !== 'FLOWER'"
-                                                        :src="getPrizeImage(prizes[0])" width="32px" height="32px"
-                                                        class="mb-1" />
-                                                    <FlowerImage v-else :slug="prizes[0].value" status="GROWING2"
-                                                        type="icon"
-                                                        class="w-12 h-12 mb-1 drop-shadow-md animate-pulse" />
-                                                    <span class="text-[9px] tracking-tight text-white/90 uppercase text-center px-1 leading-tight break-words max-w-full">
-                                                        {{ prizes[0].amount > 1 ? prizes[0].amount + ' ' : '' }}{{ getPrizeName(prizes[0]) }}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Center Hub (Pistil) -->
-                                        <div
-                                            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 bg-slate-900 rounded-full border-4 border-amber-600/30 flex items-center justify-center shadow-2xl z-[60] backdrop-blur-sm">
-                                            <div
-                                                class="absolute inset-0 rounded-full bg-gradient-to-br from-amber-500/10 to-transparent">
-                                            </div>
-                                            <span
-                                                class="relative z-10 text-amber-500/40 font-black text-[10px] tracking-widest leading-none uppercase">Bloom</span>
                                         </div>
                                     </div>
-                                    <!-- Pointer (Sleek Crystal Needle - Behind Wheel) -->
+
+                                    <!-- Center Hub (Pistil) -->
                                     <div
-                                        class="absolute -top-3 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center pointer-events-none group">
-                                        <div class="w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[24px] transition-all duration-500 relative"
-                                            style="border-t-color: #f59e0b; filter: drop-shadow(0 0 10px rgba(245,158,11,0.5));">
+                                        class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-44 h-44 bg-slate-950 rounded-full border-[8px] border-amber-600/60 flex items-center justify-center shadow-[0_0_60px_rgba(0,0,0,0.9)] z-[60] backdrop-blur-md pointer-events-auto overflow-hidden">
+                                        <div class="absolute inset-0 rounded-full opacity-50"
+                                            style="background: radial-gradient(circle, #fbbf24 0%, #92400e 70%, #451a03 100%)">
+                                        </div>
+                                        <div
+                                            class="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-amber-400/20 to-transparent">
+                                        </div>
+                                        <div
+                                            class="absolute inset-4 rounded-full border-2 border-amber-500/30 border-dashed animate-[spin_20s_linear_infinite]">
+                                        </div>
+                                        <div
+                                            class="absolute inset-10 rounded-full bg-amber-500/10 blur-2xl animate-pulse">
+                                        </div>
+                                        <span
+                                            class="relative z-10 text-amber-500 font-black text-xl tracking-[0.3em] leading-none uppercase drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)]">Bloom</span>
+                                    </div>
+
+                                    <!-- Pointer (Sleek Crystal Needle - Doubled size and adjusted) -->
+                                    <div
+                                        class="absolute -top-20 left-1/2 -translate-x-1/2 z-[70] flex flex-col items-center pointer-events-none group filter drop-shadow-[0_0_30px_rgba(245,158,11,0.6)]">
+                                        <div
+                                            class="w-10 h-10 bg-slate-900 border-4 border-amber-500 rounded-full flex items-center justify-center shadow-2xl relative z-10">
                                             <div
-                                                class="absolute -top-[22px] -left-[1.5px] w-[3px] h-[12px] bg-white/40 blur-[1px] rounded-full">
+                                                class="w-4 h-4 bg-amber-400 rounded-full animate-pulse shadow-[0_0_15px_#fbbf24]">
                                             </div>
+                                        </div>
+                                        <div
+                                            class="w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[60px] border-t-amber-500 -mt-3">
+                                        </div>
+                                        <div
+                                            class="absolute top-[40px] w-[4px] h-[35px] bg-white/60 blur-[1px] rounded-full">
                                         </div>
                                     </div>
                                 </div>
@@ -424,7 +466,7 @@ onMounted(() => {
                                         class="relative overflow-hidden group px-12 py-4 rounded-full font-black text-xl tracking-wider transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                                         :class="isFreePlay ? 'bg-emerald-500 text-slate-900 hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]' : 'bg-red-700 text-white hover:bg-red-600 hover:shadow-[0_0_30px_rgba(185,28,28,0.4)]'">
                                         <span class="relative z-10">{{ isFreePlay ? 'SPIN FOR FREE' : 'SPIN (1 COIN)'
-                                            }}</span>
+                                        }}</span>
                                         <div
                                             class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 pointer-events-none">
                                         </div>
@@ -501,7 +543,7 @@ onMounted(() => {
                                     <p class="text-slate-300 font-mono text-lg flex items-center gap-2">
                                         New Balance: <span class="font-bold border-b border-dashed">{{
                                             brResult.newBalance
-                                        }}</span>
+                                            }}</span>
                                         <PixelatedImage src="/game/roulette_coin.png" width="20px" height="20px" />
                                     </p>
                                     <button @click="brResult = null"
@@ -579,13 +621,12 @@ onMounted(() => {
                                 class="col-span-1 glass-panel p-6 overflow-hidden flex flex-col max-h-[600px] lg:max-h-full">
                                 <h3
                                     class="text-xl font-bold text-white mb-4 uppercase tracking-wider sticky top-0 bg-slate-900/0 backdrop-blur pb-2 z-10 border-b border-white/10 text-center">
-                                    Recent Action</h3>
+                                    Your Recent Activity</h3>
                                 <div class="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
                                     <div v-for="r in brRecentResults" :key="r.id"
                                         class="bg-black/30 rounded-xl p-3 flex flex-col border border-white/5">
                                         <div class="flex justify-between items-center mb-2">
-                                            <span class="text-slate-300 font-bold text-sm">{{ r.userTag || 'Player'
-                                                }}</span>
+                                            <span class="text-slate-300 font-bold text-sm">You</span>
                                             <span class="text-[10px] text-slate-500">{{ new
                                                 Date(r.createdAt).toLocaleTimeString() }}</span>
                                         </div>
@@ -593,7 +634,7 @@ onMounted(() => {
                                             <div class="flex gap-1 items-center">
                                                 <span class="text-xs text-slate-400">Bet:</span>
                                                 <span class="text-amber-400 font-mono text-sm font-bold">{{ r.betAmount
-                                                    }}</span>
+                                                }}</span>
                                                 <PixelatedImage src="/game/roulette_coin.png" width="12px"
                                                     height="12px" />
                                             </div>

@@ -22,8 +22,12 @@ export class RouletteController {
 
   @BackendMethod({ allowed: true })
   static async getRecentCasinoResults(game: string) {
+    if (!remult.user) return []
     return await remult.repo(CasinoGameResult).find({
-      where: { game },
+      where: { 
+        game,
+        userId: remult.user.id
+      },
       orderBy: { createdAt: 'desc' },
       limit: 15
     })
