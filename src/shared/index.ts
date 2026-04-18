@@ -9,6 +9,7 @@ export * from './map/Island'
 export * from './user/User'
 export * from './user/Achievement'
 export * from './user/UserAchievement'
+export * from './user/UserNotification'
 
 // Analytics
 export * from './analytics/SystemLog'

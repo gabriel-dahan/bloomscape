@@ -17,4 +17,10 @@ export const ServerEvents = {
   setIO: (socketInfo: Server) => {
     io = socketInfo
   },
+
+  dispatchStateUpdate: (userId: string, type: 'island' | 'balance' | 'inventory') => {
+    if (io) {
+      io.to(`user:${userId}`).emit('state-update', { type })
+    }
+  },
 }

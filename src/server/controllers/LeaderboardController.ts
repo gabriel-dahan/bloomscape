@@ -7,16 +7,17 @@ export class LeaderboardController {
   @BackendMethod({ allowed: true })
   static async getPodium() {
     const islands = await remult.repo(Island).find({
-      limit: 3,
       orderBy: { monthScore: 'desc', id: 'asc' },
       include: { owner: true },
     })
 
-    return islands.map((i) => ({
+    const validIslands = islands.filter(i => i.owner)
+
+    return validIslands.slice(0, 3).map((i) => ({
       id: i.id,
       name: i.name,
       monthScore: i.monthScore,
-      owner: i.owner ? { tag: i.owner.tag } : null,
+      owner: { tag: i.owner!.tag },
     }))
   }
 
@@ -26,22 +27,22 @@ export class LeaderboardController {
     const pageSize = 10
 
     const islands = await islandRepo.find({
-      limit: pageSize,
-      page: page,
       orderBy: { monthScore: 'desc', id: 'asc' },
       include: { owner: true },
     })
 
-    const totalCount = await islandRepo.count()
-
+    const filtered = islands.filter(i => i.owner)
+    const totalCount = filtered.length
     const totalPages = Math.ceil(totalCount / pageSize)
 
+    const pagedItems = filtered.slice((page - 1) * pageSize, page * pageSize)
+
     return {
-      items: islands.map((i) => ({
+      items: pagedItems.map((i) => ({
         id: i.id,
         name: i.name,
         monthScore: i.monthScore,
-        owner: i.owner ? { tag: i.owner.tag } : null,
+        owner: { tag: i.owner!.tag },
       })),
       totalPages,
       totalCount,

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useModalStore } from '@/stores/modal';
 import { storeToRefs } from 'pinia';
-import { computed } from 'vue';
+import { computed, onMounted, onUnmounted } from 'vue';
 
 const modalStore = useModalStore();
 const { isOpen, title, message, type, actions, size, component, componentProps, sideBarMargin } = storeToRefs(modalStore);
@@ -37,6 +37,20 @@ const getBtnClass = (variant?: string) => {
         default: return 'btn-primary text-white shadow-lg shadow-emerald-500/20';
     }
 };
+
+const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape' && isOpen.value) {
+        modalStore.close();
+    }
+};
+
+onMounted(() => {
+    window.addEventListener('keydown', handleKeyDown);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('keydown', handleKeyDown);
+});
 </script>
 
 <template>
@@ -47,6 +61,7 @@ const getBtnClass = (variant?: string) => {
 
             <transition name="scale">
                 <div v-if="isOpen"
+                    id="global-modal-container"
                     class="glass-panel flex flex-col px-4 py-6 md:p-6 rounded-2xl border shadow-2xl relative overflow-hidden transition-all duration-300"
                     :class="[config.border, sizeClasses]">
 

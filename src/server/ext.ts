@@ -7,7 +7,7 @@ export interface LevelReward {
   level: number
   title: string
   description: string
-  type: 'sap' | 'item' | 'feature' | 'badge'
+  type: 'sap' | 'item' | 'feature' | 'badge' | 'flower'
   amount?: number
   icon: string // emoji or image URL
   color: string
@@ -25,11 +25,11 @@ export const LEVEL_REWARDS: LevelReward[] = [
   },
   {
     level: 3,
-    title: 'Green Thumb',
-    description: 'Unlock 5 free Sunflower Seeds.',
-    type: 'item',
-    amount: 5,
-    icon: '/api/images/badges/unknown_white',
+    title: 'Common Cactus',
+    description: 'Unlock 1 Common Cactus seed !',
+    type: 'flower',
+    amount: 1,
+    icon: '/api/images/flowers/common_cactus/seed/icon',
     color: 'amber',
   },
   {
@@ -37,7 +37,7 @@ export const LEVEL_REWARDS: LevelReward[] = [
     title: 'Land Expansion',
     description: 'You can now purchase an additional land plot!',
     type: 'feature',
-    icon: '🏝️',
+    icon: '/game/rewards_road/land_expansion.png',
     color: 'blue',
   },
   {
@@ -66,6 +66,96 @@ export const LEVEL_REWARDS: LevelReward[] = [
   },
   {
     level: 20,
+    title: 'Bloom Tycoon',
+    description: 'Massive Sap grant for the dedicated.',
+    type: 'sap',
+    amount: 10000,
+    icon: '💰',
+    color: 'purple',
+  },
+  {
+    level: 25,
+    title: 'Bloom Tycoon',
+    description: 'Massive Sap grant for the dedicated.',
+    type: 'sap',
+    amount: 10000,
+    icon: '💰',
+    color: 'purple',
+  },
+  {
+    level: 30,
+    title: 'Bloom Tycoon',
+    description: 'Massive Sap grant for the dedicated.',
+    type: 'sap',
+    amount: 10000,
+    icon: '💰',
+    color: 'purple',
+  },
+  {
+    level: 35,
+    title: 'Bloom Tycoon',
+    description: 'Massive Sap grant for the dedicated.',
+    type: 'sap',
+    amount: 10000,
+    icon: '💰',
+    color: 'purple',
+  },
+  {
+    level: 40,
+    title: 'Bloom Tycoon',
+    description: 'Massive Sap grant for the dedicated.',
+    type: 'sap',
+    amount: 10000,
+    icon: '💰',
+    color: 'purple',
+  },
+  {
+    level: 45,
+    title: 'Bloom Tycoon',
+    description: 'Massive Sap grant for the dedicated.',
+    type: 'sap',
+    amount: 10000,
+    icon: '💰',
+    color: 'purple',
+  },
+  {
+    level: 50,
+    title: 'Bloom Tycoon',
+    description: 'Massive Sap grant for the dedicated.',
+    type: 'sap',
+    amount: 10000,
+    icon: '💰',
+    color: 'purple',
+  },
+  {
+    level: 55,
+    title: 'Bloom Tycoon',
+    description: 'Massive Sap grant for the dedicated.',
+    type: 'sap',
+    amount: 10000,
+    icon: '💰',
+    color: 'purple',
+  },
+  {
+    level: 60,
+    title: 'Bloom Tycoon',
+    description: 'Massive Sap grant for the dedicated.',
+    type: 'sap',
+    amount: 10000,
+    icon: '💰',
+    color: 'purple',
+  },
+  {
+    level: 65,
+    title: 'Bloom Tycoon',
+    description: 'Massive Sap grant for the dedicated.',
+    type: 'sap',
+    amount: 10000,
+    icon: '💰',
+    color: 'purple',
+  },
+  {
+    level: 70,
     title: 'Bloom Tycoon',
     description: 'Massive Sap grant for the dedicated.',
     type: 'sap',

@@ -109,6 +109,7 @@ const handleStartAdventure = async () => {
     isFetchingData.value = true;
     try {
         await gameStore.startAdventure();
+        await auth.fetchSessionUser();
         await initData();
     } finally {
         isFetchingData.value = false;
@@ -158,6 +159,14 @@ watch(selectedTile, (newVal) => {
     if (!newVal) {
         sceneManager?.setSelection(null, null);
     }
+});
+
+const getProjectedCoords = (x: number, z: number) => {
+    return sceneManager?.projectCoordinateToScreen(x, z);
+};
+
+defineExpose({
+    getProjectedCoords
 });
 
 </script>

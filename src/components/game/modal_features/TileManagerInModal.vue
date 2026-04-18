@@ -5,6 +5,9 @@ import { FlowerRarity, Tile, PreferredSeasons, WATER_CONSUMPTION_AMOUNTS } from 
 import type { FlowerDTO, FlowerStatus } from '@/shared';
 import FlowerImage from '@/components/FlowerImage.vue';
 import { calculateGameTime } from '@/shared/gameTime'
+import { useAuthStore } from '@/stores/auth'
+
+const auth = useAuthStore()
 
 const props = defineProps<{
     x: number,
@@ -22,6 +25,9 @@ const isHarvesting = ref(false)
 const selectedSeedId = ref<string>('')
 const activeTab = ref<'status' | 'info'>('status')
 const errorMsg = ref('')
+const flowerNameInput = ref('')
+const isBoosting = ref(false)
+const isNaming = ref(false)
 
 const displayWaterLevel = ref(0)
 const displayStatus = ref('')
@@ -33,6 +39,21 @@ let timer: any = null
 
 const hasTile = computed(() => !!tile.value)
 const hasFlower = computed(() => !!flower.value)
+
+const scrollContainer = ref<HTMLElement | null>(null)
+
+watch(() => auth.user?.tutorialStep, (step) => {
+    if (step === 4) {
+        setTimeout(() => {
+            if (scrollContainer.value) {
+                scrollContainer.value.scrollTo({
+                    top: scrollContainer.value.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }
+        }, 100);
+    }
+}, { immediate: true })
 
 const ALL_GROWTH_STAGES = ['SEED', 'SPROUT1', 'SPROUT2', 'GROWING1', 'GROWING2']
 
@@ -121,9 +142,36 @@ const loadData = async () => {
 const handlePlant = async () => {
     if (!selectedSeedId.value || !tile.value) return
     isPlanting.value = true
-    try { await GameController.plantSeed(tile.value.id, selectedSeedId.value); await loadData() }
+    try {
+        await GameController.plantSeed(tile.value.id, selectedSeedId.value)
+
+        if (auth.user?.isFirstTimeUser && auth.user.tutorialStep === 3) {
+            isNaming.value = true
+            const seeds = await GameController.getAvailableSeeds() // Refresh to get the planted flower or id
+            // Actually growth logic will trigger. Let's reloading data.
+        }
+        await loadData()
+
+        if (auth.user?.isFirstTimeUser && auth.user.tutorialStep === 3 && flower.value) {
+            if (flowerNameInput.value) {
+                await GameController.nameFlower(flower.value.id, flowerNameInput.value)
+            }
+            await GameController.updateTutorialStep(4)
+            auth.user.tutorialStep = 4
+        }
+    }
     catch (e: any) { errorMsg.value = e.message }
     finally { isPlanting.value = false }
+}
+
+const handleBoostTutorial = async () => {
+    if (!flower.value || isBoosting.value) return
+    isBoosting.value = true
+    try {
+        await GameController.accelerateGrowthTutorial(flower.value.id)
+        await loadData()
+    } catch (e: any) { errorMsg.value = e.message }
+    finally { isBoosting.value = false }
 }
 
 const handleWater = async () => {
@@ -139,6 +187,12 @@ const handleHarvest = async () => {
         const res = await GameController.harvestFlower(tile.value.id)
         if (res.success) {
             alert(`Harvest Complete!\n+${res.rewards.xp} XP\n+${res.rewards.score} Score`)
+
+            if (auth.user?.isFirstTimeUser && auth.user.tutorialStep === 4) {
+                await GameController.updateTutorialStep(5)
+                auth.user.tutorialStep = 5
+            }
+
             await loadData()
         }
     } catch (e: any) { errorMsg.value = e.message }
@@ -317,10 +371,10 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 
             <div v-else-if="hasTile && !hasFlower" class="flex flex-col h-full animate-in fade-in duration-500">
                 <div
-                    class="text-center py-6 shrink-0 bg-slate-800/30 rounded-xl border border-dashed border-slate-700 mb-4">
+                    class="text-center py-4 shrink-0 bg-slate-800/30 rounded-xl border border-dashed border-slate-700 mb-4">
                     <div
-                        class="w-20 h-20 rounded-full bg-slate-800/80 mx-auto flex items-center justify-center border-4 border-slate-700 mb-3 shadow-inner">
-                        <div class="w-12 h-12 text-slate-600">
+                        class="w-12 h-12 rounded-full bg-slate-800/80 mx-auto flex items-center justify-center border-2 border-slate-700 mb-2 shadow-inner">
+                        <div class="w-8 h-8 text-slate-600">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                                 stroke="currentColor" class="w-full h-full">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -328,8 +382,8 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                             </svg>
                         </div>
                     </div>
-                    <h3 class="text-lg font-bold text-slate-200">Fertile Soil</h3>
-                    <p class="text-xs text-slate-400 mt-1">Ready for planting</p>
+                    <h3 class="text-sm font-bold text-slate-200">Fertile Soil</h3>
+                    <p class="text-[10px] text-slate-500 mt-0.5">Ready for planting</p>
                 </div>
 
                 <div class="flex justify-between items-center mb-2 px-1">
@@ -339,47 +393,67 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                             availableSeeds.length }}</span>
                 </div>
 
-                <div class="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                <div class="flex-1 overflow-y-auto pr-1 custom-scrollbar">
                     <div v-if="availableSeeds.length === 0"
-                        class="flex flex-col items-center justify-center h-32 text-slate-600 bg-slate-900/50 rounded-lg border border-slate-800">
-                        <span class="text-2xl mb-2">🎒</span>
-                        <span class="text-xs">No seeds in inventory.</span>
-                        <span class="text-[10px] mt-1 text-slate-500">Visit the Market to buy some!</span>
+                        class="flex flex-col items-center justify-center h-48 text-slate-600 bg-slate-900/50 rounded-2xl border-2 border-dashed border-slate-800 animate-pulse">
+                        <span class="text-4xl mb-3">🌱</span>
+                        <span class="text-sm font-bold">Waiting for seeds...</span>
+                        <span class="text-[10px] mt-2 text-slate-500 text-center max-w-[200px]">If you just started your
+                            adventure, seeds may take a moment to arrive in your inventory.</span>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3 pb-2">
+                    <div v-else class="grid grid-cols-1 gap-2 pb-4">
                         <button v-for="seed in availableSeeds" :key="seed.id" @click="selectedSeedId = seed.id"
-                            class="relative p-3 rounded-xl border text-left transition-all duration-200 group flex flex-col gap-2 h-full"
-                            :class="selectedSeedId === seed.id ? 'bg-emerald-900/20 border-emerald-500/50 ring-1 ring-emerald-500/50' : 'bg-slate-800/50 border-slate-700/50 hover:bg-slate-800 hover:border-slate-600'">
+                            :id="`seed-${seed.species?.slugName}`"
+                            class="relative p-4 rounded-2xl border-2 text-left transition-all duration-300 group flex items-center gap-4"
+                            :class="selectedSeedId === seed.id ? 'bg-emerald-500/10 border-emerald-500 ring-2 ring-emerald-500/20' : 'bg-slate-800/40 border-slate-700/50 hover:bg-slate-800 hover:border-slate-500'">
 
-                            <div class="flex items-start justify-between w-full">
-                                <FlowerImage :slug="seed.species?.slugName || ''" status="SEED" type="icon" size="32px"
-                                    class="filter drop-shadow-md group-hover:scale-110 transition-transform duration-300" />
-                                <div class="badge badge-xs text-[9px] border-none font-bold"
-                                    :class="seed.species ? rarityColors[seed.species.rarity].replace('bg-', 'text-').split(' ')[1] : 'text-slate-500'">
-                                    {{ Math.round(seed.quality * 100) }}% Q
+                            <div
+                                class="relative w-14 h-14 bg-slate-900 rounded-xl flex items-center justify-center border border-white/5 shrink-0 shadow-inner">
+                                <FlowerImage :slug="seed.species?.slugName || ''" status="SEED" type="icon" size="44px"
+                                    class="filter drop-shadow-lg group-hover:scale-110 transition-transform duration-300" />
+                            </div>
+
+                            <div class="flex-1 min-w-0">
+                                <div class="font-black text-sm text-white truncate leading-tight">{{ seed.species?.name
+                                    }}</div>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <div class="badge badge-xs text-[9px] border-none font-bold py-2"
+                                        :class="seed.species ? rarityColors[seed.species.rarity].replace('bg-', 'text-').split(' ')[1] : 'text-slate-500'">
+                                        {{ seed.species?.rarity }}
+                                    </div>
+                                    <span class="text-[10px] text-slate-500 font-mono">{{ Math.round(seed.quality * 100)
+                                        }}% Quality</span>
                                 </div>
                             </div>
 
-                            <div class="mt-auto">
-                                <div class="font-bold text-xs text-slate-200 truncate leading-tight">{{
-                                    seed.species?.name }}</div>
-                                <div class="text-[10px] text-slate-500 truncate mt-0.5">{{ seed.species?.rarity }}</div>
-                            </div>
-
                             <div v-if="selectedSeedId === seed.id"
-                                class="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]">
+                                class="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.4)]">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3"
+                                    stroke="currentColor" class="w-3.5 h-3.5 text-white">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                </svg>
                             </div>
                         </button>
                     </div>
                 </div>
-                <div class="mt-auto pt-4 border-t border-slate-800/50 shrink-0">
-                    <button @click="handlePlant" :disabled="!selectedSeedId || isPlanting"
-                        class="btn btn-primary w-full shadow-lg shadow-emerald-900/20 border-t border-white/10 relative overflow-hidden group">
-                        <div class="absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer"
-                            v-if="!isPlanting"></div>
+                <div class="mt-auto pt-4 border-t border-white/5 shrink-0 space-y-3">
+                    <div v-if="auth.user?.isFirstTimeUser && auth.user.tutorialStep === 3"
+                        class="animate-in fade-in slide-in-from-bottom-2 bg-emerald-500/5 p-4 rounded-2xl border border-emerald-500/20">
+                        <label
+                            class="text-[9px] font-black text-emerald-400/70 uppercase mb-2 block tracking-widest">Name
+                            your first flower</label>
+                        <input id="tutorial-flower-name-input" v-model="flowerNameInput" type="text"
+                            placeholder="e.g. Sunny"
+                            class="w-full bg-slate-950/50 border border-emerald-500/30 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all font-bold placeholder:text-slate-600" />
+                    </div>
+
+                    <button @click="handlePlant"
+                        id="tutorial-plant-btn"
+                        :disabled="!selectedSeedId || isPlanting || (auth.user?.tutorialStep === 3 && !flowerNameInput)"
+                        class="btn btn-primary btn-md w-full shadow-lg shadow-emerald-900/40 border-t border-white/10 font-black text-sm">
                         <span v-if="isPlanting" class="loading loading-spinner loading-xs mr-2"></span>
-                        {{ isPlanting ? 'Sowing Seeds...' : 'Confirm Planting' }}
+                        {{ isPlanting ? 'Sowing...' : 'Plant Selected Seed' }}
                     </button>
                 </div>
             </div>
@@ -469,7 +543,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                         </div>
                     </div>
 
-                    <div class="flex-1 overflow-y-auto pr-1 custom-scrollbar">
+                    <div ref="scrollContainer" class="flex-1 overflow-y-auto pr-1 custom-scrollbar">
                         <div v-if="activeTab === 'status'" class="space-y-6 h-full flex flex-col">
 
                             <div v-if="activeBuffs.length > 0" class="grid grid-cols-2 gap-2">
@@ -554,40 +628,32 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 
                             <div class="mt-auto grid grid-cols-2 gap-3 pt-2">
                                 <button @click="handleWater" :disabled="displayWaterLevel >= 100"
-                                    class="btn btn-info bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border-blue-500/30 hover:border-blue-400 h-12 relative overflow-hidden group">
-                                    <div
-                                        class="absolute inset-0 flex items-center justify-center opacity-10 group-hover:scale-150 transition-transform duration-700">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path
-                                                d="M12 22c4.97 0 9-1.88 9-5c0-1.8-1.74-3.32-4.17-5.32L12 2l-4.83 9.68C4.74 13.68 3 15.2 3 17c0 3.12 4.03 5 9 5z" />
-                                        </svg>
-                                    </div>
-                                    <div class="relative z-10 flex flex-col items-center leading-none gap-1">
-                                        <span class="font-bold">Water</span>
-                                        <span class="text-[9px] opacity-70 font-normal">+25% Hydro</span>
-                                    </div>
+                                    id="tutorial-water-btn"
+                                    class="bg-blue-600 hover:bg-blue-500 text-white font-bold h-10 rounded-xl transition-all active:scale-95 flex flex-col items-center justify-center border-b-2 border-blue-800">
+                                    <span class="text-xs">Water</span>
+                                    <span class="text-[8px] opacity-70">Free Tutorial</span>
                                 </button>
 
                                 <button v-if="growthProgress >= 100" @click="handleHarvest" :disabled="isHarvesting"
-                                    class="btn btn-primary bg-emerald-600 hover:bg-emerald-500 text-white border-none shadow-[0_0_20px_rgba(16,185,129,0.3)] h-12 relative overflow-hidden group">
-                                    <div
-                                        class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                                    </div>
-                                    <div class="relative z-10 flex flex-col items-center leading-none gap-1">
-                                        <span class="font-black tracking-wide uppercase">{{ isHarvesting ?
-                                            'Harvesting...' : 'HARVEST' }}</span>
-                                        <span class="text-[9px] opacity-90 font-mono bg-black/20 px-2 rounded-full"
-                                            v-if="!isHarvesting">Ready!</span>
-                                    </div>
+                                    id="tutorial-harvest-btn"
+                                    class="bg-emerald-600 hover:bg-emerald-500 text-white font-black h-10 rounded-xl transition-all shadow-lg active:scale-95 flex flex-col items-center justify-center border-b-2 border-emerald-800">
+                                    <span class="text-xs">{{ isHarvesting ? '...' : 'HARVEST' }}</span>
+                                    <span class="text-[8px] opacity-70">Ready!</span>
                                 </button>
 
+                                <div v-else-if="auth.user?.isFirstTimeUser && auth.user.tutorialStep === 4"
+                                    class="flex flex-col gap-1">
+                                    <button @click="handleBoostTutorial" :disabled="isBoosting" id="tutorial-boost-btn"
+                                        class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-black h-10 rounded-xl transition-all animate-pulse flex flex-col items-center justify-center border-b-2 border-amber-700">
+                                        <span class="text-xs">✨ BOOST</span>
+                                        <span class="text-[8px] opacity-70">-10s Rem</span>
+                                    </button>
+                                </div>
+
                                 <button v-else disabled
-                                    class="btn btn-ghost bg-slate-800/50 text-slate-600 border border-slate-700/50 h-12 cursor-not-allowed">
-                                    <div class="flex flex-col items-center leading-none gap-1">
-                                        <span class="font-bold">Growing</span>
-                                        <span class="text-[9px] opacity-50">Wait for maturity</span>
-                                    </div>
+                                    class="bg-slate-800 text-slate-500 h-10 rounded-xl border-b-2 border-slate-900 cursor-not-allowed flex flex-col items-center justify-center opacity-50">
+                                    <span class="text-xs">Growing</span>
+                                    <span class="text-[8px]">Please wait</span>
                                 </button>
                             </div>
                         </div>
@@ -675,7 +741,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                                 <div class="flex flex-col bg-slate-900 p-2 rounded border border-slate-800/50">
                                     <span class="text-[10px] text-slate-500 uppercase font-bold">Season</span>
                                     <span class="font-bold mt-0.5" :class="seasonDisplay.color">{{ seasonDisplay.label
-                                    }}</span>
+                                        }}</span>
                                 </div>
                             </div>
                         </div>

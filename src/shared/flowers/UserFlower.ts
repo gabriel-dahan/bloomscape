@@ -23,6 +23,9 @@ export class UserFlower {
   @Fields.string()
   status: FlowerStatus = FlowerStatus.SEED
 
+  @Fields.string()
+  name: string = ''
+
   @Fields.number()
   quality: number = 0.5
 

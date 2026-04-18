@@ -850,6 +850,21 @@ export class LandSceneManager {
     this.renderer.render(this.scene, this.camera)
   }
 
+  public projectCoordinateToScreen(x: number, z: number) {
+    if (!this.container || !this.camera) return null
+
+    const vector = new THREE.Vector3(x, 0.25, z)
+    vector.project(this.camera)
+
+    const widthHalf = this.container.clientWidth / 2
+    const heightHalf = this.container.clientHeight / 2
+
+    return {
+      x: vector.x * widthHalf + widthHalf,
+      y: -(vector.y * heightHalf) + heightHalf,
+    }
+  }
+
   public dispose() {
     cancelAnimationFrame(this.animationId)
 

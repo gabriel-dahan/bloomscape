@@ -13,7 +13,8 @@ import {
   Island,
   Tile,
   GlobalBank,
-  GLOBAL_BANK_ID
+  GLOBAL_BANK_ID,
+  UserNotification
 } from '@/shared'
 import { ModerationLog } from '@/shared/analytics/ModerationLog'
 import { DailySnapshot } from '@/shared/analytics/DailySnapshot'

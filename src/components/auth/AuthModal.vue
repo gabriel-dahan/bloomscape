@@ -51,6 +51,8 @@ watch(
         nextTick(() => {
             if (newValue && dialogRef.value) {
                 dialogRef.value.showModal()
+                // Auto-focus first input
+                dialogRef.value.querySelector('input')?.focus()
             } else if (!newValue && dialogRef.value) {
                 dialogRef.value.close()
             }
@@ -62,6 +64,9 @@ watch(
 // Reset state when mode changes
 watch(mode, () => {
     resetForm()
+    nextTick(() => {
+        dialogRef.value?.querySelector('input')?.focus()
+    })
 })
 
 // --- ACTIONS ---
@@ -267,7 +272,7 @@ const formConfig = computed(() => {
 
                     <template #moreBtns v-if="mode === 'login'">
                         <div class="divider text-xs opacity-60">OR</div>
-                        <GoogleLoginBtn />
+                        <GoogleLoginBtn @success="closeModal" />
                     </template>
                 </Form>
             </div>

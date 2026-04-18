@@ -19,6 +19,7 @@ import type { FlowerDTO, FlowerAttributes, PreferredSeasons } from '@/shared'
 import { BackendMethod, remult } from 'remult'
 import { PRICES } from '../ext'
 import { FlowerDiscovery } from '@/shared/analytics/FlowerDiscovery'
+import { sanitizeUser } from '@/shared/user/User'
 
 import { getLevelFromXp } from '@/shared/leveling'
 import { AttributesLogic } from '@/shared/attributesLogic'
@@ -381,6 +382,8 @@ export class GameController {
       `Congratulation on your new seed of <b>${flower.species!.name}</b>.`,
       'success',
     )
+    ServerEvents.dispatchStateUpdate(remult.user.id, 'island')
+    ServerEvents.dispatchStateUpdate(remult.user.id, 'inventory')
 
     return {
       success: true,
@@ -426,6 +429,9 @@ export class GameController {
     flower.waterLevel = newLevel
     flower.lastWateredAt = new Date()
     await flowerRepo.save(flower)
+
+    const { ServerEvents } = await import('../server-events')
+    ServerEvents.dispatchStateUpdate(remult.user.id, 'island')
 
     return { level: newLevel }
   }
@@ -508,6 +514,10 @@ export class GameController {
     tile.flowerId = ''
     await tileRepo.save(tile)
 
+    const { ServerEvents } = await import('../server-events')
+    ServerEvents.dispatchStateUpdate(remult.user.id, 'island')
+    ServerEvents.dispatchStateUpdate(remult.user.id, 'inventory')
+
     return {
       success: true,
       rewards: { xp: finalXp, score: finalScore, quality: harvestedQuality },
@@ -541,18 +551,27 @@ export class GameController {
 
     const island = await islandRepo.insert({
       ownerId: user.id,
-      name: `${user?.tag || 'Unknown'}'s Island`,
+      name: dbUser?.isFirstTimeUser ? 'Unnamed Island' : `${user?.tag || 'Unknown'}'s Island`,
     })
 
     const initialTiles = []
-    for (let x = -2; x <= 2; x += 2) {
-      for (let z = -2; z <= 2; z += 2) {
-        initialTiles.push({
-          islandId: island.id,
-          x: x,
-          z: z,
-          type: 'land',
-        })
+    if (dbUser?.isFirstTimeUser) {
+      initialTiles.push({
+        islandId: island.id,
+        x: 0,
+        z: 0,
+        type: 'land',
+      })
+    } else {
+      for (let x = -2; x <= 2; x += 2) {
+        for (let z = -2; z <= 2; z += 2) {
+          initialTiles.push({
+            islandId: island.id,
+            x: x,
+            z: z,
+            type: 'land',
+          })
+        }
       }
     }
 
@@ -570,6 +589,7 @@ export class GameController {
         speciesId: dandelion.id,
         status: FlowerStatus.SEED,
         quality: 0.5,
+        waterLevel: 0,
       })
       await GameController.registerDiscovery(user.id, dandelion.id, 0.5, DiscoverySource.GIFT)
     }
@@ -577,6 +597,96 @@ export class GameController {
     await LoggerService.info(LogSource.GAME, `Started new adventure`, user.id, island.id)
 
     return island
+  }
+
+  @BackendMethod({ allowed: true })
+  static async updateTutorialStep(step: number) {
+    if (!remult.user) throw new Error('Not authenticated')
+    const userRepo = remult.repo(User)
+    const user = await userRepo.findId(remult.user.id)
+    if (!user) throw new Error('User not found')
+    user.tutorialStep = step
+    await userRepo.save(user)
+    return true
+  }
+
+  @BackendMethod({ allowed: true })
+  static async nameFlower(flowerId: string, name: string) {
+    if (!remult.user) throw new Error('Not authenticated')
+    const flowerRepo = remult.repo(UserFlower)
+    const flower = await flowerRepo.findId(flowerId)
+    if (!flower || flower.ownerId !== remult.user.id) throw new Error('Flower not found')
+    flower.name = name
+    await flowerRepo.save(flower)
+    return true
+  }
+
+  @BackendMethod({ allowed: true })
+  static async accelerateGrowthTutorial(flowerId: string) {
+    if (!remult.user) throw new Error('Not authenticated')
+    const user = await remult.repo(User).findId(remult.user.id)
+    if (!user || user.tutorialStep < 3) throw new Error('Access denied')
+
+    const flowerRepo = remult.repo(UserFlower)
+    const flower = await flowerRepo.findId(flowerId, { include: { species: true } })
+    if (!flower || flower.ownerId !== remult.user.id) throw new Error('Flower not found')
+
+    // Accelerate to ready state (leaving 10 seconds for the user to see the end)
+    const duration = flower.species!.growthDuration
+    flower.growthSeconds = Math.max(0, duration - 10)
+    flower.waterLevel = 100
+    await flowerRepo.save(flower)
+
+    const { ServerEvents } = await import('../server-events')
+    ServerEvents.dispatchStateUpdate(remult.user.id, 'island')
+
+    return true
+  }
+
+  @BackendMethod({ allowed: true })
+  static async completeTutorialExpansion(islandName: string) {
+    if (!remult.user) throw new Error('Not authenticated')
+    const userRepo = remult.repo(User)
+    const user = await userRepo.findId(remult.user.id)
+    if (!user) throw new Error('User not found')
+
+    const islandRepo = remult.repo(Island)
+    const island = await islandRepo.findFirst({ ownerId: user.id })
+    if (!island) throw new Error('Island not found')
+
+    island.name = islandName
+    await islandRepo.save(island)
+
+    const tileRepo = remult.repo(Tile)
+    const existingTiles = await tileRepo.find({ where: { islandId: island.id } })
+
+    for (let x = -2; x <= 2; x += 2) {
+      for (let z = -2; z <= 2; z += 2) {
+        if (!existingTiles.find((t) => t.x === x && t.z === z)) {
+          await tileRepo.insert({
+            islandId: island.id,
+            x,
+            z,
+            type: 'land',
+          })
+        }
+      }
+    }
+
+    user.tutorialStep = 7
+    user.isFirstTimeUser = false
+    await userRepo.save(user)
+
+    // Sync session
+    const req = remult.context.request
+    if (req?.session) {
+      req.session['user'] = sanitizeUser(user)
+    }
+
+    const { ServerEvents } = await import('../server-events')
+    ServerEvents.dispatchStateUpdate(user.id, 'island')
+
+    return { success: true }
   }
 
   @BackendMethod({ allowed: true })
@@ -636,6 +746,10 @@ export class GameController {
       newTile.id,
     )
 
+    const { ServerEvents } = await import('../server-events')
+    ServerEvents.dispatchStateUpdate(currentUser.id, 'island')
+    ServerEvents.dispatchStateUpdate(currentUser.id, 'balance')
+
     return newTile
   }
 
@@ -667,6 +781,7 @@ export class GameController {
     return {
       id: flower.id,
       status: flower.status,
+      name: flower.name,
       waterLevel: flower.waterLevel,
       quality: flower.quality,
       plantedAt: flower.plantedAt,
@@ -683,7 +798,8 @@ export class GameController {
         descriptionLore: species.descriptionLore,
         waterNeeds: species.waterNeeds,
         growthDuration: species.growthDuration,
-        preferredSeason: species.preferredSeason,
+        preferredSeason: species.preferredSeason as any,
+        availability: species.availability as any,
 
         attributes: species.attributes as FlowerAttributes,
       },

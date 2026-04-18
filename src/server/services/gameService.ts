@@ -1,6 +1,6 @@
 import { FlowerStatus, User, UserFlower } from '@/shared'
 import { DailySnapshot } from '@/shared/analytics/DailySnapshot'
-import { remult, Remult } from 'remult'
+import { remult, Remult, SqlDatabase } from 'remult'
 import { api } from '../api'
 import { GameController } from '../controllers/GameController'
 

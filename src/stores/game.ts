@@ -48,10 +48,12 @@ export const useGameStore = defineStore('game', () => {
     viewedUserTotalXp.value = xp
   }
 
-  async function fetchIslandData(userId: string) {
-    isLoading.value = true
-    currentIsland.value = null
-    tiles.value = []
+  async function fetchIslandData(userId: string, background = false) {
+    if (!background) {
+      isLoading.value = true
+      currentIsland.value = null
+      tiles.value = []
+    }
 
     try {
       const result = await GameController.getIslandDetails(userId)
@@ -59,10 +61,14 @@ export const useGameStore = defineStore('game', () => {
         currentIsland.value = result.island
         tiles.value = result.tiles
       }
-    } catch (e) {
-      console.error(e)
     } finally {
-      isLoading.value = false
+      if (!background) isLoading.value = false
+    }
+  }
+
+  async function refreshIsland() {
+    if (authStore.user) {
+      await fetchIslandData(authStore.user.id, true)
     }
   }
 
@@ -161,5 +167,6 @@ export const useGameStore = defineStore('game', () => {
     setHoveredTile,
     selectTile,
     getMonthScore,
+    refreshIsland,
   }
 })

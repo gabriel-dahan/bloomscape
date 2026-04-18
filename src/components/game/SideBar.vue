@@ -116,6 +116,7 @@ const navigationArray = [
 
             <nav class="flex-1 py-6 px-3 flex flex-col gap-2">
                 <a v-for="(item, index) in navigationArray" :key="index" :href="!item.action ? (item.link || '#') : '#'"
+                    :id="item.name === 'Inventory' ? 'sidebar-inventory' : (item.name === 'Market' ? 'sidebar-market' : undefined)"
                     @click.stop="() => {
                         const bp = useBreakpoints()
                         if (item.action) item.action();

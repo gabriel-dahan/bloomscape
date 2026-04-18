@@ -43,6 +43,12 @@ export class User {
   @Fields.boolean()
   hasIsland: boolean = false
 
+  @Fields.boolean()
+  isFirstTimeUser: boolean = true
+
+  @Fields.integer()
+  tutorialStep: number = 0
+
   @Fields.date()
   lastAdRevenue?: Date
 

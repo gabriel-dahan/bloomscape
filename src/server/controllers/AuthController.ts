@@ -15,31 +15,6 @@ declare module 'remult' {
 
 @Controller('auth')
 export class AuthController {
-  private static async giveInitialRewards(user: User) {
-    const speciesRepo = remult.repo(FlowerSpecies)
-    const flowerRepo = remult.repo(UserFlower)
-    const discoveryRepo = remult.repo(FlowerDiscovery)
-
-    const dandelion = await speciesRepo.findFirst({ slugName: 'common_dandelion' })
-    if (dandelion) {
-      await flowerRepo.insert({
-        ownerId: user.id,
-        speciesId: dandelion.id,
-        status: FlowerStatus.SEED,
-        quality: 0.5,
-        waterLevel: 100,
-        plantedAt: new Date(),
-      })
-
-      await discoveryRepo.insert({
-        userId: user.id,
-        speciesId: dandelion.id,
-        source: DiscoverySource.GIFT,
-        initialQuality: 0.5,
-        discoveredAt: new Date(),
-      })
-    }
-  }
   @BackendMethod({ allowed: true })
   static async login(tagOrEmail: string, passwd: string, rememberMe: boolean = false) {
     const users = remult.repo(User)
@@ -80,8 +55,6 @@ export class AuthController {
     const bcrypt = await import(lib.substring(1))
     const hashedPassword = await bcrypt.hash(passwd, 10)
     const newUser = await users.insert({ tag, email, passwordHash: hashedPassword })
-    
-    await AuthController.giveInitialRewards(newUser)
 
     const req = remult.context!.request!
     req.session!.user = sanitizeUser(newUser)
@@ -94,7 +67,7 @@ export class AuthController {
   @BackendMethod({ allowed: true })
   static async googleLogin(idToken: string) {
     const lib = '@' + 'google-auth-library'
-    const { OAuth2Client } = await import(lib.substring(1))
+    const { OAuth2Client } = await import(lib.substring(1)) /* @vite-ignore */
     const client = new OAuth2Client(process.env.VITE_GOOGLE_CLIENT_ID)
     const userRepo = remult.repo(User)
     const ticket = await client.verifyIdToken({
@@ -122,9 +95,12 @@ export class AuthController {
           counter++
         }
         user = await userRepo.insert({ tag, email, googleId, roles: [Role.USER] })
-        await AuthController.giveInitialRewards(user)
-        
-        await LoggerService.success(LogSource.AUTH, `New user registered via Google: ${tag}`, user.id)
+
+        await LoggerService.success(
+          LogSource.AUTH,
+          `New user registered via Google: ${tag}`,
+          user.id,
+        )
       }
     }
     const req = remult.context!.request!

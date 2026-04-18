@@ -38,6 +38,10 @@ export const useSocketStore = defineStore('socket', () => {
     socket.value.on('notification', (data: any) => {
       handleIncomingNotification(data)
     })
+
+    socket.value.on('state-update', (data: { type: string }) => {
+      handleStateUpdate(data)
+    })
   }
 
   function disconnect() {
@@ -58,6 +62,18 @@ export const useSocketStore = defineStore('socket', () => {
     setTimeout(() => {
       notifications.value = notifications.value.filter((n) => n.id !== newNote.id)
     }, 5000)
+  }
+
+  async function handleStateUpdate(data: { type: string }) {
+    const { type } = data
+    const { useGameStore } = await import('@/stores/game')
+    const gameStore = useGameStore()
+
+    if (type === 'island') {
+      gameStore.refreshIsland()
+    } else if (type === 'balance') {
+      gameStore.fetchBalance()
+    }
   }
 
   async function deleteNotification(id: string) {

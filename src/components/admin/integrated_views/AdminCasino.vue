@@ -44,7 +44,7 @@ const savePrize = async (p: RoulettePrize) => {
     saving.value = true
     try {
         await prizeRepo.save(p)
-    } catch (e) {
+    } catch (e: any) {
         alert("Error saving prize: " + e.message)
     } finally {
         saving.value = false
@@ -63,7 +63,7 @@ const saveAll = async () => {
         }
         await loadPrizes()
         alert("All prizes saved successfully!")
-    } catch (e) {
+    } catch (e: any) {
         alert("Error saving all prizes: " + e.message)
     } finally {
         saving.value = false
@@ -78,7 +78,7 @@ const deletePrize = async (p: RoulettePrize) => {
             await prizeRepo.delete(p.id)
         }
         prizes.value = prizes.value.filter(prize => prize.id !== p.id)
-    } catch (e) {
+    } catch (e: any) {
         alert("Error deleting prize: " + e.message)
     } finally {
         saving.value = false

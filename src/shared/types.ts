@@ -18,6 +18,7 @@ export interface FlowerModifiersDTO {
 export interface FlowerDTO {
   id: string
   status: FlowerStatus
+  name?: string
   waterLevel: number
   quality: number
   plantedAt?: Date

@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { LeaderboardController } from '@/server/controllers/LeaderboardController';
 import { Island } from '@/shared';
+import { ROUTES_ENUM as ROUTES } from '@/routes/routes_enum';
 
 const podium = ref<any[]>([]);
 const list = ref<any[]>([]);
@@ -115,11 +116,11 @@ onMounted(async () => {
                                 'border-yellow-400 shadow-yellow-500/30 w-24 h-24': player.rank === 1,
                                 'border-slate-300 shadow-slate-400/30': player.rank === 2,
                                 'border-amber-700 shadow-amber-800/30': player.rank === 3,
-                                'ring-4 ring-emerald-400 ring-offset-2 ring-offset-slate-950': player.owner?.tag === myStatus?.owner?.tag
+                                'ring-4 ring-emerald-400 ring-offset-2 ring-offset-slate-950': myStatus && player.owner?.tag === myStatus?.owner?.tag
                             }">
                                 <img :src="getAvatar(player.owner?.tag || '')" class="w-full h-full object-cover" />
                             </div>
-                            <div v-if="player.owner?.tag === myStatus?.owner?.tag"
+                            <div v-if="myStatus && player.owner?.tag === myStatus?.owner?.tag"
                                 class="absolute -top-2 -right-2 badge badge-xs bg-emerald-500 border-none text-slate-950">
                                 YOU
                             </div>
@@ -134,7 +135,10 @@ onMounted(async () => {
                         </div>
 
                         <div class="text-center mt-2">
-                            <div class="font-bold text-white truncate max-w-[120px]">{{ player.owner?.tag }}</div>
+                            <RouterLink :to="ROUTES.USER_PROFILE.pathDyn(player.owner?.tag || '')"
+                                class="font-bold text-white hover:text-emerald-400 transition-colors truncate max-w-[120px] block">
+                                {{ player.owner?.tag }}
+                            </RouterLink>
                             <div class="font-mono text-emerald-400 font-bold">{{ player.monthScore }} pts</div>
                         </div>
 
@@ -165,7 +169,7 @@ onMounted(async () => {
                     <div v-else class="divide-y divide-slate-800">
                         <div v-for="(island, index) in list" :key="island.id"
                             class="group flex items-center p-3 hover:bg-white/5 transition-colors"
-                            :class="{ 'bg-emerald-500/10 border-l-4 border-emerald-500': island.owner?.tag === myStatus?.owner?.tag }">
+                            :class="{ 'bg-emerald-500/10 border-l-4 border-emerald-500': myStatus && island.owner?.tag === myStatus?.owner?.tag }">
 
                             <div class="w-16 text-center font-mono font-bold text-slate-600 group-hover:text-white">
                                 {{ calculateRank(index) }}
@@ -175,12 +179,12 @@ onMounted(async () => {
                                 <img :src="getAvatar(island.owner?.tag || '')"
                                     class="w-10 h-10 rounded-full bg-slate-800" />
                                 <div class="min-w-0">
-                                    <div
-                                        class="font-bold text-slate-200 truncate group-hover:text-emerald-400 transition-colors flex items-center gap-2">
+                                    <RouterLink :to="ROUTES.USER_PROFILE.pathDyn(island.owner?.tag || '')"
+                                        class="font-bold text-slate-200 truncate hover:text-emerald-400 transition-colors flex items-center gap-2">
                                         {{ island.owner?.tag }}
-                                        <span v-if="island.owner?.tag === myStatus?.owner?.tag"
+                                        <span v-if="myStatus && island.owner?.tag === myStatus?.owner?.tag"
                                             class="badge badge-xs bg-emerald-500 text-slate-950 border-none">YOU</span>
-                                    </div>
+                                    </RouterLink>
                                     <div class="text-xs text-slate-500 truncate">{{ island.name }}</div>
                                 </div>
                             </div>
@@ -222,11 +226,12 @@ onMounted(async () => {
                             <img :src="getAvatar(myStatus.owner?.tag || '')"
                                 class="w-10 h-10 rounded-full bg-slate-800 border-2 border-emerald-500/50" />
                             <div class="min-w-0">
-                                <div class="font-bold text-white truncate flex items-center gap-2">
+                                <RouterLink :to="ROUTES.USER_PROFILE.pathDyn(myStatus.owner?.tag || '')"
+                                    class="font-bold text-white truncate hover:text-emerald-400 transition-colors flex items-center gap-2">
                                     {{ myStatus.owner?.tag }}
                                     <span class="badge badge-xs bg-emerald-500 text-slate-950 border-none">YOUR
                                         RANK</span>
-                                </div>
+                                </RouterLink>
                                 <div class="text-xs text-emerald-400/60 truncate">{{ myStatus.name }}</div>
                             </div>
                         </div>

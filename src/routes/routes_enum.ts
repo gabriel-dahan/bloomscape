@@ -101,13 +101,29 @@ export const ROUTES_ENUM = {
 
   TILE_MANAGER: {
     name: 'tileManager',
-    path: '/land/tile/:x/:z',
-    pathDyn: (x: number, z: number) => `/land/tile/${x}/${z}`,
-    beforeEnter: async (_, __, next) => {
+    path: '/land/tile/:x/:y',
+    pathDyn: (x: number, y: number) => `/land/tile/${x}/${y}`,
+    beforeEnter: async (to, __, next) => {
       const modal = useModalStore()
+      const x = Number(to.params.x)
+      const z = Number(to.params.y)
+
+      const user = remult.user
+      if (!user) return next(ROUTES_ENUM.HOME.path)
+
+      const { GameController } = await import('@/server/controllers/GameController')
+      const islandDetails = await GameController.getIslandDetails(user.id)
+
+      if (!islandDetails) return next(ROUTES_ENUM.LAND.path)
+
       modal.open({
         title: 'Tile Manager',
         component: TileManagerInModal,
+        componentProps: {
+          x,
+          z,
+          islandId: islandDetails.island.id,
+        },
         size: 'large',
         closingPath: ROUTES_ENUM.LAND.path,
       })
