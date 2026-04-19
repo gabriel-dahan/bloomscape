@@ -104,14 +104,24 @@ const handleRouletteClick = () => {
                 class="max-w-7xl mx-auto px-4 phone:px-12 grid lg:grid-cols-2 gap-12 items-center relative z-10 w-full">
                 <div class="space-y-6 phone:space-y-8 text-center lg:text-left">
 
-                    <div
-                        class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-700/50 text-xs font-medium text-emerald-400 shadow-sm">
-                        <span class="relative flex h-2 w-2">
-                            <span
-                                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                        </span>
-                        v{{ appVersion }}
+                    <div class="flex items-center justify-center lg:justify-start gap-3">
+                        <div
+                            class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-700/50 text-xs font-medium text-emerald-400 shadow-sm">
+                            <span class="relative flex h-2 w-2">
+                                <span
+                                    class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            </span>
+                            v{{ appVersion }}
+                        </div>
+
+                        <div v-if="auth.user?.banned"
+                            class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-950/30 border border-red-500/30 text-xs font-bold text-red-400 shadow-sm animate-pulse">
+                            <span class="relative flex h-2 w-2">
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                            </span>
+                            BANNED ACCOUNT
+                        </div>
                     </div>
 
                     <h1

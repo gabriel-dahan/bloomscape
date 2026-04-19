@@ -11,7 +11,7 @@ export class LeaderboardController {
       include: { owner: true },
     })
 
-    const validIslands = islands.filter(i => i.owner)
+    const validIslands = islands.filter(i => i.owner && !i.owner.banned)
 
     return validIslands.slice(0, 3).map((i) => ({
       id: i.id,
@@ -31,7 +31,7 @@ export class LeaderboardController {
       include: { owner: true },
     })
 
-    const filtered = islands.filter(i => i.owner)
+    const filtered = islands.filter(i => i.owner && !i.owner.banned)
     const totalCount = filtered.length
     const totalPages = Math.ceil(totalCount / pageSize)
 
@@ -58,12 +58,17 @@ export class LeaderboardController {
     if (!myIsland) return null
 
     const rank = await islandRepo.count({
-      $or: [
-        { monthScore: { $gt: myIsland.monthScore } },
-        { 
-          $and: [
-            { monthScore: myIsland.monthScore },
-            { id: { $lt: myIsland.id } }
+      $and: [
+        { owner: { banned: false } },
+        {
+          $or: [
+            { monthScore: { $gt: myIsland.monthScore } },
+            { 
+              $and: [
+                { monthScore: myIsland.monthScore },
+                { id: { $lt: myIsland.id } }
+              ]
+            }
           ]
         }
       ]

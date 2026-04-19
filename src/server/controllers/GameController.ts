@@ -33,6 +33,8 @@ export class GameController {
     const tileRepo = remult.repo(Tile)
     const flowerRepo = remult.repo(UserFlower)
 
+    if (remult.user?.banned) throw new Error('You are banned and cannot access game features.')
+
     const island = await islandRepo.findFirst({ ownerId })
 
     if (!island) return null
@@ -123,6 +125,7 @@ export class GameController {
   @BackendMethod({ allowed: true })
   static async getUserInventory() {
     if (!remult.user) throw new Error('Not authenticated')
+    if (remult.user.banned) throw new Error('Access denied')
 
     const flowerRepo = remult.repo(UserFlower)
     const itemRepo = remult.repo(UserItem)
@@ -148,6 +151,7 @@ export class GameController {
   static async getFloradex() {
     const user = remult.user
     if (!user) throw new Error('Not authenticated')
+    if (user.banned) throw new Error('Access denied')
 
     const speciesRepo = remult.repo(FlowerSpecies)
     const discoveryRepo = remult.repo(FlowerDiscovery)
@@ -346,6 +350,7 @@ export class GameController {
   @BackendMethod({ allowed: true })
   static async plantSeed(tileId: string, flowerId: string) {
     if (!remult.user) throw new Error('Not authenticated')
+    if (remult.user.banned) throw new Error('Banned users cannot plant seeds')
 
     const tileRepo = remult.repo(Tile)
     const flowerRepo = remult.repo(UserFlower)
@@ -394,6 +399,7 @@ export class GameController {
   @BackendMethod({ allowed: true })
   static async waterFlower(tileId: string) {
     if (!remult.user) throw new Error('Not authenticated')
+    if (remult.user.banned) throw new Error('Banned users cannot water flowers')
 
     const tileRepo = remult.repo(Tile)
     const flowerRepo = remult.repo(UserFlower)
@@ -439,6 +445,7 @@ export class GameController {
   @BackendMethod({ allowed: true })
   static async harvestFlower(tileId: string) {
     if (!remult.user) throw new Error('Not authenticated')
+    if (remult.user.banned) throw new Error('Banned users cannot harvest flowers')
 
     const tileRepo = remult.repo(Tile)
     const flowerRepo = remult.repo(UserFlower)
@@ -693,6 +700,7 @@ export class GameController {
   static async buyLand(x: number, z: number) {
     const currentUser = remult.user
     if (!currentUser) throw new Error('Not Authenticated')
+    if (currentUser.banned) throw new Error('Banned users cannot buy land')
 
     const tileRepo = remult.repo(Tile)
     const islandRepo = remult.repo(Island)

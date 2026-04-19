@@ -43,7 +43,7 @@ router.beforeEach(async (to, _, next) => {
 
   // Ban Restrictions
   if (auth.user?.banned) {
-    const restrictedPrefixes = ['/land', '/market', '/inventory', '/floradex', '/p', '/store', '/leaderboard', '/levels-road']
+    const restrictedPrefixes = ['/land', '/market', '/inventory', '/floradex', '/p/settings', '/store', '/leaderboard', '/levels-road', '/roulette']
     if (restrictedPrefixes.some(prefix => to.path.startsWith(prefix))) {
       return next(ROUTES_ENUM.HOME.path)
     }

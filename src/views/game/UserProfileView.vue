@@ -23,6 +23,7 @@ const game = useGameStore();
 const isLoading = ref(true);
 const user = ref<User | null>(null);
 const hasIsland = ref(false);
+const islandName = ref('');
 const latestDiscoveries = ref<FlowerDiscovery[]>([]);
 const achievements = ref<any[]>([]);
 const stats = ref({
@@ -77,6 +78,7 @@ async function fetchUserProfile() {
             ]);
 
             hasIsland.value = !!islandDetails
+            islandName.value = islandDetails?.island?.name || '';
             achievements.value = achievementList
             latestDiscoveries.value = discoveries;
 
@@ -189,6 +191,11 @@ const roleDetails = [
                                 </span>
                             </template>
                         </h1>
+                        <div v-if="hasIsland" class="flex items-center justify-center md:justify-start gap-2 mt-1">
+                            <span class="text-emerald-400 font-bold text-sm tracking-wide">{{ islandName }}</span>
+                            <span class="h-1 w-1 bg-slate-600 rounded-full"></span>
+                            <span class="text-slate-500 text-xs font-medium uppercase tracking-[0.1em]">Island Estate</span>
+                        </div>
                         <div class="mt-2 text-slate-400 text-sm md:text-base line-clamp-3">
                             <MarkdownRenderer :content="user.description || 'No bio provided yet.'"
                                 :roles="user.roles" />

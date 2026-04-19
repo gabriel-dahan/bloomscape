@@ -176,7 +176,6 @@ const nextStep = async () => {
 
                 </div>
             </div>
-        </div>
 
         <!-- Step 6: Centered Naming Form -->
         <div v-if="modelValue === 6"

@@ -5,9 +5,9 @@ import SideBar from '@/components/game/SideBar.vue';
 import TopBar from '@/components/game/TopBar.vue';
 import { useGameStore } from '@/stores/game';
 import { useAuthStore } from '@/stores/auth';
-import { useRoute } from 'vue-router';
-import { UserController } from '@/server/controllers/UserController';
 import { useModalStore } from '@/stores/modal';
+import { useSocketStore } from '@/stores/socket';
+import { useRouter, useRoute } from 'vue-router';
 import TileManagerInModal from '@/components/game/modal_features/TileManagerInModal.vue';
 import { ROUTES_ENUM as ROUTES } from '@/routes/routes_enum';
 import GameSoundtrack from '@/components/game/sound/GameSoundtrack.vue';
@@ -17,6 +17,8 @@ import { GameController } from '@/server/controllers/GameController';
 const gameStore = useGameStore();
 const auth = useAuthStore();
 const route = useRoute();
+const router = useRouter();
+const socketStore = useSocketStore();
 const userId = ref<string | null>(null);
 const landSceneRef = ref<any>(null);
 
@@ -209,9 +211,19 @@ const openTileManager = (x: number, z: number) => {
 
 onMounted(async () => {
     await auth.fetchSessionUser();
-    userId.value = route.params.tag
-        ? (await UserController.getUserByTag(route.params.tag as string))?.user?.id || null
-        : auth.user?.id || null;
+    try {
+        userId.value = route.params.tag
+            ? (await UserController.getUserByTag(route.params.tag as string))?.user?.id || null
+            : auth.user?.id || null;
+    } catch (e) {
+        socketStore.handleIncomingNotification({
+            id: Date.now().toString(),
+            title: 'Island Not Found',
+            message: 'The island you are looking for does not exist.',
+            type: 'error'
+        });
+        router.push(ROUTES.LAND.path);
+    }
 
     // Auto-resume Step 3 (Planting)
     if (auth.user?.isFirstTimeUser && tutorialStep.value === 3) {
