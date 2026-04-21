@@ -69,7 +69,7 @@ onUnmounted(() => {
                         class="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-3xl pointer-events-none">
                     </div>
 
-                    <div class="flex-none flex items-center gap-4 mb-4">
+                    <div v-if="title" class="flex-none flex items-center gap-4 mb-4">
                         <h3 class="text-md phone:text-xl font-bold tracking-wide" :class="config.color">
                             {{ title }}
                         </h3>

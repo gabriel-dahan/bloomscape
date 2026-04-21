@@ -84,4 +84,16 @@ export class User {
 
   @Fields.integer()
   pityCounter: number = 0
+
+  @Fields.integer()
+  totalRoulettePlays: number = 0
+
+  @Fields.integer()
+  totalHarvests: number = 0
+
+  @Fields.integer()
+  totalScreentimeSeconds: number = 0
+
+  @Fields.string()
+  lastSeenPatchNoteId: string = ''
 }

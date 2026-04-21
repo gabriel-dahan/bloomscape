@@ -23,6 +23,7 @@ const isLoading = ref(false)
 const isPlanting = ref(false)
 const isHarvesting = ref(false)
 const selectedSeedId = ref<string>('')
+const userItems = ref<any[]>([])
 const activeTab = ref<'status' | 'info'>('status')
 const errorMsg = ref('')
 const flowerNameInput = ref('')
@@ -55,10 +56,11 @@ watch(() => auth.user?.tutorialStep, (step) => {
     }
 }, { immediate: true })
 
-const ALL_GROWTH_STAGES = ['SEED', 'SPROUT1', 'SPROUT2', 'GROWING1', 'GROWING2']
+const ALL_GROWTH_STAGES = ['SEED', 'SPROUT1', 'SPROUT2', 'GROWING1', 'GROWING2', 'WITHERED']
 
 const GROWTH_STAGES = computed(() => {
     if (!flower.value?.species) return ALL_GROWTH_STAGES
+    if (displayStatus.value === 'WITHERED' || flower.value.status === 'WITHERED') return ALL_GROWTH_STAGES
     const maxStatus = flower.value.species.attributes?.maxStatus || 'GROWING2'
     const maxIndex = ALL_GROWTH_STAGES.indexOf(maxStatus as string)
 
@@ -135,9 +137,18 @@ const loadData = async () => {
         } else {
             availableSeeds.value = await GameController.getAvailableSeeds()
         }
+        userItems.value = await GameController.getInventory()
     } catch (e: any) { errorMsg.value = e.message }
     finally { isLoading.value = false }
 }
+
+const hasWateringCan = computed(() => {
+    return userItems.value.some(item => item.definition?.slug === 'watering_can' && item.quantity > 0)
+})
+
+const alreadyWateredInTutorial = computed(() => {
+    return auth.user?.isFirstTimeUser && auth.user.tutorialStep === 4 && !!flower.value?.lastWateredAt
+})
 
 const handlePlant = async () => {
     if (!selectedSeedId.value || !tile.value) return
@@ -199,6 +210,9 @@ const handleHarvest = async () => {
     finally { isHarvesting.value = false }
 }
 
+const witherTimeRemaining = ref(0)
+const witherTimeRemainingStr = ref('')
+
 const calculateGrowth = () => {
     if (!flower.value?.species) {
         remainingGrowthStr.value = ''
@@ -208,10 +222,20 @@ const calculateGrowth = () => {
     let currentGrowth = flower.value.growthSeconds || 0
     let currentWater = flower.value.waterLevel || 0
     let currentStatus = flower.value.status
+    let currentDrySeconds = flower.value.drySeconds || 0
 
     const maxStatus = flower.value.species.attributes?.maxStatus || 'GROWING2'
+    const maxDry = flower.value.species.maxDrySeconds || 43200
 
-    if (currentWater > 0 && currentStatus !== maxStatus && flower.value.lastProcessedAt) {
+    if (currentStatus === 'WITHERED') {
+        growthProgress.value = 0
+        remainingGrowthStr.value = 'Withered'
+        displayWaterLevel.value = 0
+        displayStatus.value = 'WITHERED'
+        return
+    }
+
+    if (currentStatus !== maxStatus && flower.value.lastProcessedAt) {
         const last = new Date(flower.value.lastProcessedAt).getTime()
         const now = new Date().getTime()
         let timeToProcess = (now - last) / 1000
@@ -222,7 +246,6 @@ const calculateGrowth = () => {
         const waterNeedsStr = flower.value.species.waterNeeds as keyof typeof WATER_CONSUMPTION_AMOUNTS
         const waterConsumption = WATER_CONSUMPTION_AMOUNTS[waterNeedsStr] || 15
 
-        // Use the valid stages computed without mutating state
         const STAGES = ['SPROUT1', 'SPROUT2', 'GROWING1', 'GROWING2']
         const maxIndex = STAGES.indexOf(maxStatus as string)
         const validStages = STAGES.slice(0, maxIndex === -1 ? STAGES.length : maxIndex + 1)
@@ -249,7 +272,6 @@ const calculateGrowth = () => {
             const stageDuration = duration * (nextBoundary.ratio - previousRatio) || (duration * 0.25);
 
             const continuousWaterPerSec = (waterConsumption * CONTINUOUS_RATIO) / stageDuration
-
             const maxSecondsWithWater = continuousWaterPerSec > 0 ? currentWater / continuousWaterPerSec : Infinity
 
             const timeStep = Math.min(timeToProcess, secondsToNextBoundary, maxSecondsWithWater)
@@ -267,11 +289,24 @@ const calculateGrowth = () => {
             if (currentStatus === maxStatus) break
         }
 
+        // Handle Wither Leak in Timer
+        if (currentStatus !== maxStatus && currentWater <= 0) {
+            currentDrySeconds += timeToProcess
+            if (currentDrySeconds >= maxDry) {
+                currentStatus = 'WITHERED' as any
+                currentDrySeconds = maxDry
+            }
+        } else if (currentWater > 0) {
+            currentDrySeconds = 0
+        }
+
         const realDuration = flower.value.species.growthDuration / multiplier
         growthProgress.value = Math.min(100, (currentGrowth / realDuration) * 100)
 
         const remainingSecs = Math.max(0, realDuration - currentGrowth)
-        if (remainingSecs <= 0 || currentStatus === maxStatus) {
+        if (currentStatus === 'WITHERED') {
+            remainingGrowthStr.value = 'Withered'
+        } else if (remainingSecs <= 0 || currentStatus === maxStatus) {
             remainingGrowthStr.value = 'Ready'
         } else if (currentWater <= 0) {
             remainingGrowthStr.value = 'Paused (No Water)'
@@ -288,7 +323,9 @@ const calculateGrowth = () => {
         growthProgress.value = Math.min(100, (currentGrowth / realDuration) * 100)
 
         const remainingSecs = Math.max(0, realDuration - currentGrowth)
-        if (remainingSecs <= 0 || currentStatus === maxStatus) {
+        if (currentStatus === 'WITHERED') {
+            remainingGrowthStr.value = 'Withered'
+        } else if (remainingSecs <= 0 || currentStatus === maxStatus) {
             remainingGrowthStr.value = 'Ready'
         } else if (currentWater <= 0) {
             remainingGrowthStr.value = 'Paused (No Water)'
@@ -298,6 +335,18 @@ const calculateGrowth = () => {
             const s = Math.floor(remainingSecs % 60)
             remainingGrowthStr.value = h > 0 ? `${h}h ${m}m` : (m > 0 ? `${m}m ${s}s` : `${s}s`)
         }
+    }
+
+    if (currentWater <= 0 && currentStatus !== maxStatus && currentStatus !== 'WITHERED') {
+        const rem = Math.max(0, maxDry - currentDrySeconds)
+        witherTimeRemaining.value = rem
+        const h = Math.floor(rem / 3600)
+        const m = Math.floor((rem % 3600) / 60)
+        const s = Math.floor(rem % 60)
+        witherTimeRemainingStr.value = h > 0 ? `${h}h ${m}m` : (m > 0 ? `${m}m ${s}s` : `${s}s`)
+    } else {
+        witherTimeRemaining.value = 0
+        witherTimeRemainingStr.value = ''
     }
 
     displayWaterLevel.value = currentWater
@@ -621,17 +670,35 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                                             :style="{ width: `${Math.min(100, displayWaterLevel)}%` }">
                                         </div>
                                     </div>
-                                    <div class="text-right text-[10px] text-slate-500 font-mono">{{
-                                        Math.round(displayWaterLevel) }} / 100</div>
+                                    <div class="flex justify-between items-center text-[10px] font-mono">
+                                        <span class="text-slate-500 ml-auto">{{ Math.round(displayWaterLevel) }} / 100</span>
+                                    </div>
+                                </div>
+
+                                <!-- Survival Warning -->
+                                <div v-if="displayWaterLevel <= 0 && displayStatus !== 'WITHERED'" 
+                                    class="p-2.5 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                    <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-500 animate-pulse" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="text-[10px] uppercase font-black text-red-400 tracking-wider leading-none mb-0.5">Critical dehydration</div>
+                                        <div v-if="witherTimeRemainingStr" class="text-xs font-mono font-bold text-white leading-none">
+                                            Withers in: <span class="bg-red-500 px-1 rounded">{{ witherTimeRemainingStr }}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
                             <div class="mt-auto grid grid-cols-2 gap-3 pt-2">
-                                <button @click="handleWater" :disabled="displayWaterLevel >= 100"
+                                <button @click="handleWater" 
+                                    :disabled="displayWaterLevel >= 100 || alreadyWateredInTutorial || !hasWateringCan"
                                     id="tutorial-water-btn"
-                                    class="bg-blue-600 hover:bg-blue-500 text-white font-bold h-10 rounded-xl transition-all active:scale-95 flex flex-col items-center justify-center border-b-2 border-blue-800">
-                                    <span class="text-xs">Water</span>
-                                    <span class="text-[8px] opacity-70">Free Tutorial</span>
+                                    class="bg-blue-600 hover:bg-blue-500 text-white font-bold h-10 rounded-xl transition-all active:scale-95 flex flex-col items-center justify-center border-b-2 border-blue-800 disabled:opacity-40 disabled:grayscale">
+                                    <span class="text-xs">{{ !hasWateringCan ? 'Need Can' : 'Water' }}</span>
+                                    <span class="text-[8px] opacity-70">{{ alreadyWateredInTutorial ? 'Done!' : 'Free Tutorial' }}</span>
                                 </button>
 
                                 <button v-if="growthProgress >= 100" @click="handleHarvest" :disabled="isHarvesting"
@@ -649,6 +716,12 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                                         <span class="text-[8px] opacity-70">-10s Rem</span>
                                     </button>
                                 </div>
+
+                                <button v-else-if="displayStatus === 'WITHERED'" @click="handleHarvest" :disabled="isHarvesting"
+                                    class="bg-red-950 hover:bg-red-900 text-red-500 font-black h-10 rounded-xl transition-all shadow-lg active:scale-95 flex flex-col items-center justify-center border-b-2 border-red-950">
+                                    <span class="text-xs">{{ isHarvesting ? '...' : 'Clearing Plot' }}</span>
+                                    <span class="text-[8px] opacity-70">Withered</span>
+                                </button>
 
                                 <button v-else disabled
                                     class="bg-slate-800 text-slate-500 h-10 rounded-xl border-b-2 border-slate-900 cursor-not-allowed flex flex-col items-center justify-center opacity-50">
@@ -742,6 +815,10 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
                                     <span class="text-[10px] text-slate-500 uppercase font-bold">Season</span>
                                     <span class="font-bold mt-0.5" :class="seasonDisplay.color">{{ seasonDisplay.label
                                         }}</span>
+                                </div>
+                                <div class="col-span-2 flex flex-col bg-slate-900 p-2 rounded border border-slate-800/50">
+                                    <span class="text-[10px] text-slate-500 uppercase font-bold">Resilience</span>
+                                    <span class="font-bold text-red-400 mt-0.5">Withers after {{ (flower.species.maxDrySeconds || 43200) / 3600 }}h without water</span>
                                 </div>
                             </div>
                         </div>

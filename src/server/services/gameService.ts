@@ -1,4 +1,4 @@
-import { FlowerStatus, User, UserFlower } from '@/shared'
+import { FlowerStatus, User, UserFlower, Item, ItemType } from '@/shared'
 import { DailySnapshot } from '@/shared/analytics/DailySnapshot'
 import { remult, Remult, SqlDatabase } from 'remult'
 import { api } from '../api'
@@ -8,9 +8,12 @@ export class GameService {
   static TICK_RATE = 10 * 1000
 
   static async start() {
-    // Backfill snapshots on startup
+    // Backfill snapshots and seed achievements on startup
     await api.withRemultAsync(undefined, async () => {
       await this.backfillSnapshots(remult)
+      const { AchievementService } = await import('./AchievementService')
+      await AchievementService.seedAchievements()
+      await this.seedItems()
     })
 
     setInterval(async () => {
@@ -119,5 +122,22 @@ export class GameService {
       }
     }
     console.log('Snapshot backfill complete.')
+  }
+
+  static async seedItems() {
+    const itemRepo = remult.repo(Item)
+    const existing = await itemRepo.findFirst({ slug: 'watering_can' })
+    if (!existing) {
+      await itemRepo.insert({
+        slug: 'watering_can',
+        name: 'Basic Watering Can',
+        description: 'A simple tin watering can for your first flowers.',
+        type: ItemType.TOOL,
+        basePrice: 50,
+        assetUrl: '/game/items/watering_can.png',
+        maxStackSize: 1
+      })
+      console.log('Seeded Basic Watering Can')
+    }
   }
 }

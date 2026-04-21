@@ -12,12 +12,15 @@ import { FlowerDiscovery } from '@/shared/analytics/FlowerDiscovery';
 import FlowerImage from '@/components/FlowerImage.vue';
 import PixelImageViewer from '@/components/icons/PixelImageViewer.vue';
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue';
+import { useModalStore } from '@/stores/modal';
+import AchievementsInModal from '@/components/game/modal_features/AchievementsInModal.vue';
 
 const route = useRoute();
 const router = useRouter();
 
 const auth = useAuthStore();
 const game = useGameStore();
+const modal = useModalStore();
 
 // --- STATE ---
 const isLoading = ref(true);
@@ -38,6 +41,16 @@ const levelProgress = computed(() => {
     if (!user.value) return 0;
     return Math.min(100, (user.value.xp / (user.value.level * 1000)) * 100);
 });
+
+const unlockedAchievements = computed(() => achievements.value.filter(a => a.unlocked));
+
+const openAchievementsModal = () => {
+    modal.open({
+        title: 'Hall of Achievements',
+        component: AchievementsInModal,
+        size: 'large'
+    });
+};
 
 // --- ACTIONS ---
 async function fetchUserProfile() {
@@ -181,6 +194,7 @@ const roleDetails = [
                         <h1
                             class="text-3xl md:text-5xl font-bold text-white tracking-tight flex items-center justify-center md:justify-start gap-3">
                             {{ user.tag }}
+                            <span v-if="user.banned" class="badge badge-error text-white font-bold tracking-tighter">BANNED</span>
                             <template v-for="role in roleDetails" :key="role.name">
                                 <span v-if="user.roles.includes(role.name)" class="tooltip tooltip-right"
                                     :data-tip="role.tooltipDetail">
@@ -204,7 +218,8 @@ const roleDetails = [
 
                     <div class="flex gap-3 w-full md:w-auto mt-2 md:mt-0">
                         <button v-if="hasIsland" @click="navigateToLand"
-                            class="btn btn-primary flex-1 md:flex-none shadow-lg shadow-emerald-900/20">
+                            class="btn btn-primary flex-1 md:flex-none shadow-lg shadow-emerald-900/20 flex items-center gap-2">
+                            <PixelImageViewer src="/island.png" width="20px" height="20px" />
                             Visit Island
                         </button>
                         <button v-if="isOwnProfile" @click="navigateToSettings"
@@ -255,25 +270,29 @@ const roleDetails = [
                 <div class="lg:col-span-2 space-y-8">
 
                     <div>
-                        <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                            <span class="w-1 h-6 bg-purple-500 rounded-full"></span>
-                            Achievements
-                        </h3>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                                <span class="w-1 h-6 bg-purple-500 rounded-full"></span>
+                                Achievements
+                            </h3>
+                            <button @click="openAchievementsModal" class="btn btn-xs btn-ghost text-purple-400 hover:text-purple-300 flex items-center gap-1.5">
+                                <PixelImageViewer src="/trophy_flower.png" width="16px" height="16px" />
+                                View Hall
+                            </button>
+                        </div>
                         <div class="bg-slate-900 rounded-xl border border-slate-800 p-6">
-                            <div v-if="achievements.length === 0" class="text-center text-slate-500 italic py-4">
-                                No achievements defined.
+                            <div v-if="unlockedAchievements.length === 0" class="text-center text-slate-500 italic py-4">
+                                No achievements unlocked yet.
                             </div>
                             <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div v-for="ach in achievements" :key="ach.id"
-                                    class="flex items-center gap-4 p-3 rounded-lg border transition-all"
-                                    :class="ach.unlocked ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-950/50 border-transparent opacity-50 grayscale'">
-                                    <div>
-                                        <div class="font-bold text-sm"
-                                            :class="ach.unlocked ? 'text-white' : 'text-slate-500'">{{
-                                                ach.name }}</div>
-                                        <div class="text-xs text-slate-500">{{ ach.description }}</div>
-                                        <div v-if="ach.unlocked && ach.unlockedAt"
-                                            class="text-[10px] text-emerald-500 mt-1">
+                                <div v-for="ach in unlockedAchievements" :key="ach.id"
+                                    class="flex items-center gap-4 p-3 rounded-lg border border-slate-700/50 bg-slate-800/50 transition-all hover:border-purple-500/30">
+                                    <div class="w-10 h-10 shrink-0 bg-purple-500/10 rounded-lg flex items-center justify-center text-xl">
+                                        🌟
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="font-bold text-sm text-white truncate">{{ ach.name }}</div>
+                                        <div class="text-[10px] text-emerald-500">
                                             Unlocked {{ new Date(ach.unlockedAt).toLocaleDateString() }}
                                         </div>
                                     </div>

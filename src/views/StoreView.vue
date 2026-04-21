@@ -31,7 +31,38 @@ const categories = computed(() => ['All', ...Object.values(StoreCategory)]);
 
 const filteredItems = computed(() => {
     if (activeCategory.value === 'All') return items.value;
-    return items.value.filter(i => i.category === activeCategory.value.toLowerCase());
+    return items.value.filter(i => i.category === activeCategory.value);
+});
+
+const groupedItems = computed(() => {
+    const sections = [
+        {
+            type: CurrencyType.USD,
+            label: 'Premium items',
+            icon: '💎',
+            color: 'text-amber-400',
+            bgColor: 'bg-amber-400/10'
+        },
+        {
+            type: CurrencyType.RUBY,
+            label: 'Ruby items',
+            icon: '🌹',
+            color: 'text-rose-400',
+            bgColor: 'bg-rose-400/10'
+        },
+        {
+            type: CurrencyType.SAP,
+            label: 'Gamer items',
+            icon: '🌱',
+            color: 'text-emerald-400',
+            bgColor: 'bg-emerald-400/10'
+        }
+    ];
+
+    return sections.map(section => ({
+        ...section,
+        items: filteredItems.value.filter(item => item.currency === section.type)
+    })).filter(section => section.items.length > 0);
 });
 
 // --- ACTIONS ---
@@ -51,11 +82,11 @@ function getFormattedPrice(item: StoreItem) {
     if (item.currency === CurrencyType.SAP || item.currency === CurrencyType.RUBY) {
         return item.price.toLocaleString();
     }
-    
+
     // USD conversion
     const config = REAL_CURRENCIES[selectedRealCurrency.value];
     const converted = item.price * config.rate;
-    
+
     if (selectedRealCurrency.value === 'JPY') {
         return `${config.symbol}${Math.round(converted)}`;
     }
@@ -115,15 +146,18 @@ onMounted(() => {
                 <p class="text-slate-400 max-w-2xl mx-auto">
                     Support BloomScape and unlock exclusive cosmetics, bundles, and currency.
                 </p>
-                
+
                 <div v-if="auth.user" class="mt-6 flex flex-wrap justify-center gap-4">
-                    <div class="flex items-center gap-2 bg-slate-900/80 px-5 py-2 rounded-full border border-slate-700 shadow-lg">
+                    <div
+                        class="flex items-center gap-2 bg-slate-900/80 px-5 py-2 rounded-full border border-slate-700 shadow-lg">
                         <img src="/game/sap_drop.png" class="w-4 h-4 object-contain" alt="Sap" />
                         <span class="text-emerald-400 font-mono font-bold">{{ auth.user.sap.toLocaleString() }}</span>
                     </div>
-                    <div class="flex items-center gap-2 bg-slate-900/80 px-4 py-2 rounded-full border border-slate-700 shadow-lg">
+                    <div
+                        class="flex items-center gap-2 bg-slate-900/80 px-4 py-2 rounded-full border border-slate-700 shadow-lg">
                         <img src="/game/ruby.png" class="w-4 h-4 object-contain" alt="Rubies" />
-                        <span class="text-rose-400 font-mono font-bold">{{ (auth.user as any).rubies?.toLocaleString() || 0 }}</span>
+                        <span class="text-rose-400 font-mono font-bold">{{ (auth.user as any).rubies?.toLocaleString()
+                            || 0 }}</span>
                     </div>
                 </div>
             </div>
@@ -139,10 +173,13 @@ onMounted(() => {
                 </div>
 
                 <div class="form-control">
-                    <div class="input-group flex items-center bg-slate-900 border border-slate-700 rounded-full px-4 py-1">
+                    <div
+                        class="input-group flex items-center bg-slate-900 border border-slate-700 rounded-full px-4 py-1">
                         <span class="text-xs text-slate-500 uppercase font-bold mr-2">Currency:</span>
-                        <select v-model="selectedRealCurrency" class="select select-ghost select-xs focus:ring-0 focus:outline-none bg-transparent text-amber-400 font-bold w-24">
-                            <option v-for="(v, k) in REAL_CURRENCIES" :key="k" :value="k">{{ k }} ({{ v.symbol }})</option>
+                        <select v-model="selectedRealCurrency"
+                            class="select select-ghost select-xs focus:ring-0 focus:outline-none bg-transparent text-amber-400 font-bold w-24">
+                            <option v-for="(v, k) in REAL_CURRENCIES" :key="k" :value="k">{{ k }} ({{ v.symbol }})
+                            </option>
                         </select>
                     </div>
                 </div>
@@ -152,64 +189,90 @@ onMounted(() => {
                 <span class="loading loading-dots loading-lg text-amber-500"></span>
             </div>
 
-            <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-
-                <div v-for="item in filteredItems" :key="item.id"
-                    class="group relative bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col hover:border-amber-500/50 hover:bg-slate-900 transition-all duration-300 hover:-translate-y-1 shadow-xl">
-
-                    <div class="absolute top-3 left-3 z-20 flex flex-col gap-1">
-                        <span v-if="item.isPopular"
-                            class="badge badge-warning gap-1 shadow-lg font-bold text-[10px] uppercase tracking-wider h-5">
-                            🔥 Popular
-                        </span>
-                        <span v-if="item.isNew"
-                            class="badge badge-accent text-slate-900 font-bold text-[10px] uppercase tracking-wider shadow-lg h-5">
-                            New
-                        </span>
-                    </div>
-
-                    <div
-                        class="relative w-full h-48 bg-slate-950 rounded-xl mb-4 flex items-center justify-center overflow-hidden border border-slate-800/50 group-hover:border-amber-500/20 transition-colors">
+            <div v-else class="space-y-16">
+                <div v-for="section in groupedItems" :key="section.type" class="space-y-6">
+                    <div class="flex items-center gap-3">
                         <div
-                            class="absolute inset-0 bg-amber-500/5 group-hover:bg-amber-500/10 transition-colors blur-xl">
+                            :class="['w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-lg border border-white/5', section.bgColor]">
+                            {{ section.icon }}
                         </div>
-
-                        <div class="z-10 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3">
-                            <PixelImageViewer :src="item.imageUrl" :alt="item.name" width="128px" height="128px" />
+                        <div>
+                            <h2 class="text-2xl font-black tracking-tight" :class="section.color">
+                                {{ section.label }}
+                            </h2>
+                            <div class="h-1 w-12 rounded-full mt-1" :class="section.bgColor.replace('/10', '/30')">
+                            </div>
                         </div>
                     </div>
 
-                    <div class="flex-1 flex flex-col">
-                        <h3 class="text-xl font-bold text-slate-100 mb-1 group-hover:text-amber-200 transition-colors">{{ item.name }}</h3>
-                        <p class="text-sm text-slate-400 mb-4 line-clamp-2 flex-1">{{ item.description }}</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        <div v-for="item in section.items" :key="item.id"
+                            class="group relative bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col hover:border-amber-500/50 hover:bg-slate-900 transition-all duration-300 hover:-translate-y-1 shadow-xl">
 
-                        <div class="mt-auto flex items-center justify-between gap-3 pt-4 border-t border-slate-800">
-                            <div class="flex flex-col">
-                                <span class="text-[10px] text-slate-500 font-black uppercase tracking-tighter">{{ getPriceLabel(item) }}</span>
-                                <div class="flex items-center gap-1">
-                                    <span class="text-xl font-mono font-black" :class="{
-                                        'text-amber-400': item.currency === CurrencyType.USD,
-                                        'text-emerald-400': item.currency === CurrencyType.SAP,
-                                        'text-rose-400': item.currency === CurrencyType.RUBY
-                                    }">{{ getFormattedPrice(item) }}</span>
-                                    <img v-if="item.currency === CurrencyType.SAP" src="/game/sap_drop.png" class="w-5 h-5 object-contain" alt="Sap" />
-                                    <img v-if="item.currency === CurrencyType.RUBY" src="/game/ruby.png" class="w-5 h-5 object-contain" alt="Ruby" />
+                            <div class="absolute top-3 left-3 z-20 flex flex-col gap-1">
+                                <span v-if="item.isPopular"
+                                    class="badge badge-warning gap-1 shadow-lg font-bold text-[10px] uppercase tracking-wider h-5 border-none">
+                                    🔥 Popular
+                                </span>
+                                <span v-if="item.isNew"
+                                    class="badge badge-accent text-slate-900 font-bold text-[10px] uppercase tracking-wider shadow-lg h-5 border-none">
+                                    New
+                                </span>
+                            </div>
+
+                            <div
+                                class="relative w-full h-48 bg-slate-950 rounded-xl mb-4 flex items-center justify-center overflow-hidden border border-slate-800/50 group-hover:border-amber-500/20 transition-colors">
+                                <div
+                                    class="absolute inset-0 bg-amber-500/5 group-hover:bg-amber-500/10 transition-colors blur-xl">
+                                </div>
+
+                                <div
+                                    class="z-10 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3">
+                                    <PixelImageViewer :src="item.imageUrl" :alt="item.name" width="128px"
+                                        height="128px" />
                                 </div>
                             </div>
 
-                            <button @click="buyItem(item)" :disabled="!!processingId"
-                                class="btn btn-primary bg-amber-500 hover:bg-amber-400 border-none text-slate-900 px-6 font-bold shadow-lg shadow-amber-900/20 disabled:bg-slate-800 disabled:text-slate-500">
-                                <span v-if="processingId === item.id" class="loading loading-spinner loading-xs"></span>
-                                <span v-else>Buy</span>
-                            </button>
+                            <div class="flex-1 flex flex-col">
+                                <h3
+                                    class="text-xl font-bold text-slate-100 mb-1 group-hover:text-amber-200 transition-colors">
+                                    {{ item.name }}</h3>
+                                <p class="text-sm text-slate-400 mb-4 line-clamp-2 flex-1">{{ item.description }}</p>
+
+                                <div
+                                    class="mt-auto flex items-center justify-between gap-3 pt-4 border-t border-slate-800">
+                                    <div class="flex flex-col">
+                                        <span
+                                            class="text-[10px] text-slate-500 font-black uppercase tracking-tighter">{{
+                                            getPriceLabel(item) }}</span>
+                                        <div class="flex items-center gap-1">
+                                            <span class="text-xl font-mono font-black" :class="{
+                                                'text-amber-400': item.currency === CurrencyType.USD,
+                                                'text-emerald-400': item.currency === CurrencyType.SAP,
+                                                'text-rose-400': item.currency === CurrencyType.RUBY
+                                            }">{{ getFormattedPrice(item) }}</span>
+                                            <img v-if="item.currency === CurrencyType.SAP" src="/game/sap_drop.png"
+                                                class="w-5 h-5 object-contain" alt="Sap" />
+                                            <img v-if="item.currency === CurrencyType.RUBY" src="/game/ruby.png"
+                                                class="w-5 h-5 object-contain" alt="Ruby" />
+                                        </div>
+                                    </div>
+
+                                    <button @click="buyItem(item)" :disabled="!!processingId"
+                                        class="btn btn-primary bg-amber-500 hover:bg-amber-400 border-none text-slate-900 px-6 font-bold shadow-lg shadow-amber-900/20 disabled:bg-slate-800 disabled:text-slate-500">
+                                        <span v-if="processingId === item.id"
+                                            class="loading loading-spinner loading-xs"></span>
+                                        <span v-else>Buy</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-
             </div>
 
-            <div v-if="!isLoading && filteredItems.length === 0" class="text-center py-20">
-                <div class="text-6xl mb-4">🛒</div>
+            <div v-if="!isLoading && filteredItems.length === 0" class="text-center py-20 flex flex-col items-center">
+                <PixelImageViewer src="/shop_cart.png" width="128px" height="128px" class="mb-4" />
                 <h3 class="text-2xl font-bold text-slate-500">Store is empty</h3>
                 <p class="text-slate-600 text-sm">Check back later for new items.</p>
             </div>

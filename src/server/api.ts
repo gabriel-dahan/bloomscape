@@ -23,6 +23,7 @@ import {
   GlobalBank,
   RoulettePrize,
   CasinoGameResult,
+  PatchNote,
 } from '@/shared/'
 
 import { remultApi } from 'remult/remult-express'
@@ -79,6 +80,7 @@ export const api = remultApi({
     Achievement,
     UserAchievement,
     UserNotification,
+    PatchNote,
 
     FlowerFamily,
     FlowerSpecies,

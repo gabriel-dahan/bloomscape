@@ -1,6 +1,7 @@
 import InventoryInModal from '@/components/game/modal_features/InventoryInModal.vue'
 import MarketInModal from '@/components/game/modal_features/MarketInModal.vue'
 import TileManagerInModal from '@/components/game/modal_features/TileManagerInModal.vue'
+import AchievementsInModal from '@/components/game/modal_features/AchievementsInModal.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useModalStore } from '@/stores/modal'
 import { remult } from 'remult'
@@ -189,6 +190,25 @@ export const ROUTES_ENUM = {
       modal.open({
         title: 'Inventory',
         component: InventoryInModal,
+        size: 'fullscreen',
+        sideBarMargin: true,
+        closingPath: ROUTES_ENUM.LAND.path,
+      })
+
+      next()
+    },
+    viewPath: 'game/LandView.vue',
+  },
+
+  ACHIEVEMENTS: {
+    name: 'achievements',
+    path: '/land/achievements',
+    hideLayout: true,
+    beforeEnter: async (_, __, next) => {
+      const modal = useModalStore()
+      modal.open({
+        title: 'Achievements',
+        component: AchievementsInModal,
         size: 'fullscreen',
         sideBarMargin: true,
         closingPath: ROUTES_ENUM.LAND.path,

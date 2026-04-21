@@ -2,8 +2,14 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { remult, type Repository, type FieldMetadata, type ClassType } from 'remult'
 
-import { Achievement, ClaimLink, FlowerSpecies, Island, Item, SapPurchase, Tile, User } from '@/shared'
-import { StoreItem } from '@/shared/economy/StoreItem'
+import {
+    Achievement, ClaimLink, FlowerSpecies, Island, Item, SapPurchase, Tile, User,
+    FlowerFamily, UserFlower, UserAchievement, UserItem, UserNotification, UserSettings,
+    MarketListing, MarketHistory, MarketStats, StoreItem, RoulettePrize, CasinoGameResult, GlobalBank, DailyRouletteState,
+    Friendship, UserClaim,
+    SystemLog, ModerationLog, UserReport, FlowerDiscovery, DailySnapshot,
+    Chat, ChatParticipant, ChatMessage
+} from '@/shared'
 
 type EntityConfig = {
     label: string
@@ -11,19 +17,87 @@ type EntityConfig = {
     entity: ClassType<any>
 }
 
-const ENTITY_MAP: EntityConfig[] = [
-    { label: 'Flower Species', key: 'flowers', entity: FlowerSpecies },
-    { label: 'Items', key: 'items', entity: Item },
-    { label: 'Users', key: 'users', entity: User },
-    { label: 'Achievements', key: 'achievements', entity: Achievement },
-    { label: 'Islands', key: 'islands', entity: Island },
-    { label: 'Tiles', key: 'tiles', entity: Tile },
-    { label: 'Sap Purchases', key: 'sap', entity: SapPurchase },
-    { label: 'Claim Links', key: 'claimlinks', entity: ClaimLink },
-    { label: 'Store Items', key: 'storeitems', entity: StoreItem },
+type EntityGroup = {
+    name: string
+    icon: string
+    entities: EntityConfig[]
+}
+
+const ENTITY_GROUPS: EntityGroup[] = [
+    {
+        name: 'Flowers',
+        icon: '🌸',
+        entities: [
+            { label: 'Species', key: 'flowerspecies', entity: FlowerSpecies },
+            { label: 'Families', key: 'flowerfamilies', entity: FlowerFamily },
+            { label: 'User Flowers', key: 'userflowers', entity: UserFlower },
+        ]
+    },
+    {
+        name: 'Users',
+        icon: '👥',
+        entities: [
+            { label: 'Users', key: 'users', entity: User },
+            { label: 'Achievements', key: 'achievements', entity: Achievement },
+            { label: 'User Achievements', key: 'userachievements', entity: UserAchievement },
+            { label: 'Inventory (UserItems)', key: 'useritems', entity: UserItem },
+            { label: 'Notifications', key: 'usernotifications', entity: UserNotification },
+            { label: 'Settings', key: 'usersettings', entity: UserSettings },
+        ]
+    },
+    {
+        name: 'Economy',
+        icon: '💰',
+        entities: [
+            { label: 'Items', key: 'items', entity: Item },
+            { label: 'Store Items', key: 'storeitems', entity: StoreItem },
+            { label: 'Market Listings', key: 'marketlistings', entity: MarketListing },
+            { label: 'Market History', key: 'markethistory', entity: MarketHistory },
+            { label: 'Market Stats', key: 'marketstats', entity: MarketStats },
+            { label: 'Sap Purchases', key: 'sap', entity: SapPurchase },
+            { label: 'Global Bank', key: 'globalbank', entity: GlobalBank },
+            { label: 'Roulette State', key: 'roulettestate', entity: DailyRouletteState },
+            { label: 'Roulette Prizes', key: 'rouletteprizes', entity: RoulettePrize },
+            { label: 'Casino Results', key: 'casinoresults', entity: CasinoGameResult },
+        ]
+    },
+    {
+        name: 'World & Social',
+        icon: '🗺️',
+        entities: [
+            { label: 'Islands', key: 'islands', entity: Island },
+            { label: 'Tiles', key: 'tiles', entity: Tile },
+            { label: 'Friendships', key: 'friendships', entity: Friendship },
+            { label: 'Claim Links', key: 'claimlinks', entity: ClaimLink },
+            { label: 'User Claims', key: 'userclaims', entity: UserClaim },
+        ]
+    },
+    {
+        name: 'Logs',
+        icon: '📊',
+        entities: [
+            { label: 'System Logs', key: 'systemlogs', entity: SystemLog },
+            { label: 'Moderation Logs', key: 'moderationlogs', entity: ModerationLog },
+            { label: 'User Reports', key: 'reports', entity: UserReport },
+            { label: 'Discoveries', key: 'discoveries', entity: FlowerDiscovery },
+            { label: 'Daily Snapshots', key: 'snapshots', entity: DailySnapshot },
+        ]
+    },
+    {
+        name: 'Chat',
+        icon: '💬',
+        entities: [
+            { label: 'Chats', key: 'chats', entity: Chat },
+            { label: 'Participants', key: 'chatparticipants', entity: ChatParticipant },
+            { label: 'Messages', key: 'chatmessages', entity: ChatMessage },
+        ]
+    }
 ]
 
-const activeEntityKey = ref(ENTITY_MAP[0].key)
+const activeCategoryIdx = ref(0)
+const activeEntityKey = ref(ENTITY_GROUPS[0].entities[0].key)
+const currentGroup = computed(() => ENTITY_GROUPS[activeCategoryIdx.value])
+const allEntities = computed(() => ENTITY_GROUPS.flatMap(g => g.entities))
 const items = ref<any[]>([])
 const loading = ref(false)
 const error = ref('')
@@ -37,7 +111,7 @@ const isEditing = ref(false)
 const editingItem = ref<any>({})
 const jsonBuffers = ref<Record<string, string>>({})
 
-const currentConfig = computed(() => ENTITY_MAP.find(e => e.key === activeEntityKey.value)!)
+const currentConfig = computed(() => allEntities.value.find(e => e.key === activeEntityKey.value)!)
 const currentRepo = computed((): Repository<any> => remult.repo(currentConfig.value.entity))
 const totalPages = computed(() => Math.ceil(totalCount.value / pageSize))
 
@@ -159,6 +233,10 @@ function formatDateForInput(date: any) {
     return (new Date(d.getTime() - offset)).toISOString().slice(0, 16)
 }
 
+watch(activeCategoryIdx, (newIdx) => {
+    activeEntityKey.value = ENTITY_GROUPS[newIdx].entities[0].key
+})
+
 watch(activeEntityKey, () => {
     page.value = 1
     loadData()
@@ -172,13 +250,29 @@ onMounted(() => {
 <template>
     <div class="h-[calc(100vh-8rem)] flex flex-col min-w-0">
 
-        <div class="flex flex-wrap gap-2 mb-4 p-1 bg-slate-900 rounded-lg border border-slate-800 w-fit shrink-0">
-            <button v-for="conf in ENTITY_MAP" :key="conf.key" @click="activeEntityKey = conf.key"
-                class="px-4 py-2 rounded-md text-sm font-medium transition-colors" :class="activeEntityKey === conf.key
-                    ? 'bg-emerald-600 text-white shadow-lg'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'">
-                {{ conf.label }}
-            </button>
+        <div class="flex flex-col gap-2 mb-4 shrink-0">
+            <!-- Category Tabs -->
+            <div class="flex flex-wrap gap-2 p-1 bg-slate-900 rounded-lg border border-slate-800 w-fit">
+                <button v-for="(group, idx) in ENTITY_GROUPS" :key="group.name"
+                    @click="activeCategoryIdx = idx"
+                    class="px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2"
+                    :class="activeCategoryIdx === idx
+                        ? 'bg-emerald-600 text-white shadow-lg'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800'">
+                    <span>{{ group.icon }}</span>
+                    <span>{{ group.name }}</span>
+                </button>
+            </div>
+
+            <!-- Entity Tabs within Category -->
+            <div class="flex flex-wrap gap-1.5 p-1 bg-slate-950/50 rounded-lg border border-slate-800/50 w-fit">
+                <button v-for="conf in currentGroup.entities" :key="conf.key" @click="activeEntityKey = conf.key"
+                    class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors" :class="activeEntityKey === conf.key
+                        ? 'bg-slate-700 text-emerald-400 border border-emerald-500/30'
+                        : 'text-slate-500 hover:text-slate-300 hover:bg-slate-900'">
+                    {{ conf.label }}
+                </button>
+            </div>
         </div>
 
         <div

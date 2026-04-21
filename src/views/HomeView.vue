@@ -7,6 +7,9 @@ import { useAuthStore } from '@/stores/auth';
 import { router } from '@/routes'
 import { ROUTES_ENUM } from '@/routes/routes_enum'
 import { useAuthModal } from '@/components/auth/logic/useAuthModal'
+import PixelatedImage from '@/components/icons/PixelImageViewer.vue'
+import { remult } from 'remult'
+import { FlowerSpecies, FlowerAvailability } from '@/shared'
 
 const auth = useAuthStore();
 const authModal = useAuthModal();
@@ -18,6 +21,7 @@ const globalStats = ref({
 })
 
 const marketTicker = ref<MarketTickerItem[]>([])
+const randomFlowers = ref<FlowerSpecies[]>([])
 
 onMounted(async () => {
     try {
@@ -26,6 +30,36 @@ onMounted(async () => {
 
         const ticker = await MarketController.getMarketTicker()
         marketTicker.value = ticker
+
+        const species = await remult.repo(FlowerSpecies).find({
+            where: {
+                availability: { $ne: FlowerAvailability.EVENT_ONLY }
+            }
+        })
+        
+        // Pick 3 random flowers
+        let selected = species.sort(() => Math.random() - 0.5).slice(0, 3)
+
+        // Rarity order mapping
+        const rarityWeights: Record<string, number> = {
+            'COMMON': 1,
+            'UNCOMMON': 2,
+            'RARE': 3,
+            'EPIC': 4,
+            'LEGENDARY': 5
+        }
+
+        // Sort them such that the rarest is in the middle (index 1)
+        selected.sort((a, b) => rarityWeights[a.rarity] - rarityWeights[b.rarity])
+        
+        // At this point: [lowest, middle, highest]
+        // We want highest in the middle: [lowest, highest, middle]
+        if (selected.length === 3) {
+            const rarest = selected.pop()! // Remove highest
+            selected.splice(1, 0, rarest) // Insert at index 1
+        }
+
+        randomFlowers.value = selected
     } catch (e) {
         console.error("Failed to load home data", e)
     }
@@ -54,6 +88,17 @@ const getRarityGlowStyle = (rarity: string) => {
         borderColor: `${color}60`,
         color: color
     };
+};
+
+const getRarityTextColorClass = (rarity: string) => {
+    switch (rarity) {
+        case 'COMMON': return 'text-slate-400 border-slate-400/30';
+        case 'UNCOMMON': return 'text-emerald-400 border-emerald-400/30';
+        case 'RARE': return 'text-blue-400 border-blue-400/30';
+        case 'EPIC': return 'text-purple-400 border-purple-400/30';
+        case 'LEGENDARY': return 'text-amber-400 border-amber-400/30';
+        default: return 'text-slate-400 border-slate-400/30';
+    }
 };
 
 const appVersion = import.meta.env.VITE_APP_VERSION
@@ -224,8 +269,8 @@ const handleRouletteClick = () => {
                     <div
                         class="group p-6 phone:p-8 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-900/50 border border-slate-800 hover:border-emerald-500/50 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-900/20">
                         <div
-                            class="w-14 h-14 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform">
-                            💧
+                            class="w-14 h-14 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                            <PixelatedImage src="/game/water_bucket.png" width="40px" height="40px" />
                         </div>
                         <h3 class="text-xl font-bold text-white mb-3 group-hover:text-emerald-300 transition-colors">
                             Dynamic Gardening</h3>
@@ -238,8 +283,8 @@ const handleRouletteClick = () => {
                     <div
                         class="group p-6 phone:p-8 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-900/50 border border-slate-800 hover:border-blue-500/50 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-blue-900/20">
                         <div
-                            class="w-14 h-14 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform">
-                            📈
+                            class="w-14 h-14 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                            <PixelatedImage src="/stonks.png" width="40px" height="40px" />
                         </div>
                         <h3 class="text-xl font-bold text-white mb-3 group-hover:text-blue-300 transition-colors">Live
                             Economy</h3>
@@ -252,8 +297,8 @@ const handleRouletteClick = () => {
                     <div
                         class="group p-6 phone:p-8 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-900/50 border border-slate-800 hover:border-purple-500/50 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-purple-900/20">
                         <div
-                            class="w-14 h-14 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform">
-                            🧬
+                            class="w-14 h-14 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                            <PixelatedImage src="/dna.png" width="64px" height="64px" />
                         </div>
                         <h3 class="text-xl font-bold text-white mb-3 group-hover:text-purple-300 transition-colors">
                             Genetics System</h3>
@@ -307,31 +352,60 @@ const handleRouletteClick = () => {
 
                     <div
                         class="md:w-1/2 relative h-96 w-full flex items-center justify-center perspective-1000 scale-65 phone:scale-100">
-                        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-72 bg-slate-800 rounded-2xl border flex flex-col items-center justify-center transition-all duration-500 hover:translate-y-[-120px] hover:rotate-0 hover:z-30 cursor-pointer shadow-xl"
-                            style="transform: translate(-60px, 10px) rotate(-12deg);"
-                            :style="getRarityGlowStyle('EPIC')">
-                            <div class="text-6xl mb-4 opacity-90">🌸</div>
-                            <div class="font-bold text-purple-400">Lunar Orchid</div>
-                            <div class="text-[10px] text-slate-500 mt-2 font-mono uppercase tracking-widest">EPIC</div>
-                        </div>
-
-                        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-60 h-80 bg-slate-900 rounded-2xl border flex flex-col items-center justify-center shadow-2xl z-20 hover:scale-105 transition-all duration-300"
-                            :style="getRarityGlowStyle('LEGENDARY')">
-                            <div
-                                class="absolute inset-0 bg-gradient-to-b from-amber-500/10 to-transparent rounded-2xl pointer-events-none">
+                        <template v-for="(flower, index) in randomFlowers" :key="flower.id">
+                            <!-- Left Card -->
+                            <div v-if="index === 0"
+                                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-72 bg-slate-800 rounded-2xl border flex flex-col items-center justify-center transition-all duration-500 hover:translate-y-[-120px] hover:rotate-0 hover:z-30 cursor-pointer shadow-xl group/card"
+                                style="transform: translate(-60px, 10px) rotate(-12deg);"
+                                :style="getRarityGlowStyle(flower.rarity)">
+                                <div class="w-32 h-32 mb-4 group-hover/card:scale-110 transition-transform duration-500">
+                                    <PixelatedImage
+                                        :src="GameController.getFlowerAssetUrl(flower.slugName, 'growing2' as any, 'icon')"
+                                        width="100%" height="100%" />
+                                </div>
+                                <div class="font-bold text-center px-4" :class="getRarityTextColorClass(flower.rarity)">{{ flower.name }}</div>
+                                <div class="text-[10px] opacity-60 mt-2 font-mono uppercase tracking-widest text-slate-500">{{
+                                    flower.rarity }}</div>
                             </div>
-                            <div class="text-7xl mb-6 drop-shadow-2xl filter brightness-110 animate-float">⚜️</div>
-                            <div class="font-bold text-amber-400 text-2xl font-serif">Golden Rose</div>
-                            <div
-                                class="mt-4 px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded text-[10px] text-amber-300 font-bold tracking-[0.2em]">
-                                LEGENDARY</div>
-                        </div>
 
-                        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-72 bg-slate-800 rounded-2xl border flex flex-col items-center justify-center transition-all duration-500 hover:translate-y-[-120px] hover:rotate-0 hover:z-30 cursor-pointer shadow-xl"
-                            style="transform: translate(60px, 10px) rotate(12deg);" :style="getRarityGlowStyle('RARE')">
-                            <div class="text-6xl mb-4 opacity-90">🌺</div>
-                            <div class="font-bold text-blue-400">Frost Hibiscus</div>
-                            <div class="text-[10px] text-slate-500 mt-2 font-mono uppercase tracking-widest">RARE</div>
+                            <!-- Center Card -->
+                            <div v-if="index === 1"
+                                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-80 bg-slate-900 rounded-2xl border flex flex-col items-center justify-center shadow-2xl z-20 hover:scale-105 transition-all duration-300 group/card"
+                                :style="getRarityGlowStyle(flower.rarity)">
+                                <div
+                                    class="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent rounded-2xl pointer-events-none">
+                                </div>
+                                <div class="w-40 h-40 mb-6 drop-shadow-2xl group-hover/card:scale-110 transition-transform duration-500">
+                                    <PixelatedImage
+                                        :src="GameController.getFlowerAssetUrl(flower.slugName, 'growing2' as any, 'icon')"
+                                        width="100%" height="100%" />
+                                </div>
+                                <div class="font-bold text-2xl text-center px-4 leading-tight" :class="getRarityTextColorClass(flower.rarity)">{{ flower.name }}</div>
+                                <div
+                                    class="mt-4 px-3 py-1 bg-slate-800 border rounded text-[10px] font-bold tracking-[0.2em] uppercase"
+                                    :class="getRarityTextColorClass(flower.rarity)">
+                                    {{ flower.rarity }}</div>
+                            </div>
+
+                            <!-- Right Card -->
+                            <div v-if="index === 2"
+                                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-72 bg-slate-800 rounded-2xl border flex flex-col items-center justify-center transition-all duration-500 hover:translate-y-[-120px] hover:rotate-0 hover:z-30 cursor-pointer shadow-xl group/card"
+                                style="transform: translate(60px, 10px) rotate(12deg);"
+                                :style="getRarityGlowStyle(flower.rarity)">
+                                <div class="w-32 h-32 mb-4 group-hover/card:scale-110 transition-transform duration-500">
+                                    <PixelatedImage
+                                        :src="GameController.getFlowerAssetUrl(flower.slugName, 'growing2' as any, 'icon')"
+                                        width="100%" height="100%" />
+                                </div>
+                                <div class="font-bold text-center px-4" :class="getRarityTextColorClass(flower.rarity)">{{ flower.name }}</div>
+                                <div class="text-[10px] opacity-60 mt-2 font-mono uppercase tracking-widest text-slate-500">{{
+                                    flower.rarity }}</div>
+                            </div>
+                        </template>
+
+                        <!-- Fallback if no flowers loaded yet -->
+                        <div v-if="randomFlowers.length === 0" class="text-slate-500 animate-pulse font-mono tracking-widest">
+                            CATALOGING FLORA...
                         </div>
                     </div>
                 </div>

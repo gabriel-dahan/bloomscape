@@ -13,10 +13,11 @@ import {
   MarketHistory,
   WATER_CONSUMPTION_AMOUNTS,
   GlobalBank,
-  GLOBAL_BANK_ID
+  GLOBAL_BANK_ID,
+  PatchNote
 } from '@/shared'
 import type { FlowerDTO, FlowerAttributes, PreferredSeasons } from '@/shared'
-import { BackendMethod, remult } from 'remult'
+import { BackendMethod, remult, SqlDatabase } from 'remult'
 import { PRICES } from '../ext'
 import { FlowerDiscovery } from '@/shared/analytics/FlowerDiscovery'
 import { sanitizeUser } from '@/shared/user/User'
@@ -25,6 +26,9 @@ import { getLevelFromXp } from '@/shared/leveling'
 import { AttributesLogic } from '@/shared/attributesLogic'
 import { LoggerService } from '../services/LoggerService'
 import { LogSource } from '@/shared/analytics/SystemLog'
+
+// Achievement imports
+import { AchievementService } from '../services/AchievementService'
 
 export class GameController {
   @BackendMethod({ allowed: true })
@@ -115,6 +119,14 @@ export class GameController {
       ServerEvents.notifyUser(userId, 'Level Up!', message, 'success')
     }
 
+    if (newLevel >= 10) {
+      await AchievementService.grantAchievement(userId, 'master_gardener')
+    }
+
+    if (user.sap >= 10000) {
+      await AchievementService.grantAchievement(userId, 'rich_planter')
+    }
+
     await userRepo.save(user)
     return {
       message: `Successfuly gave ${amount} XP to user ${user.tag}`,
@@ -173,7 +185,7 @@ export class GameController {
         discoveryDate: discovery?.discoveredAt,
         discoverySource: discovery?.source,
         initialQuality: discovery?.initialQuality,
-        family: s.family ? { id: s.family.id, name: s.family.name } : undefined,
+        family: s.family ? { id: s.family.id, name: s.family.name, color: s.family.color } : undefined,
       }
     })
 
@@ -322,6 +334,22 @@ export class GameController {
       if (flower.status === maxStatus) break
     }
 
+    if (flower.status !== maxStatus && flower.waterLevel <= 0) {
+      flower.drySeconds += timeToProcess
+      const defaultAttributes = flower.species?.attributes as FlowerAttributes | undefined
+      // Default to 12h if not provided
+      const maxDry = flower.species?.maxDrySeconds ?? 43200
+      
+      if (flower.drySeconds >= maxDry) {
+        flower.status = FlowerStatus.WITHERED
+        flower.growthSeconds = 0 // Reset growth upon death
+      }
+      updated = true
+    } else if (flower.waterLevel > 0 && flower.drySeconds > 0) {
+      flower.drySeconds = 0
+      updated = true
+    }
+
     flower.lastProcessedAt = now
 
     if (updated || elapsedSinceLast > 0) {
@@ -367,7 +395,7 @@ export class GameController {
 
     flower.status = FlowerStatus.SPROUT1
     flower.plantedAt = new Date()
-    flower.waterLevel = 50
+    flower.waterLevel = 0
     flower.growthSeconds = 0
     flower.lastProcessedAt = new Date()
 
@@ -378,6 +406,9 @@ export class GameController {
 
     tile.flowerId = flower.id
     await tileRepo.save(tile)
+
+    // Achievements
+    await AchievementService.grantAchievement(remult.user.id, 'first_planting')
 
     const { ServerEvents } = await import('../server-events')
 
@@ -407,15 +438,34 @@ export class GameController {
     const tile = await tileRepo.findFirst({ id: tileId }, { include: { island: true } })
 
     if (!tile || tile.island!.ownerId !== remult.user.id) throw new Error('Invalid tile')
-    if (!tile.flowerId) throw new Error('Nothing to water here')
+    if (!tile.flowerId) throw new Error('Nothing to water')
 
-    let flower = await flowerRepo.findId(tile.flowerId, { include: { species: true } })
-    if (!flower) throw new Error('Flower data missing')
+    const flower = await flowerRepo.findId(tile.flowerId, { include: { species: true } })
+    if (!flower) throw new Error('Flower not found')
+
+    // Check for Watering Can
+    const itemRepo = remult.repo(Item)
+    const userItemRepo = remult.repo(UserItem)
+    const wateringCanDef = await itemRepo.findFirst({ slug: 'watering_can' })
+    const userCan = wateringCanDef ? await userItemRepo.findFirst({ userId: remult.user.id, itemDefinitionId: wateringCanDef.id }) : null
+    
+    if (!userCan || userCan.quantity <= 0) {
+      throw new Error('You need a Watering Can to water your flowers!')
+    }
+
+    // Tutorial restriction
+    const userRepo = remult.repo(User)
+    const dbUser = await userRepo.findId(remult.user.id)
+    if (dbUser?.isFirstTimeUser && dbUser.tutorialStep === 4) {
+        if (flower.lastWateredAt) {
+            throw new Error("Tutorial: You've already watered once. Focus on Boost or Harvest now!")
+        }
+    }
 
     const allFlowers = await flowerRepo.find({ where: { ownerId: remult.user.id } })
 
     // Hydration fix: evaluate existing dry/wet time FIRST
-    flower = await GameController.updateFlowerStatus(flower, allFlowers)
+    await GameController.updateFlowerStatus(flower, allFlowers)
 
     const stats = AttributesLogic.calculateStats(flower, allFlowers)
 
@@ -430,8 +480,12 @@ export class GameController {
       )
     }
 
-    const newLevel = Math.min(100, (flower.waterLevel || 0) + modifiedWaterAdd)
+    const maxDry = flower.species?.maxDrySeconds ?? 43200
+    if (flower.drySeconds > maxDry * 0.9) {
+      await AchievementService.grantAchievement(remult.user.id, 'survivor')
+    }
 
+    const newLevel = Math.min(100, (flower.waterLevel || 0) + modifiedWaterAdd)
     flower.waterLevel = newLevel
     flower.lastWateredAt = new Date()
     await flowerRepo.save(flower)
@@ -497,6 +551,21 @@ export class GameController {
       console.log(
         `[Attribute Effect] Harvest Quality: Base Roll -> +${stats.qualityBonus} Bonus Applied`,
       )
+    }
+
+    const userRepo = remult.repo(User)
+    const dbUser = await userRepo.findId(remult.user.id)
+    if (dbUser) {
+      dbUser.totalHarvests = (dbUser.totalHarvests || 0) + 1
+      await userRepo.save(dbUser)
+
+      // Achievements
+      if (flower.isShiny) {
+        await AchievementService.grantAchievement(dbUser.id, 'shiny_hunter')
+      }
+      if (flower.quality >= 1.0) {
+        await AchievementService.grantAchievement(dbUser.id, 'perfect_harvest')
+      }
     }
 
     await GameController.addXpToUser(remult.user.id, finalXp)
@@ -599,6 +668,18 @@ export class GameController {
         waterLevel: 0,
       })
       await GameController.registerDiscovery(user.id, dandelion.id, 0.5, DiscoverySource.GIFT)
+      
+      // Grant Watering Can
+      const itemRepo = remult.repo(Item)
+      const userItemRepo = remult.repo(UserItem)
+      const canDef = await itemRepo.findFirst({ slug: 'watering_can' })
+      if (canDef) {
+          await userItemRepo.insert({
+              userId: user.id,
+              itemDefinitionId: canDef.id,
+              quantity: 1
+          })
+      }
     }
 
     await LoggerService.info(LogSource.GAME, `Started new adventure`, user.id, island.id)
@@ -696,18 +777,21 @@ export class GameController {
     return { success: true }
   }
 
-  @BackendMethod({ allowed: true })
+  @BackendMethod({ allowed: true, transactional: true })
   static async buyLand(x: number, z: number) {
-    const currentUser = remult.user
-    if (!currentUser) throw new Error('Not Authenticated')
-    if (currentUser.banned) throw new Error('Banned users cannot buy land')
+    const userRole = remult.user?.roles || []
+    if (!userRole.includes(Role.USER)) throw new Error('Unauthorized')
 
-    const tileRepo = remult.repo(Tile)
+    const userRepo = remult.repo(User)
+    const currentUser = await userRepo.findId(remult.user!.id)
+    if (!currentUser) throw new Error('User not found')
+
     const islandRepo = remult.repo(Island)
-    const flowerRepo = remult.repo(UserFlower)
-
     const island = await islandRepo.findFirst({ ownerId: currentUser.id })
     if (!island) throw new Error('Island not found')
+
+    const tileRepo = remult.repo(Tile)
+    const flowerRepo = remult.repo(UserFlower)
 
     const currentCount = await tileRepo.count({ islandId: island.id })
 
@@ -743,8 +827,8 @@ export class GameController {
       islandId: island.id,
       x: x,
       z: z,
-      type: 'land',
-      createdAt: new Date(),
+      type: TileType.LAND,
+      status: TileStatus.EMPTY,
     })
 
     await LoggerService.info(
@@ -754,17 +838,27 @@ export class GameController {
       newTile.id,
     )
 
+    // Achievement
+    await AchievementService.grantAchievement(currentUser.id, 'land_owner')
+
     const { ServerEvents } = await import('../server-events')
     ServerEvents.dispatchStateUpdate(currentUser.id, 'island')
     ServerEvents.dispatchStateUpdate(currentUser.id, 'balance')
 
-    return newTile
+    return { success: true }
   }
 
   @BackendMethod({ allowed: true })
   static async getUserAchievements(targetUserId: string) {
+    const userRepo = remult.repo(User)
     const achRepo = remult.repo(Achievement)
     const userAchRepo = remult.repo(UserAchievement)
+
+    // Define active user: not banned AND at least 1 hour of screentime
+    const totalActiveUsers = await userRepo.count({
+      banned: false,
+      totalScreentimeSeconds: { $gte: 3600 }
+    })
 
     const allAchievements = await achRepo.find({
       orderBy: { rewardSap: 'asc' },
@@ -776,11 +870,33 @@ export class GameController {
 
     const unlockedMap = new Map(userUnlocked.map((ua) => [ua.achievementId, ua.unlockedAt]))
 
-    return allAchievements.map((ach) => ({
-      ...ach,
-      unlocked: unlockedMap.has(ach.id),
-      unlockedAt: unlockedMap.get(ach.id),
+    // Count how many ACTIVE users have each achievement
+    const globalStats = await Promise.all(allAchievements.map(async (ach) => {
+      // Direct count of non-banned, active users who have this achievement
+      // This is slightly inefficient but fine for this scale. 
+      // A more robust way would be a join or a aggregation, but remult find with filters is safer here.
+      const count = await userAchRepo.count({
+        achievementId: ach.id,
+        $and: [
+          { userId: { $in: await userRepo.find({ where: { banned: false, totalScreentimeSeconds: { $gte: 3600 } } }).then(users => users.map(u => u.id)) } }
+        ]
+      })
+      return { id: ach.id, count }
     }))
+    
+    const statsMap = new Map(globalStats.map(s => [s.id, s.count]))
+
+    return allAchievements.map((ach) => {
+      const unlockedByCount = statsMap.get(ach.id) || 0
+      const percent = totalActiveUsers > 0 ? Math.round((unlockedByCount / totalActiveUsers) * 100) : 0
+      
+      return {
+        ...ach,
+        unlocked: unlockedMap.has(ach.id),
+        unlockedAt: unlockedMap.get(ach.id),
+        globalUnlockPercent: percent
+      }
+    })
   }
 
   private static toFlowerDTO(flower: UserFlower, activeStats?: any): FlowerDTO {
@@ -796,6 +912,7 @@ export class GameController {
       growthSeconds: flower.growthSeconds,
       lastProcessedAt: flower.lastProcessedAt,
       isShiny: flower.isShiny,
+      drySeconds: flower.drySeconds,
       activeModifiers: activeStats || null,
       species: {
         id: species.id,
@@ -806,6 +923,7 @@ export class GameController {
         descriptionLore: species.descriptionLore,
         waterNeeds: species.waterNeeds,
         growthDuration: species.growthDuration,
+        maxDrySeconds: species.maxDrySeconds ?? 43200,
         preferredSeason: species.preferredSeason as any,
         availability: species.availability as any,
 
@@ -881,5 +999,37 @@ export class GameController {
       totalSapTraded,
       speciesCount,
     }
+  }
+
+  @BackendMethod({ allowed: true })
+  static async getInventory() {
+    if (!remult.user) throw new Error('Not authenticated')
+    const itemRepo = remult.repo(UserItem)
+    return await itemRepo.find({
+      where: { userId: remult.user.id },
+      include: { definition: true }
+    })
+  }
+
+  @BackendMethod({ allowed: true })
+  static async getLatestPatchNote() {
+    const repo = remult.repo(PatchNote)
+    return await repo.findFirst({ isPublished: true }, { orderBy: { createdAt: 'desc' } })
+  }
+
+  @BackendMethod({ allowed: true })
+  static async markPatchNoteAsSeen(patchNoteId: string) {
+    if (!remult.user) throw new Error('Not authenticated')
+    const userRepo = remult.repo(User)
+    const user = await userRepo.findId(remult.user.id)
+    if (!user) throw new Error('User not found')
+    user.lastSeenPatchNoteId = patchNoteId
+    return await userRepo.save(user)
+  }
+
+  @BackendMethod({ allowed: true })
+  static async getPatchNoteHistory() {
+    const repo = remult.repo(PatchNote)
+    return await repo.find({ where: { isPublished: true }, orderBy: { createdAt: 'desc' } })
   }
 }

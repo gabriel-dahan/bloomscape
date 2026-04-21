@@ -10,11 +10,12 @@ import {
   GlobalBank,
   GLOBAL_BANK_ID
 } from '@/shared'
-import { BackendMethod, remult } from 'remult'
+import { BackendMethod, remult, SqlDatabase } from 'remult'
 import { FlowerAvailability, FlowerRarity } from '@/shared/types'
 import { GameController } from './GameController'
 import { LoggerService } from '../services/LoggerService'
 import { LogSource } from '@/shared/analytics/SystemLog'
+import { AchievementService } from '../services/AchievementService'
 
 export interface MarketTickerItem {
   id: string
@@ -25,7 +26,7 @@ export interface MarketTickerItem {
 }
 
 export class MarketController {
-  @BackendMethod({ allowed: true })
+  @BackendMethod({ allowed: true, transactional: true })
   static async buyListing(listingId: string) {
     const user = remult.user
     if (!user) throw new Error('Not authenticated')
@@ -35,10 +36,11 @@ export class MarketController {
     const flowerRepo = remult.repo(UserFlower)
     const historyRepo = remult.repo(MarketHistory)
 
+    // Re-fetch listing inside transaction to prevent race conditions
     const listing = await listingRepo.findId(listingId, { include: { flower: true } })
-    const buyer = await userRepo.findId(user.id)
-
     if (!listing) throw new Error('This listing is no longer available.')
+
+    const buyer = await userRepo.findId(user.id)
     if (!buyer) throw new Error('Buyer account not found.')
     if (listing.sellerId === buyer.id) throw new Error('You cannot buy your own listing.')
 
@@ -49,9 +51,7 @@ export class MarketController {
     buyer.sap -= listing.price
 
     const bankRepo = remult.repo(GlobalBank)
-    
-    // Tax is 10% of the price
-    const taxAmount = Math.floor(listing.price * 0.10)
+    const taxAmount = Math.floor(listing.price * 0.1)
     const sellerRevenue = listing.price - taxAmount
 
     const seller = await userRepo.findId(listing.sellerId)
@@ -59,56 +59,51 @@ export class MarketController {
       if (seller.tag.startsWith('[deleted-')) {
         let bank = await bankRepo.findFirst()
         if (!bank) bank = await bankRepo.insert({ id: GLOBAL_BANK_ID, sap: 1000000, rubies: 0 })
-        bank.sap += listing.price // Bank receives 100% of deleted user's revenue
-        await bankRepo.save(bank)
-      } else {
-        seller.sap += sellerRevenue
-        await userRepo.save(seller)
-        
-        let bank = await bankRepo.findFirst()
-        if (!bank) bank = await bankRepo.insert({ id: GLOBAL_BANK_ID, sap: 1000000, rubies: 0 })
-        bank.sap += taxAmount
-        await bankRepo.save(bank)
-      }
-    } else {
-        // If the seller account doesn't exist, route everything to the bank
-        let bank = await bankRepo.findFirst()
-        if (!bank) bank = await bankRepo.insert({ id: GLOBAL_BANK_ID, sap: 1000000, rubies: 0 })
         bank.sap += listing.price
         await bankRepo.save(bank)
-    }
-    await userRepo.save(buyer)
-
-    if (listing.flower) {
-      listing.flower.ownerId = buyer.id
-      listing.flower.isListed = false // Unlock item
-      await flowerRepo.save(listing.flower)
-
-      if (listing.flower.speciesId) {
-        await GameController.registerDiscovery(
-          buyer.id,
-          listing.flower.speciesId,
-          listing.flower.quality,
-          DiscoverySource.MARKET,
-        )
       }
+
+      await userRepo.save(buyer)
+      if (buyer.sap >= 10000) {
+        await AchievementService.grantAchievement(buyer.id, 'rich_planter')
+      }
+
+      if (listing.flower) {
+        listing.flower.ownerId = buyer.id
+        listing.flower.isListed = false
+        await flowerRepo.save(listing.flower)
+
+        if (listing.flower.speciesId) {
+          await GameController.registerDiscovery(
+            buyer.id,
+            listing.flower.speciesId,
+            listing.flower.quality,
+            DiscoverySource.MARKET,
+          )
+        }
+      }
+
+      await historyRepo.insert({
+        speciesId: listing.flower?.speciesId || '',
+        price: listing.price,
+        soldAt: new Date(),
+      })
+
+      if (listing.flower?.speciesId) {
+        await MarketController.updateDailyStats(listing.flower.speciesId, listing.price)
+      }
+
+      await listingRepo.delete(listing)
+
+      await LoggerService.success(
+        LogSource.MARKET,
+        `Purchased market item for ${listing.price} Sap`,
+        buyer.id,
+        listing.flower?.speciesId || '',
+      )
     }
 
-    await historyRepo.insert({
-      speciesId: listing.flower?.speciesId || '',
-      price: listing.price,
-      soldAt: new Date(),
-    })
-
-    if (listing.flower?.speciesId) {
-      await MarketController.updateDailyStats(listing.flower.speciesId, listing.price)
-    }
-
-    await listingRepo.delete(listing)
-    
-    await LoggerService.success(LogSource.MARKET, `Purchased market item for ${listing.price} Sap`, buyer.id, listing.flower?.speciesId || '')
-
-    return { success: true, message: `Successfully purchased for ${listing.price} Sap!` }
+    return { success: true, message: `Successfully purchased for Sap!` }
   }
 
   @BackendMethod({ allowed: true })

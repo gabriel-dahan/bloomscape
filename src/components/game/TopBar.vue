@@ -79,7 +79,8 @@ watch(() => props.userTag, () => {
                         </div>
                         <div v-else class="h-3 w-20 bg-white/10 rounded animate-pulse mb-1 ml-auto"></div>
 
-                        <div v-if="!isLoading" class="text-[10px] text-gray-500">
+                        <div v-if="!isLoading" class="text-[10px] text-gray-500 flex items-center justify-end gap-1">
+                            <span v-if="displayedUser?.banned" class="badge badge-error badge-xs text-[8px] font-bold text-white px-1 h-3 border-none">BANNED</span>
                             Level {{ displayedUser?.level || 1 }}
                         </div>
                         <div v-else class="h-2 w-10 bg-white/10 rounded animate-pulse ml-auto"></div>

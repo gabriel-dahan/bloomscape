@@ -6,6 +6,7 @@ import { Role } from '@/shared/types';
 const props = defineProps<{
     content: string;
     roles?: Role[] | string;
+    allowImages?: boolean;
 }>();
 
 // Full renderer for Admins/Developers (still blocks images and raw HTML)
@@ -14,7 +15,12 @@ const fullMarked = new Marked({
         heading({ tokens }) {
             return `<p><strong>${this.parser.parseInline(tokens)}</strong></p>\n`;
         },
-        image() { return ''; },
+        image(href, title, text) { 
+            if (props.allowImages) {
+                return `<img src="${href}" alt="${text}" title="${title || ''}" class="max-w-full h-auto rounded-lg border border-slate-700 shadow-xl my-4" />`;
+            }
+            return ''; 
+        },
         html() { return ''; }
     }
 });

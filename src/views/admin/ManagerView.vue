@@ -6,12 +6,12 @@ import type { MenuItem } from '@/components/admin/AdminSideBar.vue'
 import AdminConfig from '@/components/admin/integrated_views/AdminConfig.vue'
 import AdminDatabase from '@/components/admin/integrated_views/AdminDatabase.vue'
 import AdminLogs from '@/components/admin/integrated_views/AdminLogs.vue'
-import AdminModeration from '@/components/admin/integrated_views/AdminModeration.vue'
 import AdminOverview from '@/components/admin/integrated_views/AdminOverview.vue'
 import AdminReports from '@/components/admin/integrated_views/AdminReports.vue'
 import AdminUsers from '@/components/admin/integrated_views/AdminUsers.vue'
 import AdminBank from '@/components/admin/integrated_views/AdminBank.vue'
 import AdminCasino from '@/components/admin/integrated_views/AdminCasino.vue'
+import AdminPatchNotes from '@/components/admin/integrated_views/AdminPatchNotes.vue'
 
 import { ref, computed } from 'vue'
 
@@ -19,14 +19,14 @@ import { ref, computed } from 'vue'
 const activeTabId = ref('OVERVIEW')
 
 const menuItems: MenuItem[] = [
-    { id: 'OVERVIEW', label: 'Stats & Analytics' },
-    { id: 'MODERATION', label: 'Moderation Queue' },
+{ id: 'OVERVIEW', label: 'Stats & Analytics' },
     { id: 'REPORTS', label: 'Player Reports' },
     { id: 'USERS', label: 'User Management' },
     { id: 'BANK', label: 'Global Bank' },
     { id: 'CASINO', label: 'Casino & Prizes' },
     { id: 'DATABASE', label: 'Database Editor' },
     { id: 'CONFIG', label: 'Game Config' },
+    { id: 'PATCHNOTES', label: 'Patch & Update' },
     { id: 'LOGS', label: 'System Logs' }
 ]
 
@@ -34,13 +34,13 @@ const menuItems: MenuItem[] = [
 const currentView = computed(() => {
     switch (activeTabId.value) {
         case 'OVERVIEW': return AdminOverview
-        case 'MODERATION': return AdminModeration
         case 'REPORTS': return AdminReports
         case 'USERS': return AdminUsers
         case 'BANK': return AdminBank
         case 'CASINO': return AdminCasino
         case 'DATABASE': return AdminDatabase
         case 'CONFIG': return AdminConfig
+        case 'PATCHNOTES': return AdminPatchNotes
         case 'LOGS': return AdminLogs
         default: return AdminOverview
     }

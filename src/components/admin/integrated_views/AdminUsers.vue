@@ -17,6 +17,18 @@ const loading = ref(false)
 const searchQuery = ref('')
 const page = ref(1)
 const pageSize = 20
+const sortField = ref<string>('createdAt')
+const sortDir = ref<'asc' | 'desc'>('desc')
+
+function toggleSort(f: keyof User) {
+    if (sortField.value === f) {
+        sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+    } else {
+        sortField.value = f
+        sortDir.value = 'desc'
+    }
+    fetchUsers()
+}
 
 // --- STATE: DRAWER / ACTIONS ---
 const selectedUser = ref<User | null>(null)
@@ -57,7 +69,7 @@ async function fetchUsers() {
             where,
             limit: pageSize,
             page: page.value,
-            orderBy: { createdAt: 'desc' }
+            orderBy: { [sortField.value]: sortDir.value }
         })
     } catch (e) {
         console.error(e)
@@ -249,11 +261,32 @@ const totalPages = computed(() => Math.ceil(totalCount.value / pageSize) || 1)
                 <table class="table table-sm w-full">
                     <thead class="bg-slate-950 text-slate-400 sticky top-0 z-10">
                         <tr>
-                            <th>User</th>
-                            <th>Info</th>
-                            <th>Economy</th>
+                            <th @click="toggleSort('tag')" class="cursor-pointer hover:bg-slate-900 transition-colors">
+                                <div class="flex items-center gap-1">
+                                    User <span v-if="sortField === 'tag'" class="text-emerald-500 font-bold ml-1 text-[10px]">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
+                                </div>
+                            </th>
+                            <th @click="toggleSort('level')" class="cursor-pointer hover:bg-slate-900 transition-colors">
+                                <div class="flex items-center gap-1">
+                                    Info <span v-if="sortField === 'level'" class="text-emerald-500 font-bold ml-1 text-[10px]">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
+                                </div>
+                            </th>
+                            <th @click="toggleSort('sap')" class="cursor-pointer hover:bg-slate-900 transition-colors">
+                                <div class="flex items-center gap-1">
+                                    Economy <span v-if="sortField === 'sap'" class="text-emerald-500 font-bold ml-1 text-[10px]">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
+                                </div>
+                            </th>
+                            <th @click="toggleSort('totalScreentimeSeconds')" class="cursor-pointer hover:bg-slate-900 transition-colors">
+                                <div class="flex items-center gap-1">
+                                    Time <span v-if="sortField === 'totalScreentimeSeconds'" class="text-emerald-500 font-bold ml-1 text-[10px]">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
+                                </div>
+                            </th>
                             <th>Roles</th>
-                            <th>Joined</th>
+                            <th @click="toggleSort('createdAt')" class="cursor-pointer hover:bg-slate-900 transition-colors">
+                                <div class="flex items-center gap-1">
+                                    Joined <span v-if="sortField === 'createdAt'" class="text-emerald-500 font-bold ml-1 text-[10px]">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
+                                </div>
+                            </th>
                             <th class="text-right">Actions</th>
                         </tr>
                     </thead>
@@ -285,9 +318,13 @@ const totalPages = computed(() => Math.ceil(totalCount.value / pageSize) || 1)
                                 </div>
                             </td>
 
-                            <td>
+                             <td>
                                 <div class="font-mono text-emerald-400">{{ user.sap }} <span
                                         class="text-xs text-slate-500">Sap</span></div>
+                            </td>
+                            
+                            <td class="text-xs text-slate-400">
+                                {{ Math.floor((user.totalScreentimeSeconds || 0) / 3600) }}h {{ Math.floor(((user.totalScreentimeSeconds || 0) % 3600) / 60) }}m
                             </td>
 
                             <td>
@@ -323,9 +360,10 @@ const totalPages = computed(() => Math.ceil(totalCount.value / pageSize) || 1)
                 class="absolute inset-y-0 right-0 w-[500px] bg-slate-900 border-l border-slate-700 shadow-2xl z-20 flex flex-col">
 
                 <div class="p-6 border-b border-slate-800 bg-slate-950 flex justify-between items-start">
-                    <div>
+                     <div>
                         <h2 class="text-xl font-bold text-white mb-1">Manage User</h2>
                         <p class="text-emerald-400 font-mono text-sm">{{ selectedUser.tag }}</p>
+                        <p class="text-[10px] text-slate-500 font-mono mt-1">Screentime: {{ Math.floor((selectedUser.totalScreentimeSeconds || 0) / 3600) }}h {{ Math.floor(((selectedUser.totalScreentimeSeconds || 0) % 3600) / 60) }}m</p>
                     </div>
                     <button @click="closeUser" class="btn btn-circle btn-sm btn-ghost">✕</button>
                 </div>

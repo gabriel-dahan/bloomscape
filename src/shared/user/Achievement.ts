@@ -16,4 +16,7 @@ export class Achievement {
 
   @Fields.integer()
   rewardSap: number = 0
+
+  @Fields.boolean()
+  isSecret: boolean = false
 }

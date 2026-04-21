@@ -21,6 +21,7 @@ export class UserController {
 
     if (currentUser) {
       currentUser.lastOnline = new Date()
+      currentUser.totalScreentimeSeconds = (currentUser.totalScreentimeSeconds || 0) + 60
       await userRepo.save(currentUser)
     }
   }

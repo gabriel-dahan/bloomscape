@@ -25,6 +25,7 @@ export interface FlowerDTO {
   growthSeconds?: number
   lastProcessedAt?: Date
   isShiny: boolean
+  drySeconds: number
   activeModifiers?: FlowerModifiersDTO | null
 
   species: {
@@ -36,6 +37,7 @@ export interface FlowerDTO {
     descriptionLore?: string
     waterNeeds: string
     growthDuration: number
+    maxDrySeconds: number
     preferredSeason: string | null
     availability: FlowerAvailability
 

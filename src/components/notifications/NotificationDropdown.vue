@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { useSocketStore } from '@/stores/socket'
-import MailIcon from '../icons/MailIcon.vue'
 import { UserNotification } from '@/shared/user/UserNotification'
+import PixelImageViewer from '../icons/PixelImageViewer.vue'
 
 const socketStore = useSocketStore()
 const isOpen = ref(false)
@@ -147,9 +147,9 @@ function formatTime(date: Date) {
 <template>
     <div ref="containerRef" class="relative inline-block text-left z-50">
         <button @click.stop="toggle"
-            class="relative p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors focus:outline-none">
-            <MailIcon class="w-5 h-5" />
-            <span v-if="socketStore.unreadCount > 0" class="absolute top-1 right-1 flex h-3 w-3">
+            class="relative p-1 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors focus:outline-none">
+            <PixelImageViewer src="/mailbox.png" width="20px" height="20px" />
+            <span v-if="socketStore.unreadCount > 0" class="absolute top-0 right-0 flex h-3 w-3">
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                 <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
             </span>

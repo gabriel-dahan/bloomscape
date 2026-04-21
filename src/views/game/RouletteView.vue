@@ -98,8 +98,9 @@ async function loadData() {
         dailyState.value = await RouletteController.getDailyState();
         brRecentResults.value = await RouletteController.getRecentCasinoResults('BlackAndRed');
         await auth.fetchSessionUser();
-    } catch (e) {
+    } catch (e: any) {
         console.error(e);
+        alert("Casino Error: " + e.message);
     } finally {
         isLoading.value = false;
     }
@@ -204,8 +205,9 @@ async function buyCoins() {
 
 function getLimitText(p: any) {
     if (p.dailyLimit === -1) return "Unlimited";
-    if (!dailyState.value?.prizesRemaining) return "Loading...";
-    return (dailyState.value.prizesRemaining[p.id] ?? p.dailyLimit) + " remaining today";
+    if (!dailyState.value) return "Loading...";
+    const remaining = dailyState.value.prizesRemaining?.[p.id];
+    return (remaining ?? p.dailyLimit) + " remaining today";
 }
 
 function getPrizeImage(p: any) {

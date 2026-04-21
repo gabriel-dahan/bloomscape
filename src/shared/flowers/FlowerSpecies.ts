@@ -8,7 +8,7 @@ import {
 } from '../types'
 import type { FlowerAttributes } from '../types'
 
-@Entity('flower_species', { allowApiCrud: 'admin' })
+@Entity('flower_species', { allowApiCrud: 'admin', allowApiRead: true })
 export class FlowerSpecies {
   @Fields.uuid()
   id!: string
@@ -51,4 +51,7 @@ export class FlowerSpecies {
 
   @Fields.string()
   waterNeeds: FlowerWaterConsumption = FlowerWaterConsumption.NORMAL
+
+  @Fields.integer()
+  maxDrySeconds: number = 43200 // 12 Hours
 }

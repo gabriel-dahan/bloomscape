@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { GameController } from '@/server/controllers/GameController'
 import { DiscoverySource, FlowerAvailability, FlowerRarity } from '@/shared/types'
 import FlowerImage from '@/components/FlowerImage.vue'
+import PixelatedImage from '@/components/icons/PixelImageViewer.vue'
 
 // Updated Interface
 interface FloradexEntry {
@@ -16,7 +17,7 @@ interface FloradexEntry {
     discoverySource?: typeof DiscoverySource[keyof typeof DiscoverySource]
     availability?: FlowerAvailability
     initialQuality?: number
-    family?: { id: string, name: string }
+    family?: { id: string, name: string, color?: string }
     attributes?: any
 }
 
@@ -25,6 +26,16 @@ const isLoading = ref(true)
 const searchQuery = ref('')
 const sortOption = ref<'RARITY_DESC' | 'RARITY_ASC' | 'NAME_ASC' | 'DISCOVERED' | 'DATE_DESC'>('RARITY_DESC')
 const groupByFamily = ref(false)
+const collapsedFamilies = ref<Set<string>>(new Set(JSON.parse(localStorage.getItem('floradex_collapsed') || '[]')))
+
+const toggleFamily = (name: string) => {
+    if (collapsedFamilies.value.has(name)) {
+        collapsedFamilies.value.delete(name)
+    } else {
+        collapsedFamilies.value.add(name)
+    }
+    localStorage.setItem('floradex_collapsed', JSON.stringify([...collapsedFamilies.value]))
+}
 
 const RARITY_WEIGHT: Record<string, number> = {
     'LEGENDARY': 5,
@@ -87,10 +98,20 @@ const groupedFloradex = computed(() => {
         if (a === 'No family') return 1;
         if (b === 'No family') return -1;
         return a.localeCompare(b);
-    }).map(key => ({
-        name: key,
-        items: groups[key]
-    }))
+    }).map(key => {
+        const firstWithFamily = groups[key].find(f => f.family);
+        const color = firstWithFamily?.family?.color || '#334155';
+        const totalCount = groups[key].length;
+        const discoveredCount = groups[key].filter(f => f.discovered).length;
+
+        return {
+            name: key,
+            items: groups[key],
+            color,
+            totalCount,
+            discoveredCount
+        }
+    })
 })
 
 const fetchFloradex = async () => {
@@ -229,13 +250,28 @@ const getAvailabilityDescription = (availability?: string) => {
                 <!-- Render when Group by Family is Active -->
                 <div v-if="groupByFamily" class="space-y-12">
                     <div v-for="group in groupedFloradex" :key="group.name">
-                        <h2
-                            class="text-2xl font-bold text-white mb-6 pb-2 border-b border-slate-800 flex items-center gap-2">
-                            <span class="text-emerald-500">❖</span>
-                            {{ group.name }}
+                        <h2 @click="toggleFamily(group.name)"
+                            class="text-xl font-bold text-white mb-6 pb-2 border-b flex items-center gap-3 cursor-pointer select-none transition-all group/header h-12"
+                            :style="{ borderColor: group.color + '44' }">
+                            <span class="text-xl transition-transform duration-300"
+                                :class="{ '-rotate-90 opacity-40': collapsedFamilies.has(group.name) }"
+                                :style="{ color: group.color }">
+                                ❖
+                            </span>
+                            <span class="flex-1 flex items-baseline gap-3">
+                                {{ group.name }}
+                                <span class="text-[10px] sm:text-xs font-mono font-medium px-2 py-0.5 rounded-full bg-slate-900/80 border border-white/5"
+                                    :style="{ color: group.color }">
+                                    {{ group.discoveredCount }} / {{ group.totalCount }}
+                                </span>
+                            </span>
+                            <span class="text-[10px] text-slate-500 uppercase tracking-widest opacity-0 group-hover/header:opacity-100 transition-opacity">
+                                {{ collapsedFamilies.has(group.name) ? 'Expand' : 'Collapse' }}
+                            </span>
                         </h2>
 
-                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                        <div v-show="!collapsedFamilies.has(group.name)"
+                            class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 transition-all">
                             <div v-for="flower in group.items" :key="flower.id"
                                 class="group relative bg-slate-900 rounded-xl border overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
                                 :class="flower.discovered ? getRarityBg(flower.rarity) + ' ' + getRarityColor(flower.rarity) : 'border-slate-800 bg-slate-900'">
@@ -258,7 +294,7 @@ const getAvailabilityDescription = (availability?: string) => {
                                         class="absolute inset-0 flex items-center justify-center pointer-events-none">
                                         <div
                                             class="w-10 h-10 rounded-full bg-slate-800/80 backdrop-blur flex items-center justify-center text-slate-500 border border-slate-700">
-                                            🔒
+                                            <PixelatedImage src="/lock.png" width="20px" height="20px" class="opacity-80" />
                                         </div>
                                     </div>
                                 </div>
@@ -337,7 +373,7 @@ const getAvailabilityDescription = (availability?: string) => {
                                 class="absolute inset-0 flex items-center justify-center pointer-events-none">
                                 <div
                                     class="w-10 h-10 rounded-full bg-slate-800/80 backdrop-blur flex items-center justify-center text-slate-500 border border-slate-700">
-                                    🔒
+                                    <PixelatedImage src="/lock.png" width="20px" height="20px" class="opacity-80" />
                                 </div>
                             </div>
                         </div>
@@ -395,8 +431,8 @@ const getAvailabilityDescription = (availability?: string) => {
                         </div>
                         <div class="relative z-10 transform transition-transform group-hover:scale-110 duration-500">
                             <div
-                                class="text-6xl mb-4 opacity-30 group-hover:opacity-100 transition-opacity filter blur-[1px] group-hover:blur-0">
-                                🧬
+                                class="mb-4 opacity-30 group-hover:opacity-100 transition-opacity">
+                                <PixelatedImage src="/dna.png" width="96px" height="96px" class="mx-auto" />
                             </div>
                         </div>
                         <div class="relative z-10">

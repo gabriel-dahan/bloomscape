@@ -12,7 +12,9 @@ import TileManagerInModal from '@/components/game/modal_features/TileManagerInMo
 import { ROUTES_ENUM as ROUTES } from '@/routes/routes_enum';
 import GameSoundtrack from '@/components/game/sound/GameSoundtrack.vue';
 import TutorialWizard from '@/components/game/TutorialWizard.vue';
+import PatchNoteModal from '@/components/game/modal_features/PatchNoteModal.vue';
 import { GameController } from '@/server/controllers/GameController';
+import { UserController } from '@/server/controllers/UserController';
 
 const gameStore = useGameStore();
 const auth = useAuthStore();
@@ -231,6 +233,19 @@ onMounted(async () => {
         watch(() => gameStore.currentIsland, (island) => {
             if (island) openTileManager(0, 0);
         }, { immediate: true });
+    }
+
+    // Check for Patch Notes (Only for non-tutorial users to avoid overlap)
+    if (!auth.user?.isFirstTimeUser) {
+        const latestNote = await GameController.getLatestPatchNote() as any;
+        if (latestNote && auth.user && auth.user.lastSeenPatchNoteId !== latestNote.id) {
+            useModalStore().open({
+                title: '',
+                component: markRaw(PatchNoteModal),
+                size: 'medium',
+                props: { initialNote: latestNote }
+            });
+        }
     }
 });
 

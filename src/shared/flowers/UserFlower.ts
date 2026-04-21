@@ -41,6 +41,9 @@ export class UserFlower {
   @Fields.date()
   lastProcessedAt?: Date
 
+  @Fields.number()
+  drySeconds: number = 0
+
   @Fields.boolean()
   isShiny: boolean = false
 

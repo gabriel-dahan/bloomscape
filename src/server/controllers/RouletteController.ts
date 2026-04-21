@@ -1,4 +1,4 @@
-import { BackendMethod, remult } from 'remult'
+import { BackendMethod, remult, SqlDatabase } from 'remult'
 import { DailyRouletteState } from '@/shared/economy/DailyRouletteState'
 import { User } from '@/shared/user/User'
 import { GlobalBank, GLOBAL_BANK_ID } from '@/shared/economy/GlobalBank'
@@ -6,6 +6,7 @@ import { UserFlower } from '@/shared/flowers/UserFlower'
 import { FlowerSpecies } from '@/shared/flowers/FlowerSpecies'
 import { RoulettePrize } from '@/shared/economy/RoulettePrize'
 import { CasinoGameResult } from '@/shared/economy/CasinoGameResult'
+import { AchievementService } from '../services/AchievementService'
 
 export function getTodayUtcString() {
   return new Date().toISOString().substring(0, 10)
@@ -40,8 +41,9 @@ export class RouletteController {
     const prizeRepo = remult.repo(RoulettePrize)
     
     let state = await stateRepo.findId(today)
+    const allPrizes = await prizeRepo.find()
+
     if (!state) {
-      const allPrizes = await prizeRepo.find()
       const initialPrizes: Record<string, number> = {}
       for (const p of allPrizes) {
         if (p.dailyLimit > 0) {
@@ -49,12 +51,32 @@ export class RouletteController {
         }
       }
       state = await stateRepo.insert({ id: today, prizesRemaining: initialPrizes })
+    } else {
+      // Sync missing prizes if any (robustness)
+      let changed = false
+      if (!state.prizesRemaining) {
+        state.prizesRemaining = {}
+        changed = true
+      }
+      for (const p of allPrizes) {
+        if (p.dailyLimit > 0 && state.prizesRemaining[p.id] === undefined) {
+          state.prizesRemaining[p.id] = p.dailyLimit
+          changed = true
+        }
+      }
+      if (changed) {
+        try {
+          await stateRepo.save(state)
+        } catch (e) {
+          console.error("[Roulette] Non-admin sync skip:", e)
+        }
+      }
     }
     
-    return state
+    return stateRepo.toJson(state)
   }
 
-  @BackendMethod({ allowed: true })
+  @BackendMethod({ allowed: true, transactional: true })
   static async playPrizesRoulette() {
     if (!remult.user) throw new Error("Not logged in")
     const today = getTodayUtcString()
@@ -125,6 +147,9 @@ export class RouletteController {
       }
     }
 
+    // Increment tracking
+    currentUser.totalRoulettePlays = (currentUser.totalRoulettePlays || 0) + 1
+
     // Apply prize
     if (wonPrize.dailyLimit > 0) {
       state.prizesRemaining[wonPrize.id] -= 1
@@ -133,126 +158,130 @@ export class RouletteController {
 
     if (wonPrize.type === 'SAP') {
       currentUser.sap += wonPrize.amount
+      if (currentUser.sap >= 10000) {
+        await AchievementService.grantAchievement(currentUser.id, 'rich_planter')
+      }
     } else if (wonPrize.type === 'RUBY') {
       currentUser.rubies += wonPrize.amount
-    } else if (wonPrize.type === 'TOKEN') {
-      currentUser.rouletteCoins += wonPrize.amount
     } else if (wonPrize.type === 'FLOWER') {
-      currentUser.pityCounter = 0 // Reset pity
+      // Reset pity on flower win
+      currentUser.pityCounter = 0
+      
+      const flowerRepo = remult.repo(UserFlower)
       const speciesRepo = remult.repo(FlowerSpecies)
-      const species = await speciesRepo.findFirst({ slugName: wonPrize.value })
+      const species = await speciesRepo.findId(wonPrize.flowerSpeciesId!)
+      
       if (species) {
-        const ufRepo = remult.repo(UserFlower)
-        await ufRepo.insert({
+        await flowerRepo.insert({
           ownerId: currentUser.id,
-          speciesId: species.id
+          species: species,
+          status: FlowerStatus.SEED,
+          quality: wonPrize.flowerQuality || 10,
+          isShiny: Math.random() < 0.05
         })
       }
     }
 
     await userRepo.save(currentUser)
 
-    return {
-      success: true,
+    // Log result
+    const resultRepo = remult.repo(CasinoGameResult)
+    await resultRepo.insert({
+      userId: currentUser.id,
+      game: 'DAILY_ROULETTE',
       prizeId: wonPrize.id,
+      prizeName: wonPrize.name,
       prizeType: wonPrize.type,
       prizeAmount: wonPrize.amount,
-      prizeValue: wonPrize.value,
-      isFree: isFree,
-      userBalances: {
-        sap: currentUser.sap,
-        rubies: currentUser.rubies,
-        rouletteCoins: currentUser.rouletteCoins,
-        dailyPlays: currentUser.dailyRoulettePlays
-      }
+      createdAt: new Date()
+    })
+
+    // Achievements
+    await AchievementService.grantAchievement(currentUser.id, 'casino_player')
+
+    return {
+      success: true,
+      prize: wonPrize,
+      pityCounter: currentUser.pityCounter
     }
   }
 
-  @BackendMethod({ allowed: true })
-  static async playBlackAndRed(betAmount: number, color: 'red' | 'black') {
+  @BackendMethod({ allowed: true, transactional: true })
+  static async playBlackAndRed(betAmount: number, betColor: 'red' | 'black') {
     if (!remult.user) throw new Error("Not logged in")
     if (betAmount <= 0) throw new Error("Invalid bet amount")
     if (!Number.isInteger(betAmount)) throw new Error("Bet amount must be an integer")
     if (betAmount > 10) throw new Error("Maximum bet is 10 coins")
-    if (color !== 'red' && color !== 'black') throw new Error("Invalid color")
 
     const userRepo = remult.repo(User)
     let currentUser = await userRepo.findId(remult.user.id)
     if (!currentUser) throw new Error("User not found")
 
-    if (currentUser.rouletteCoins < betAmount) {
-      throw new Error("Insufficient Roulette Coins")
-    }
+    if (currentUser.sap < betAmount) throw new Error("Insufficient Sap")
 
-    // Determine result (50/50 chance to be red or black)
-    const isRed = Math.random() < 0.5
-    const won = (isRed && color === 'red') || (!isRed && color === 'black')
-    const resultColor = isRed ? 'red' : 'black'
-
-    const bankRepo = remult.repo(GlobalBank)
-    let bank = await bankRepo.findFirst()
-    if (!bank) bank = await bankRepo.insert({ id: GLOBAL_BANK_ID, sap: 100000, rubies: 0, rouletteCoins: 0 })
-
+    const winningColor = Math.random() < 0.5 ? 'red' : 'black'
+    const won = winningColor === betColor
+    
     if (won) {
-      currentUser.rouletteCoins += betAmount
-      bank.rouletteCoins -= betAmount
+      currentUser.sap += betAmount
     } else {
-      currentUser.rouletteCoins -= betAmount
-      bank.rouletteCoins += betAmount
+      currentUser.sap -= betAmount
+    }
+    
+    await userRepo.save(currentUser)
+
+    if (!won) {
+      const bankRepo = remult.repo(GlobalBank)
+      let bank = await bankRepo.findFirst()
+      if (!bank) bank = await bankRepo.insert({ id: GLOBAL_BANK_ID, sap: 100000, rubies: 0, rouletteCoins: 0 })
+      bank.sap += betAmount
+      await bankRepo.save(bank)
     }
 
     const resultRepo = remult.repo(CasinoGameResult)
     await resultRepo.insert({
       userId: currentUser.id,
-      userTag: currentUser.tag,
-      game: 'BlackAndRed',
-      betAmount: betAmount,
-      winAmount: won ? betAmount * 2 : 0,
-      won: won,
-      resultPayload: resultColor
+      game: 'BLACK_AND_RED',
+      prizeName: won ? 'WIN' : 'LOSS',
+      prizeType: 'SAP',
+      prizeAmount: won ? betAmount : -betAmount,
+      createdAt: new Date()
     })
 
-    await userRepo.save(currentUser)
-    await bankRepo.save(bank)
+    await AchievementService.grantAchievement(currentUser.id, 'casino_player')
 
     return {
+      success: true,
       won,
-      resultColor,
-      newBalance: currentUser.rouletteCoins
+      winningColor,
+      newSap: currentUser.sap
     }
   }
 
-  @BackendMethod({ allowed: true })
-  static async buyRouletteCoins(coinAmount: number) {
+  @BackendMethod({ allowed: true, transactional: true })
+  static async buyRouletteCoins(amount: number) {
     if (!remult.user) throw new Error("Not logged in")
-    if (coinAmount <= 0) throw new Error("Invalid amount")
-    if (!Number.isInteger(coinAmount)) throw new Error("Amount must be an integer")
+    if (amount <= 0) throw new Error("Invalid amount")
+    if (!Number.isInteger(amount)) throw new Error("Amount must be an integer")
 
-    const rubyCost = coinAmount * 10
+    const cost = amount * 10
     
     const userRepo = remult.repo(User)
     let currentUser = await userRepo.findId(remult.user.id)
     if (!currentUser) throw new Error("User not found")
 
-    if (currentUser.rubies < rubyCost) {
-      throw new Error("Insufficient Rubies")
-    }
+    if (currentUser.sap < cost) throw new Error("Insufficient Sap")
 
-    currentUser.rubies -= rubyCost
-    currentUser.rouletteCoins += coinAmount
+    currentUser.sap -= cost
+    currentUser.rouletteCoins += amount
+    await userRepo.save(currentUser)
 
     const bankRepo = remult.repo(GlobalBank)
     let bank = await bankRepo.findFirst()
     if (!bank) bank = await bankRepo.insert({ id: GLOBAL_BANK_ID, sap: 100000, rubies: 0, rouletteCoins: 0 })
-
-    bank.rubies += rubyCost
+    bank.sap += cost
     await bankRepo.save(bank)
-    await userRepo.save(currentUser)
 
-    return {
-      success: true,
-      newRubyBalance: currentUser.rubies,
-      newCoinBalance: currentUser.rouletteCoins
-    }
+    return { success: true, newSap: currentUser.sap, newCoins: currentUser.rouletteCoins }
   }
 }

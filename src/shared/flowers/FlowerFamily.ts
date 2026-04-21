@@ -10,4 +10,7 @@ export class FlowerFamily {
 
   @Fields.string()
   description: string = ''
+
+  @Fields.string()
+  color: string = '#10b981'
 }

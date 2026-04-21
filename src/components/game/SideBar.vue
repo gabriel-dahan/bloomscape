@@ -12,6 +12,8 @@ import { useModalStore } from '@/stores/modal';
 import { router } from '@/routes';
 import MarketInModal from './modal_features/MarketInModal.vue';
 import InventoryInModal from './modal_features/InventoryInModal.vue';
+import AchievementsInModal from './modal_features/AchievementsInModal.vue';
+import TrophyIcon from '../icons/navbar/TrophyIcon.vue';
 import { useBreakpoints } from '@/stores/breakpoints';
 import { useWindowSize, onClickOutside } from '@vueuse/core' // Added this import
 import { useGameStore } from '@/stores/game'; // Added this import
@@ -61,6 +63,20 @@ const navigationArray = [
                 component: InventoryInModal,
                 size: 'fullscreen',
                 path: ROUTES.INVENTORY.path,
+                sideBarMargin: true,
+            })
+        }
+    },
+    {
+        name: 'Achievements', icon: TrophyIcon,
+        action: () => {
+            if (uiStore.isSidebarOpen) uiStore.closeSidebar();
+            const modal = useModalStore();
+            modal.open({
+                title: 'Achievements',
+                component: AchievementsInModal,
+                size: 'fullscreen',
+                path: ROUTES.ACHIEVEMENTS.path,
                 sideBarMargin: true,
             })
         }
